@@ -11,22 +11,25 @@ dc_podlist = \
 		 NAL_ADDRESS_new.pod NAL_CONNECTION_new.pod NAL_LISTENER_new.pod \
 		 NAL_SELECTOR_new.pod NAL_BUFFER_new.pod NAL_decode_uint32.pod \
 		 distcache.pod
-# Keep this maintained by copying the manpagelist and running s/[0-9]/html/g
-dc_htmllist = \
-		 dc_server.html dc_client.html dc_snoop.html dc_test.html \
-		 DC_PLUG_new.html DC_PLUG_read.html DC_CTX_new.html \
-		 NAL_ADDRESS_new.html NAL_CONNECTION_new.html NAL_LISTENER_new.html \
-		 NAL_SELECTOR_new.html NAL_BUFFER_new.html NAL_decode_uint32.html \
-		 distcache.html
-
-EXTRA_DIST = $(dc_manpagelist) $(dc_htmllist) $(dc_podlist)
+# FIXME: Disabling HTML builds for now because the resulting HTML seems too
+# confused to be of much use, better to encourage the man pages.
+## Keep this maintained by copying the manpagelist and running s/[0-9]/html/g
+#dc_htmllist = \
+#		 dc_server.html dc_client.html dc_snoop.html dc_test.html \
+#		 DC_PLUG_new.html DC_PLUG_read.html DC_CTX_new.html \
+#		 NAL_ADDRESS_new.html NAL_CONNECTION_new.html NAL_LISTENER_new.html \
+#		 NAL_SELECTOR_new.html NAL_BUFFER_new.html NAL_decode_uint32.html \
+#		 distcache.html
+#
+#EXTRA_DIST = $(dc_manpagelist) $(dc_htmllist) $(dc_podlist)
+EXTRA_DIST = $(dc_manpagelist) $(dc_podlist)
 
 CLEANFILES = *.1 *.2 *.8 *.html
 
 man_MANS = $(dc_manpagelist)
 
 docdir = $(datadir)/doc/distcache
-doc_DATA = $(dc_htmllist)
+#doc_DATA = $(dc_htmllist)
 
 SUFFIXES = .pod .1 .2 .8 .html
 
@@ -42,7 +45,7 @@ SUFFIXES = .pod .1 .2 .8 .html
 	pod2man --section=8 --release=$(VERSION) --center=distcache --date=`date +%Y.%m.%d` \
 	$< $@
 
-.pod.html:
-	pod2html --infile=$< --outfile=$@ --title distcache.8
-	rm -f pod2htmd.x~~ pod2htmi.x~~
-
+#.pod.html:
+#	pod2html --infile=$< --outfile=$@ --title distcache.8
+#	rm -f pod2htmd.x~~ pod2htmi.x~~
+#

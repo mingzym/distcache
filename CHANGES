@@ -19,6 +19,12 @@ Current version: x.x
 Changes between 0.4pre1 and x.x
 -------------------------------
 
+  *) Documentation no longer builds or installs HTML files by default. These
+     seem to have grief with cross-links and aren't much use. If someone
+     decides to work on that at some point, we can always link it back in - but
+     for the mean time the man pages provide the better format.
+     [Geoff Thorpe]
+
   *) Many libnal functions had a return value merely to allow soft failure if a
      required parameter was NULL. This policy has been changed as a hard
      failure is guaranteed in such circumstances anyway and easier to diagnose
