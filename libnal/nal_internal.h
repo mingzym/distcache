@@ -24,9 +24,9 @@
 	#error "Must include libsys/pre.h prior to libnal/nal.h"
 #endif
 
-#ifndef HEADER_LIBNAL_NAL_H
-	#error "Must include libnal/nal.h prior to libnal/nal_internal.h"
-#endif
+/* All our internal code will require the nal_devel.h header anyway, so include
+ * it here. */
+#include <libnal/nal_devel.h>
 
 /* Utility functions and types used inside libnal. Eventually these should be
  * hidden from API functions (only protocol implementations should require
@@ -87,92 +87,13 @@ int nal_sock_listen(int fd, const nal_sockaddr *addr);
 int nal_sock_accept(int listen_fd, int *conn);
 int nal_sock_is_connected(int fd);
 
-/******************/
-/* NAL_CONNECTION */
-/******************/
+/* Some vtable-manipulation functions required by the API implementation but
+ * not required by implementors. */
 
-typedef struct st_NAL_CONNECTION_vtable {
-	/* The size of "vtdata" the NAL_CONNECTION should provide */
-	size_t vtdata_size;
-	/* constructor after NAL_ADDRESS_vtable->create_connection() */
-	int (*on_create)(NAL_CONNECTION *conn, const NAL_ADDRESS *addr);
-	/* constructor after NAL_LISTENER_vtable->do_accept() */
-	int (*on_accept)(NAL_CONNECTION *conn, const NAL_LISTENER *l);
-	/* destructor */
-	void (*on_destroy)(NAL_CONNECTION *conn);
-	/* passive destructor */
-	void (*on_reset)(NAL_CONNECTION *conn);
-	/* Handlers for NAL_CONNECTION functionality */
-	int (*set_size)(NAL_CONNECTION *conn, unsigned int size);
-	NAL_BUFFER *(*get_read)(const NAL_CONNECTION *conn);
-	NAL_BUFFER *(*get_send)(const NAL_CONNECTION *conn);
-	int (*is_established)(const NAL_CONNECTION *conn);
-	int (*do_io)(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-			unsigned int max_read, unsigned int max_send);
-	void (*selector_add)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
-	void (*selector_del)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
-} NAL_CONNECTION_vtable;
-void *nal_connection_get_vtdata(const NAL_CONNECTION *conn);
-const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *conn);
-
-/****************/
-/* NAL_LISTENER */
-/****************/
-
-typedef struct st_NAL_LISTENER_vtable {
-	/* The size of "vtdata" the NAL_CONNECTION should provide */
-	size_t vtdata_size;
-	/* constructor/destructor/passive-destructor */
-	int (*on_create)(NAL_LISTENER *l, const NAL_ADDRESS *addr);
-	void (*on_destroy)(NAL_LISTENER *l);
-	void (*on_reset)(NAL_LISTENER *l);
-	/* Handlers for NAL_LISTENER functionality */
-	const NAL_CONNECTION_vtable *(*do_accept)(NAL_LISTENER *l,
-						NAL_SELECTOR *sel);
-	void (*selector_add)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
-	void (*selector_del)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
-} NAL_LISTENER_vtable;
-void *nal_listener_get_vtdata(const NAL_LISTENER *l);
-const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *l);
 const NAL_CONNECTION_vtable *nal_listener_accept_connection(NAL_LISTENER *l,
 							NAL_SELECTOR *sel);
-
-/***************/
-/* NAL_ADDRESS */
-/***************/
-
-typedef struct st_NAL_ADDRESS_vtable {
-	/* As we have a global list of available types, this gives namespace */
-	const char *unique_name;
-	/* The size of "vtdata" the NAL_CONNECTION should provide */
-	size_t vtdata_size;
-	/* NULL-terminated array of string prefixes that correspond to this
-	 * vtable. Should include trailing colon. */
-	const char **prefixes;
-	/* constructor/destructor/passive-destructor */
-	int (*on_create)(NAL_ADDRESS *addr, const char *addr_string);
-	void (*on_destroy)(NAL_ADDRESS *addr);
-	void (*on_reset)(NAL_ADDRESS *addr);
-	/* Handlers for NAL_ADDRESS functionality */
-	int (*can_connect)(const NAL_ADDRESS *addr);
-	int (*can_listen)(const NAL_ADDRESS *addr);
-	const NAL_LISTENER_vtable *(*create_listener)(const NAL_ADDRESS *addr);
-	const NAL_CONNECTION_vtable *(*create_connection)(const NAL_ADDRESS *addr);
-	struct st_NAL_ADDRESS_vtable *next;
-} NAL_ADDRESS_vtable;
-void *nal_address_get_vtdata(const NAL_ADDRESS *addr);
-const NAL_ADDRESS_vtable *nal_address_get_vtable(const NAL_ADDRESS *addr);
 const NAL_LISTENER_vtable *nal_address_get_listener(const NAL_ADDRESS *addr);
 const NAL_CONNECTION_vtable *nal_address_get_connection(const NAL_ADDRESS *addr);
-
-/***************************/
-/* Builtin address vtables */
-/***************************/
-
-/* Returns the (linked-list of) address types currently available. */
-const NAL_ADDRESS_vtable *NAL_ADDRESS_vtable_builtins(void);
-/* Links in one or more new address types making them immediately available. */
-void NAL_ADDRESS_vtable_link(NAL_ADDRESS_vtable *vt);
 
 /**************/
 /* NAL_BUFFER */
@@ -189,20 +110,5 @@ void NAL_ADDRESS_vtable_link(NAL_ADDRESS_vtable *vt);
  * make sure the other code isn't too loose. */
 #define NAL_BUFFER_MAX_SIZE  32768
 #define nal_check_buffer_size(sz) (((sz) > NAL_BUFFER_MAX_SIZE) ? 0 : 1)
-
-/****************/
-/* NAL_SELECTOR */
-/****************/
-
-#define SELECTOR_FLAG_READ	0x01
-#define SELECTOR_FLAG_SEND	0x02
-#define SELECTOR_FLAG_EXCEPT	0x04
-
-/* set/unset operate on "to_select */
-void nal_selector_fd_set(NAL_SELECTOR *sel, int fd, unsigned char flags);
-void nal_selector_fd_unset(NAL_SELECTOR *sel, int fd);
-/* test/clear operate on "last_selected" */
-unsigned char nal_selector_fd_test(const NAL_SELECTOR *sel, int fd);
-void nal_selector_fd_clear(NAL_SELECTOR *sel, int fd);
 
 #endif /* !defined(HEADER_PRIVATE_NAL_INTERNAL_H) */

@@ -19,6 +19,11 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Created a new exported header, <libnal/nal_devel.h>, containing elements
+     split out from libnal's own nal_internal.h header. This header can be used
+     to implement additional network abstraction types.
+     [Geoff Thorpe]
+
   *) Allow NAL_ADDRESS_vtable implementations to register themeselves with the
      libnal core so they become automatically available to applications via
      their string syntax. As with the builtin (IPv4/UNIX) vtable
