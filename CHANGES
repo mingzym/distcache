@@ -19,6 +19,14 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Add "pre_close" handlers to the libnal vtable types to allow
+     implementations to perform actions prior to being destroyed or reset.
+     Their existing "on_destroy" and "on_reset" handlers are invoked during
+     cleanup so can't assume that data outside their control hasn't been
+     changed (eg. the relationship between listeners or connections and a
+     selector).
+     [Geoff Thorpe]
+
   *) Add a NAL_SELECTOR_num_objects() API function (and corresponding vtable
      entry) to have selectors report how many listeners/connections are
      attached. Eventually, programs should use this as a safe termination

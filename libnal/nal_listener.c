@@ -66,6 +66,9 @@ int nal_listener_set_vtable(NAL_LISTENER *a, const NAL_LISTENER_vtable *vtable)
 {
 	/* Are we already mapped? */
 	if(a->vt) {
+		/* Notify the current vtable */
+		if(a->vt->pre_close)
+			a->vt->pre_close(a);
 		/* Unmap the current usage */
 		if(a->sel) NAL_LISTENER_del_from_selector(a);
 		a->vt->on_reset(a);
@@ -147,6 +150,7 @@ NAL_LISTENER *NAL_LISTENER_new(void)
 
 void NAL_LISTENER_free(NAL_LISTENER *list)
 {
+	if(list->vt && list->vt->pre_close) list->vt->pre_close(list);
 	if(list->sel) NAL_LISTENER_del_from_selector(list);
 	if(list->vt) list->vt->on_destroy(list);
 	else if(list->reset) list->reset->on_destroy(list);
@@ -156,6 +160,7 @@ void NAL_LISTENER_free(NAL_LISTENER *list)
 
 void NAL_LISTENER_reset(NAL_LISTENER *list)
 {
+	if(list->vt && list->vt->pre_close) list->vt->pre_close(list);
 	if(list->sel) NAL_LISTENER_del_from_selector(list);
 	if(list->vt) {
 		list->vt->on_reset(list);

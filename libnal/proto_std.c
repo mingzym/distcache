@@ -48,6 +48,7 @@ NAL_ADDRESS_vtable builtin_sock_addr_vtable = {
 	addr_on_create,
 	addr_on_destroy,
 	addr_on_destroy, /* destroy==reset */
+	NULL, /* pre_close */
 	addr_parse,
 	addr_can_connect,
 	addr_can_listen,
@@ -79,12 +80,13 @@ static const NAL_LISTENER_vtable list_vtable = {
 	list_on_create,
 	list_on_destroy,
 	list_on_destroy, /* destroy==reset */
+	NULL, /* pre_close */
 	list_listen,
 	list_pre_accept,
 	list_finished,
 	list_pre_selector_add,
-	NULL,
-	NULL,
+	NULL, /* post_selector_add */
+	NULL, /* pre_selector_del */
 	list_post_selector_del,
 	list_pre_select,
 	list_post_select,
@@ -119,6 +121,7 @@ static const NAL_CONNECTION_vtable conn_vtable = {
 	conn_on_create,
 	conn_on_destroy,
 	conn_on_reset,
+	NULL, /* pre_close */
 	conn_connect,
 	conn_accept,
 	conn_set_size,
@@ -126,8 +129,8 @@ static const NAL_CONNECTION_vtable conn_vtable = {
 	conn_get_send,
 	conn_is_established,
 	conn_pre_selector_add,
-	NULL,
-	NULL,
+	NULL, /* post_selector_add */
+	NULL, /* pre_selector_del */
 	conn_post_selector_del,
 	conn_pre_select,
 	conn_post_select,

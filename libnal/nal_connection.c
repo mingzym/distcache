@@ -48,6 +48,9 @@ int nal_connection_set_vtable(NAL_CONNECTION *a, const NAL_CONNECTION_vtable *vt
 {
 	/* Are we already mapped? */
 	if(a->vt) {
+		/* Notify the current vtable */
+		if(a->vt->pre_close)
+			a->vt->pre_close(a);
 		/* Unmap the current usage */
 		if(a->sel) NAL_CONNECTION_del_from_selector(a);
 		a->vt->on_reset(a);
@@ -122,6 +125,7 @@ NAL_CONNECTION *NAL_CONNECTION_new(void)
 
 void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 {
+	if(conn->vt && conn->vt->pre_close) conn->vt->pre_close(conn);
 	if(conn->sel) NAL_CONNECTION_del_from_selector(conn);
 	if(conn->vt) conn->vt->on_destroy(conn);
 	else if(conn->reset) conn->reset->on_destroy(conn);
@@ -131,6 +135,7 @@ void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 
 void NAL_CONNECTION_reset(NAL_CONNECTION *conn)
 {
+	if(conn->vt && conn->vt->pre_close) conn->vt->pre_close(conn);
 	if(conn->vt) {
 		if(conn->sel) NAL_CONNECTION_del_from_selector(conn);
 		conn->vt->on_reset(conn);

@@ -96,6 +96,9 @@ int nal_address_set_vtable(NAL_ADDRESS *a, const NAL_ADDRESS_vtable *vtable)
 {
 	/* Are we already mapped? */
 	if(a->vt) {
+		/* Notify the current vtable */
+		if(a->vt->pre_close)
+			a->vt->pre_close(a);
 		/* Unmap the current usage */
 		a->vt->on_reset(a);
 		a->reset = a->vt;
@@ -168,8 +171,12 @@ NAL_ADDRESS *NAL_ADDRESS_new(void)
 
 void NAL_ADDRESS_free(NAL_ADDRESS *a)
 {
-	if(a->vt) a->vt->on_destroy(a);
-	else if(a->reset) a->reset->on_destroy(a);
+	if(a->vt) {
+		if(a->vt->pre_close)
+			a->vt->pre_close(a);
+		a->vt->on_destroy(a);
+	} else if(a->reset)
+		a->reset->on_destroy(a);
 	if(a->vt_data) SYS_free(void, a->vt_data);
 	SYS_free(NAL_ADDRESS, a);
 }
@@ -177,6 +184,8 @@ void NAL_ADDRESS_free(NAL_ADDRESS *a)
 void NAL_ADDRESS_reset(NAL_ADDRESS *a)
 {
 	if(a->vt) {
+		if(a->vt->pre_close)
+			a->vt->pre_close(a);
 		a->vt->on_reset(a);
 		a->reset = a->vt;
 		a->vt = NULL;

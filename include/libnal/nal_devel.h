@@ -38,6 +38,28 @@ typedef struct st_NAL_SELECTOR_vtable NAL_SELECTOR_vtable;
 typedef struct { int foo; } *NAL_SELECTOR_TOKEN;
 #define NAL_SELECTOR_TOKEN_NULL	(NAL_SELECTOR_TOKEN)NULL
 
+/* Notes about vtables:
+ * on_create() - [COMPULSORY]
+ *   Called during assignment of the vtable to an object. If this is an object
+ *   being reused with the same vtable, the vtdata will be that left by the
+ *   on_reset() call, otherwise it will be zeroed.
+ * on_destroy() - [COMPULSORY]
+ *   Called to cleanup vtdata before unmapping a vtable from an object. It
+ *   should clean up all resources as there will be no other (guaranteed)
+ *   opportunity to touch the vtdata after this call.
+ * on_reset() - [COMPULSORY]
+ *   Called to reset an object for future use. This can be used, for example,
+ *   to "close" resources without deallocating them. The implementation will
+ *   next have its on_create() handler called (if the object is reused with the
+ *   same vtable) or on_destroy() handler called (if the object is being
+ *   destroyed or used with a different vtable).
+ * pre_close() - [OPTIONAL]
+ *   Called prior to a _reset or _destroy operation. By the time an on_destroy()
+ *   or on_reset() handler is called, the destruction process is already
+ *   underway and any data that is the domain of the framework (rather than
+ *   the vtable) may have already been cleaned up.
+ */
+
 /***************/
 /* NAL_ADDRESS */
 /***************/
@@ -54,6 +76,7 @@ struct st_NAL_ADDRESS_vtable {
 	int (*on_create)(NAL_ADDRESS *addr);
 	void (*on_destroy)(NAL_ADDRESS *addr);
 	void (*on_reset)(NAL_ADDRESS *addr);
+	void (*pre_close)(NAL_ADDRESS *addr);
 	/* Handlers for NAL_ADDRESS functionality */
 	int (*parse)(NAL_ADDRESS *addr, const char *addr_string);
 	int (*can_connect)(const NAL_ADDRESS *addr);
@@ -79,6 +102,7 @@ struct st_NAL_LISTENER_vtable {
 	int (*on_create)(NAL_LISTENER *);
 	void (*on_destroy)(NAL_LISTENER *);
 	void (*on_reset)(NAL_LISTENER *);
+	void (*pre_close)(NAL_LISTENER *);
 	/* Handlers for NAL_LISTENER functionality */
 	int (*listen)(NAL_LISTENER *, const NAL_ADDRESS *);
 	const NAL_CONNECTION_vtable *(*pre_accept)(NAL_LISTENER *);
@@ -116,6 +140,7 @@ struct st_NAL_CONNECTION_vtable {
 	int (*on_create)(NAL_CONNECTION *);
 	void (*on_destroy)(NAL_CONNECTION *);
 	void (*on_reset)(NAL_CONNECTION *);
+	void (*pre_close)(NAL_CONNECTION *);
 	/* after NAL_ADDRESS_vtable->create_connection() */
 	int (*connect)(NAL_CONNECTION *, const NAL_ADDRESS *);
 	/* after NAL_LISTENER_vtable->pre_accept() */
@@ -192,6 +217,7 @@ struct st_NAL_SELECTOR_vtable {
 	int (*on_create)(NAL_SELECTOR *);
 	void (*on_destroy)(NAL_SELECTOR *);
 	void (*on_reset)(NAL_SELECTOR *);
+	void (*pre_close)(NAL_SELECTOR *);
 	/* Handlers for NAL_SELECTOR functionality */
 	NAL_SELECTOR_TYPE (*get_type)(const NAL_SELECTOR *);
 	int (*select)(NAL_SELECTOR *, unsigned long usec_timeout, int use_timeout);

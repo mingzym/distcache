@@ -124,6 +124,7 @@ NAL_SELECTOR *NAL_SELECTOR_new(void)
 void NAL_SELECTOR_free(NAL_SELECTOR *sel)
 {
 	assert(sel->vt);
+	if(sel->vt->pre_close) sel->vt->pre_close(sel);
 	sel->vt->on_destroy(sel);
 	if(sel->vt_data) SYS_free(void, sel->vt_data);
 	SYS_free(NAL_SELECTOR, sel);
@@ -132,6 +133,7 @@ void NAL_SELECTOR_free(NAL_SELECTOR *sel)
 void NAL_SELECTOR_reset(NAL_SELECTOR *sel)
 {
 	assert(sel->vt);
+	if(sel->vt->pre_close) sel->vt->pre_close(sel);
 	sel->vt->on_reset(sel);
 }
 

@@ -199,6 +199,7 @@ static const NAL_SELECTOR_vtable sel_fdselect_vtable = {
 	sel_on_create,
 	sel_on_destroy,
 	sel_on_reset,
+	NULL, /* pre_close */
 	sel_get_type,
 	sel_select,
 	sel_num_objects,
