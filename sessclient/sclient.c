@@ -71,7 +71,7 @@ static const char *usage_msg[] = {
 "",
 " Eg. dc_client -listen UNIX:/tmp/scache -server IP:192.168.2.5:9003",
 " will listen on a unix domain socket at /tmp/scache and will manage",
-" forwarding requests and responses to and from two the cache server.",
+" forwarding requests and responses to and from the cache server.",
 "", NULL};
 
 static const char *CMD_HELP1 = "-h";
