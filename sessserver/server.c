@@ -332,6 +332,7 @@ err:
 	if(addr) NAL_ADDRESS_free(addr);
 	if(sel) NAL_SELECTOR_free(sel);
 	if(conn) NAL_CONNECTION_free(conn);
+	if(listener) NAL_LISTENER_free(listener);
 	if(server)
 		DC_SERVER_free(server);
 	return killable;
