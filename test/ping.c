@@ -355,7 +355,8 @@ int main(int argc, char *argv[])
 	unsigned int update = 0;
 	UNITS units = DEF_UNITS;
 	/* Timing variables for '-update' */
-	time_t tt1, tt2;
+	/* initialising tt1 because gcc can't see that I don't need to */
+	time_t tt1 = 0, tt2;
 	struct timeval tv1, tv2;
 	struct rusage ru1, ru2;
 	unsigned int traffic = 0;
