@@ -49,46 +49,12 @@
 /* OUTPUT CONTROL DECLARATIONS */
 /*******************************/
 
-#if SYS_DEBUG_LEVEL > 2
-
-/* We define SYS_*** symbols to replace streams and fprintf symbols so that we
- * can hook these later on if we wish. However, as this currently serves no
- * purpose, the implementations are only used if the debugging level is high as
- * this lets us undefine the stdio.h symbols and verify no code is accidently
- * using them. At other times however, the SYS_*** symbols are defined directly
- * to their stdio.h counterparts. */
-
-/* Return the file pointer (or NULL) for a particular stream */
-FILE *sys_stdin(void);
-FILE *sys_stdout(void);
-FILE *sys_stderr(void);
-int sys_fprintf(FILE *fp, const char *fmt, ...);
-#define SYS_stdin	sys_stdin()
-#define SYS_stdout	sys_stdout()
-#define SYS_stderr	sys_stderr()
-#define SYS_fprintf	sys_fprintf
-#ifndef IN_STREAMS_C
-#undef stdin
-#undef stdout
-#undef stderr
-#undef printf
-#undef fprintf
-#define stdin dont_use_stdin_use_SYS_stdin_instead
-#define stdout dont_use_stdout_use_SYS_stdout_instead
-#define stderr dont_use_stderr_use_SYS_stderr_instead
-#define printf dont_use_printf_use_SYS_fprintf_with_SYS_stdout
-#define fprintf dont_use_fprintf_use_SYS_fprintf_instead
-#endif
-
-#else
-
-/* We use the system functions directly from our macros */
+/* We use the system functions directly from our macros, but this permits more
+ * indirection later on. */
 #define SYS_stdin	stdin
 #define SYS_stdout	stdout
 #define SYS_stderr	stderr
 #define SYS_fprintf	fprintf
-
-#endif
 
 #ifndef LEAVE_PROCESSES_ALONE
 
