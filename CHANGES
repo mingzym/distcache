@@ -19,6 +19,38 @@ Current version: x.x.x
 Changes between 1.4.4 and x.x.x
 -------------------------------
 
+  *) A serious overhaul of the I/O model and the NAL_SELECTOR type that
+     underpins it has been made. Previously this was a very select()-like
+     storage object on which an application loop would; (a) add all listeners
+     and connections, (b) block via NAL_SELECTOR_select(), and (c) call I/O
+     functions for all objects by providing the NAL_SELECTOR object to specify
+     I/O state.
+     
+     Under the new model, listeners and connections are either bound to a
+     selector object or unbound (but may not bind to more than one) - so once
+     'added' to a selector they remain bound until explicitly removed or
+     destroyed. This step allows the connection/listener implementations to
+     veto the binding if the selector implementation is incompatible. This is
+     intended to allow alternative I/O models and objects to be supported
+     without requiring them all to be necessarily interchangable, and handling
+     this during the binding step obviates the need to perform such checks
+     inside I/O loops (and also allows implementations to pre-cache useful
+     information based on the type of selector it is binding to). During the
+     NAL_SELECTOR_select() call, all listeners and connections are given a
+     'pre_select' hook to prepare any I/O criteria (with the select()
+     implementation, this amounts to FD_SET() - whereas other models may
+     involve changing message handlers for given events, etc). Then after the
+     blocking, NAL_SELECTOR_select() may invoke a 'post_select' hook on any
+     objects that have I/O activity. None of this is exposed to the caller,
+     instead they can continue to use the NAL_LISTENER_accept() or
+     NAL_CONNECTION_io() functions, but these no longer involve any genuine I/O
+     and so are purely for post-processing, error handling, etc.
+
+     The libnal API now has been simplified as a result (and some unnecessary
+     and unused extensions removed). In particular, the binding between objects
+     now means many functions no longer take a NAL_SELECTOR pointer parameter.
+     [Geoff Thorpe]
+
   *) A somewhat serious race bug has been uncovered in the 'dc_client' utility
      used to proxy distcache operations between applications and a remote
      server. The multiplexing code that handles rewriting request uids was

@@ -76,10 +76,9 @@ void		NAL_LISTENER_free(NAL_LISTENER *list);
 void		NAL_LISTENER_reset(NAL_LISTENER *list);
 int		NAL_LISTENER_create(NAL_LISTENER *list,
 				const NAL_ADDRESS *addr);
-void		NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
+int		NAL_LISTENER_add_to_selector(NAL_LISTENER *list,
 				NAL_SELECTOR *sel);
-void		NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
-				NAL_SELECTOR *sel);
+void		NAL_LISTENER_del_from_selector(NAL_LISTENER *list);
 int		NAL_LISTENER_finished(const NAL_LISTENER *list);
 
 /************************************/
@@ -102,24 +101,18 @@ void		NAL_CONNECTION_reset(NAL_CONNECTION *conn);
 int		NAL_CONNECTION_create(NAL_CONNECTION *conn,
 				const NAL_ADDRESS *addr);
 int		NAL_CONNECTION_accept(NAL_CONNECTION *conn,
-				NAL_LISTENER *list,
-				NAL_SELECTOR *sel);
+				NAL_LISTENER *list);
 int		NAL_CONNECTION_set_size(NAL_CONNECTION *conn,
 				unsigned int size);
 NAL_BUFFER *	NAL_CONNECTION_get_read(NAL_CONNECTION *conn);
 NAL_BUFFER *	NAL_CONNECTION_get_send(NAL_CONNECTION *conn);
 const NAL_BUFFER *NAL_CONNECTION_get_read_c(const NAL_CONNECTION *conn);
 const NAL_BUFFER *NAL_CONNECTION_get_send_c(const NAL_CONNECTION *conn);
-int		NAL_CONNECTION_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel);
-int		NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-				unsigned int max_read, unsigned int max_send);
+int		NAL_CONNECTION_io(NAL_CONNECTION *conn);
 int		NAL_CONNECTION_is_established(const NAL_CONNECTION *conn);
-void		NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
+int		NAL_CONNECTION_add_to_selector(NAL_CONNECTION *conn,
 				NAL_SELECTOR *sel);
-void		NAL_CONNECTION_add_to_selector_ex(const NAL_CONNECTION *conn,
-				NAL_SELECTOR *sel, unsigned int flags);
-void		NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,
-				NAL_SELECTOR *sel);
+void		NAL_CONNECTION_del_from_selector(NAL_CONNECTION *conn);
 
 /**************************************/
 /* Connection functions (specialised) */
@@ -131,19 +124,6 @@ int		NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1,
 #if 0
 int		NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 				unsigned int def_buffer_size);
-#endif
-/* These are used by distcache utilities (excluding daemons) in one or two
- * places, and they were not worth explicitly hiding from the libnal
- * abstraction but nevertheless don't warrant a mention in the API. As such,
- * these are left in for simplicity's sake but not mentioned in the documents.
- * If you're silly enough to want to use these, please be my guest. However I
- * don't promise that I won't butcher these at some point, and if anyone wants
- * them anyway, they would probably be better off implementing a new
- * NAL_CONNECTION type to encapsulate arbitrary fd's. */
-#if 0
-void		NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel);
-int		NAL_SELECTOR_stdin_readable(NAL_SELECTOR *sel);
-int		NAL_stdin_set_non_blocking(int non_blocking);
 #endif
 
 /********************/
