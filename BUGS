@@ -25,3 +25,8 @@
 - I need to migrate and/or rewrite the swamp 1.1.0 documentation to the
   sslswamp man-page. Right now the man page is very incomplete.
 
+- Since overhauling libnal for the alternative selector model, piper ceases
+  working between dc_test and dc_server. It works between nal_ping and nal_echo
+  though, so it's probably a layer in libdistcache or something (sigh).
+
+- Need to fix up snoop and swamp for the new libnal model.
