@@ -32,12 +32,12 @@
 
 static void usage(void)
 {
-	fprintf(stderr, "Usage:   PING [options ...]\n");
-	fprintf(stderr, "where options include;\n");
-	fprintf(stderr, "   -connect <addr>   - default='%s'\n", DEF_SERVER_ADDRESS);
-	fprintf(stderr, "   -num <num>        - default=%d\n", DEF_NUM_CONNS);
-	fprintf(stderr, "   -size <num>       - default=%d\n", MAX_PING_SIZE);
-	fprintf(stderr, "   -repeat <num>     - default=%d\n", DEF_PING_NUM);
+	SYS_fprintf(SYS_stderr, "Usage:   PING [options ...]\n");
+	SYS_fprintf(SYS_stderr, "where options include;\n");
+	SYS_fprintf(SYS_stderr, "   -connect <addr>   - default='%s'\n", DEF_SERVER_ADDRESS);
+	SYS_fprintf(SYS_stderr, "   -num <num>        - default=%d\n", DEF_NUM_CONNS);
+	SYS_fprintf(SYS_stderr, "   -size <num>       - default=%d\n", MAX_PING_SIZE);
+	SYS_fprintf(SYS_stderr, "   -repeat <num>     - default=%d\n", DEF_PING_NUM);
 }
 
 static int util_parsenum(const char *s, unsigned int *num)
@@ -46,7 +46,7 @@ static int util_parsenum(const char *s, unsigned int *num)
 	unsigned long int val;
 	val = strtoul(s, &endptr, 10);
 	if((val == ULONG_MAX) || !endptr || (*endptr != '\0')) {
-		fprintf(stderr, "Error, bad number '%s'\n", s);
+		SYS_fprintf(SYS_stderr, "Error, bad number '%s'\n", s);
 		return 0;
 	}
 	*num = val;
@@ -55,14 +55,14 @@ static int util_parsenum(const char *s, unsigned int *num)
 
 static int err_noarg(const char *s)
 {
-	fprintf(stderr, "Error: missing argument for '%s'\n", s);
+	SYS_fprintf(SYS_stderr, "Error: missing argument for '%s'\n", s);
 	usage();
 	return 1;
 }
 
 static int err_unknown(const char *s)
 {
-	fprintf(stderr, "Error: unknown switch '%s'\n", s);
+	SYS_fprintf(SYS_stderr, "Error: unknown switch '%s'\n", s);
 	usage();
 	return 1;
 }
@@ -121,9 +121,9 @@ static int pingctx_io(pingctx *ctx)
 	if(ctx->done) return 1;
 	if(!NAL_CONNECTION_io(ctx->conn)) {
 		if(!ctx->connected)
-			fprintf(stderr, "(%d) Connection failed\n", ctx->id);
+			SYS_fprintf(SYS_stderr, "(%d) Connection failed\n", ctx->id);
 		else
-			fprintf(stderr, "(%d) Disconnection\n", ctx->id);
+			SYS_fprintf(SYS_stderr, "(%d) Disconnection\n", ctx->id);
 		return 0;
 	}
 	if(!ctx->connected) {
@@ -139,10 +139,10 @@ static int pingctx_io(pingctx *ctx)
 	if((NAL_BUFFER_read(NAL_CONNECTION_get_read(ctx->conn), ctx->response,
 					ctx->num_size) != ctx->num_size) ||
 			(memcmp(ctx->packet, ctx->response, ctx->num_size) != 0)) {
-		fprintf(stderr, "(%d) Read error\n", ctx->id);
+		SYS_fprintf(SYS_stderr, "(%d) Read error\n", ctx->id);
 		return 0;
 	}
-	fprintf(stderr, "(%d) Packet %d ok\n", ctx->id, ++ctx->loop);
+	SYS_fprintf(SYS_stderr, "(%d) Packet %d ok\n", ctx->id, ++ctx->loop);
 write_ping:
 	if(ctx->loop == ctx->num_repeat) {
 		ctx->done = 1;
@@ -150,10 +150,10 @@ write_ping:
 		return 1;
 	}
 	munge = time(NULL);
-	memset(ctx->packet, ctx->counter++ + munge, ctx->num_size);
+	SYS_cover_n(ctx->counter++ + munge, unsigned char, ctx->packet, ctx->num_size);
 	if(NAL_BUFFER_write(NAL_CONNECTION_get_send(ctx->conn), ctx->packet,
 					ctx->num_size) != ctx->num_size) {
-		fprintf(stderr, "(%d) Write error\n", ctx->id);
+		SYS_fprintf(SYS_stderr, "(%d) Write error\n", ctx->id);
 		return 0;
 	}
 	return 1;

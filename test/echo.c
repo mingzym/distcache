@@ -30,10 +30,10 @@
 
 static void usage(void)
 {
-	fprintf(stderr, "Usage:   ECHO [options ...]\n");
-	fprintf(stderr, "where options include;\n");
-	fprintf(stderr, "   -accept <addr>    - default='%s'\n", DEF_SERVER_ADDRESS);
-	fprintf(stderr, "   -max <num>        - default=%d\n", MAX_CONNS);
+	SYS_fprintf(SYS_stderr, "Usage:   ECHO [options ...]\n");
+	SYS_fprintf(SYS_stderr, "where options include;\n");
+	SYS_fprintf(SYS_stderr, "   -accept <addr>    - default='%s'\n", DEF_SERVER_ADDRESS);
+	SYS_fprintf(SYS_stderr, "   -max <num>        - default=%d\n", MAX_CONNS);
 }
 
 static int util_parsenum(const char *s, unsigned int *num)
@@ -42,7 +42,7 @@ static int util_parsenum(const char *s, unsigned int *num)
 	unsigned long int val;
 	val = strtoul(s, &endptr, 10);
 	if((val == ULONG_MAX) || !endptr || (*endptr != '\0')) {
-		fprintf(stderr, "Error, bad number '%s'\n", s);
+		SYS_fprintf(SYS_stderr, "Error, bad number '%s'\n", s);
 		return 0;
 	}
 	*num = val;
@@ -51,14 +51,14 @@ static int util_parsenum(const char *s, unsigned int *num)
 
 static int err_noarg(const char *s)
 {
-	fprintf(stderr, "Error: missing argument for '%s'\n", s);
+	SYS_fprintf(SYS_stderr, "Error: missing argument for '%s'\n", s);
 	usage();
 	return 1;
 }
 
 static int err_unknown(const char *s)
 {
-	fprintf(stderr, "Error: unknown switch '%s'\n", s);
+	SYS_fprintf(SYS_stderr, "Error: unknown switch '%s'\n", s);
 	usage();
 	return 1;
 }
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 			if(!util_parsenum(*argv, &num_conns))
 				return 1;
 			if(!num_conns || (num_conns > MAX_CONNS)) {
-				fprintf(stderr, "Error, '%d' is out of bounds "
+				SYS_fprintf(SYS_stderr, "Error, '%d' is out of bounds "
 					"for -max\n", num_conns);
 				return 1;
 			}
@@ -113,6 +113,7 @@ reselect:
 		if(!NAL_CONNECTION_add_to_selector(conn[conns_used], sel))
 			abort();
 		conns_used++;
+		SYS_fprintf(SYS_stderr, "Foo: added a conn (now have %d)\n", conns_used);
 		if(conns_used == num_conns)
 			NAL_LISTENER_del_from_selector(listener);
 	}
@@ -120,6 +121,7 @@ reselect:
 		if(!NAL_CONNECTION_io(conn[loop])) {
 			NAL_CONNECTION_reset(conn[loop]);
 			conns_used--;
+			SYS_fprintf(SYS_stderr, "Foo: removed a conn (now have %d)\n", conns_used);
 			if((conns_used + 1) == num_conns)
 				if(!NAL_LISTENER_add_to_selector(listener, sel))
 					abort();
