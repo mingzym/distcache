@@ -20,7 +20,6 @@
 #ifndef HEADER_LIBNAL_NAL_H
 #define HEADER_LIBNAL_NAL_H
 
-
 /*-----------------------*/
 /* "libnal" EXTERNAL API */
 /* ----------------------*/
