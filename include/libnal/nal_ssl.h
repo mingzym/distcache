@@ -27,9 +27,9 @@
 	#error "Must include openssl/bio.h prior to libnal/nal_ssl.h"
 #endif
 
-/*------------------*/
+/********************/
 /* "libnal" SSL API */
-/* -----------------*/
+/********************/
 
 BIO *BIO_new_NAL_CONNECTION(NAL_CONNECTION *c);
 
