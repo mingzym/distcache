@@ -60,6 +60,7 @@ AC_CONFIG_FILES([Makefile
 		 include/Makefile
 		 include/distcache/Makefile
 		 include/libnal/Makefile
-		 devel/Makefile])
+		 devel/Makefile
+		 devel/mandrake.spec])
 AC_OUTPUT
 

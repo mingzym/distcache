@@ -10,8 +10,8 @@ if [ -f Makefile ]; then
 	make distclean
 fi
 
-# Zilch any "*.in" files except configure.in, and zilch configure too
-find . -type f -name "*.in" | egrep -v "configure.in$" | xargs rm -f
+# Zilch any "Makefile.in" files, and zilch configure too
+find . -type f -name "Makefile.in" | xargs rm -f
 rm -f configure
 
 # Zilch miscellaneous generated files
