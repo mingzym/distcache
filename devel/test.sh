@@ -9,7 +9,7 @@ DC_SERVER_PID="$THISDIR/pid.dc_server"
 DC_CLIENT_PROG="$THISDIR/sessclient/dc_client"
 DC_CLIENT_UNIX="$THISDIR/unix.dc_client"
 DC_CLIENT_PID="$THISDIR/pid.dc_client"
-TESTSESS="$THISDIR/test/test_session -timeout 30 -timevar 10 -ops 200"
+TESTSESS="$THISDIR/test/test_session -timeout 30 -timevar 10 -ops 2000"
 TESTSESSP="$TESTSESS -persistent"
 
 DC_SERVER="$DC_SERVER_PROG -listen UNIX:$DC_SERVER_UNIX -pidfile $DC_SERVER_PID -daemon"
