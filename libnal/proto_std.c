@@ -144,7 +144,7 @@ static const NAL_CONNECTION_vtable conn_vtable = {
 
 /* This flag, if set to zero, will cause new ipv4 connections to have the Nagle
  * algorithm turned off (by setting TCP_NODELAY). */
-static int gb_use_nagle = 1;
+static int gb_use_nagle = 0;
 
 /*****************/
 /* API functions */

@@ -19,6 +19,11 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Turn nagle off (ie. set TCP_NODELAY) by default on sockets. The IO models
+     we use typically results in good defragmentation anyway and nagle adds
+     unnecessary delay.
+     [Geoff Thorpe]
+
   *) Add a "speed" mode to nal_ping that initialises an outgoing packet once
      only and doesn't memcmp() any responses.
      [Geoff Thorpe]
