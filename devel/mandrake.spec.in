@@ -64,7 +64,7 @@
 #############
 
 %define name distcache
-%define version 0.4pre2
+%define version @VERSION@
 %define release 1
 
 # RPM information

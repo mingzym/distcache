@@ -4,4 +4,4 @@
 *.lo
 Makefile
 Makefile.in
-
+mandrake.spec
