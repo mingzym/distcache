@@ -229,7 +229,7 @@ static int do_server(const char *address, unsigned int max_sessions,
 	struct timeval now, last_now;
 	unsigned int total = 0, tmp_total;
 	unsigned long ops = 0, tmp_ops;
-	NAL_CONNECTION *conn = NULL;
+	NAL_CONNECTION *conn = NAL_CONNECTION_new();
 	NAL_ADDRESS *addr = NAL_ADDRESS_new();
 	NAL_SELECTOR *sel = NAL_SELECTOR_new();
 	NAL_LISTENER *listener = NAL_LISTENER_new();
@@ -237,7 +237,7 @@ static int do_server(const char *address, unsigned int max_sessions,
 
 	if(!DC_SERVER_set_default_cache() ||
 			((server = DC_SERVER_new(max_sessions)) == NULL) ||
-			!addr || !sel || !listener) {
+			!conn || !addr || !sel || !listener) {
 		SYS_fprintf(SYS_stderr, "Error, malloc/initialisation failure\n");
 		goto err;
 	}
@@ -286,6 +286,11 @@ static int do_server(const char *address, unsigned int max_sessions,
 		}
 	}
 #endif
+	/* Add the listener to the selector */
+	if(!NAL_LISTENER_add_to_selector(listener, sel)) {
+		SYS_fprintf(SYS_stderr, "Error, selector problem\n");
+		return 1;
+	}
 	/* Set "last_now" to the current-time */
 	SYS_gettime(&last_now);
 network_loop:
@@ -295,17 +300,6 @@ network_loop:
 			ret = 0;
 			goto err;
 		}
-	} else {
-		if(!conn) {
-			conn = NAL_CONNECTION_new();
-			if(!conn)
-				goto err;
-		}
-		NAL_LISTENER_add_to_selector(listener, sel);
-	}
-	if(!DC_SERVER_clients_to_sel(server, sel)) {
-		SYS_fprintf(SYS_stderr, "Error, selector error\n");
-		goto err;
 	}
 	/* Automatically break every half-second. NB: we skip the select if
 	 * SIGUSR1 or SIGUSR2 has arrived to improve the chances we don't
@@ -374,29 +368,31 @@ network_loop:
 skip_totals:
 	/* Do I/O first, in case clients are dropped making room for accepts
 	 * that would otherwise fail. */
-	if(!DC_SERVER_clients_io(server, sel, &now)) {
+	if(!DC_SERVER_clients_io(server, &now)) {
 		SYS_fprintf(SYS_stderr, "Error, I/O failed\n");
 		goto err;
 	}
 	/* Now handle new connections */
-	if(!NAL_LISTENER_finished(listener) && NAL_CONNECTION_accept(conn,
-							listener, sel)) {
+	while(!NAL_LISTENER_finished(listener) &&
+			NAL_CONNECTION_accept(conn, listener)) {
 		/* New client! */
-		if(!DC_SERVER_new_client(server, conn,
-					DC_CLIENT_FLAG_IN_SERVER))
+		if(!NAL_CONNECTION_add_to_selector(conn, sel) ||
+				!DC_SERVER_new_client(server, conn,
+					DC_CLIENT_FLAG_IN_SERVER)) {
 			SYS_fprintf(SYS_stderr, "Error, accept couldn't be handled\n");
-		else
-			/* Mark the connection as consumed */
-			conn = NULL;
+			goto err;
+		}
+		/* 'conn' is consumed, create a new one */
+		if((conn = NAL_CONNECTION_new()) == NULL) goto err;
 	}
 	goto network_loop;
 err:
 	if(addr) NAL_ADDRESS_free(addr);
-	if(sel) NAL_SELECTOR_free(sel);
 	if(conn) NAL_CONNECTION_free(conn);
 	if(listener) NAL_LISTENER_free(listener);
 	if(server)
 		DC_SERVER_free(server);
+	if(sel) NAL_SELECTOR_free(sel);
 	return killable;
 }
 
