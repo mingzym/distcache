@@ -35,14 +35,16 @@
 
 static void usage(void)
 {
-	SYS_fprintf(SYS_stderr, "Usage:   nal_host [options ...]\n");
-	SYS_fprintf(SYS_stderr, "where options include;\n");
-	SYS_fprintf(SYS_stderr, "   -connect <addr>   - default='%s'\n", DEF_SERVER_ADDRESS);
-	SYS_fprintf(SYS_stderr, "   -num <num>        - default=%d\n", DEF_NUM_CONNS);
-	SYS_fprintf(SYS_stderr, "   -size <num>       - default=%d\n", DEF_CHUNK_SIZE);
-	SYS_fprintf(SYS_stderr, "   -repeat <num>     - default=%d\n", DEF_PING_NUM);
-	SYS_fprintf(SYS_stderr, "   -lag <num>        - default=%d\n", DEF_CHUNK_LAG);
-	SYS_fprintf(SYS_stderr, "   -quiet\n");
+	SYS_fprintf(SYS_stderr,
+"Usage:   nal_host [options ...]\n"
+"where options include;\n"
+"   -connect <addr>   - default='%s'\n"
+"   -num <num>        - default=%d\n"
+"   -size <num>       - default=%d\n"
+"   -repeat <num>     - default=%d\n"
+"   -lag <num>        - default=%d\n"
+"   -quiet\n",
+DEF_SERVER_ADDRESS, DEF_NUM_CONNS, DEF_CHUNK_SIZE, DEF_PING_NUM, DEF_CHUNK_LAG);
 }
 
 static int util_parsenum(const char *s, unsigned int *num)

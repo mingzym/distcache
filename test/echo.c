@@ -49,20 +49,24 @@ IMPLEMENT_UNITS()
 
 static void usage(void)
 {
-	SYS_fprintf(SYS_stderr, "Usage:   nal_echo [options ...]\n");
-	SYS_fprintf(SYS_stderr, "where options include;\n");
-	SYS_fprintf(SYS_stderr, "   -accept <addr>      - default='%s'\n", DEF_SERVER_ADDRESS);
-	SYS_fprintf(SYS_stderr, "   -max <num>          - default=%d\n", MAX_CONNS);
-	SYS_fprintf(SYS_stderr, "   -errinject <num>    - default=<none>\n");
-	SYS_fprintf(SYS_stderr, "   -dump\n");
+	SYS_fprintf(SYS_stderr,
+"Usage:   nal_echo [options ...]\n"
+"where options include;\n"
+"   -accept <addr>      - default='%s'\n"
+"   -max <num>          - default=%d\n"
+"   -errinject <num>    - default=<none>\n"
+"   -dump\n", DEF_SERVER_ADDRESS, MAX_CONNS);
 #ifdef SUPPORT_UPDATE
-	SYS_fprintf(SYS_stderr, "   -update <secs>      - default=<none>\n");
-	SYS_fprintf(SYS_stderr, "   -units [k|m|g]<b|B> - default='%s'\n", UNITS2STR(DEF_UNITS));
-	SYS_fprintf(SYS_stderr, "'units' displays traffic rates as bits or bytes per second.\n");
-	SYS_fprintf(SYS_stderr, "An optional prefix can scale to kilo, mega, or giga bits/bytes.\n");
+	SYS_fprintf(SYS_stderr,
+"   -update <secs>      - default=<none>\n"
+"   -units [k|m|g]<b|B> - default='%s'\n"
+"'units' displays traffic rates as bits or bytes per second.\n"
+"An optional prefix can scale to kilo, mega, or giga bits/bytes.\n",
+UNITS2STR(DEF_UNITS));
 #endif
-	SYS_fprintf(SYS_stderr, "'errinject' will insert 0xdeadbeef into output every\n");
-	SYS_fprintf(SYS_stderr, "<num> times the selector logic breaks.\n");
+	SYS_fprintf(SYS_stderr,
+"'errinject' will insert 0xdeadbeef into output every\n"
+"<num> times the selector logic breaks.\n");
 }
 
 static int util_parsenum(const char *s, unsigned int *num)

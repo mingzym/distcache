@@ -40,27 +40,31 @@ IMPLEMENT_UNITS()
 
 static void usage(void)
 {
-	SYS_fprintf(SYS_stderr, "Usage:   nal_ping [options ...]\n");
-	SYS_fprintf(SYS_stderr, "where options include;\n");
-	SYS_fprintf(SYS_stderr, "   -connect <addr>     - default='%s'\n", DEF_SERVER_ADDRESS);
-	SYS_fprintf(SYS_stderr, "   -num <num>          - default=%d\n", DEF_NUM_CONNS);
-	SYS_fprintf(SYS_stderr, "   -size <num>         - default=%d\n", DEF_PING_SIZE);
-	SYS_fprintf(SYS_stderr, "   -repeat <num>       - default=%d\n", DEF_PING_NUM);
-	SYS_fprintf(SYS_stderr, "   -mode <style>       - default='block'\n");
+	SYS_fprintf(SYS_stderr,
+"Usage:   nal_ping [options ...]\n"
+"where options include;\n"
+"   -connect <addr>     - default='%s'\n"
+"   -num <num>          - default=%d\n"
+"   -size <num>         - default=%d\n"
+"   -repeat <num>       - default=%d\n"
+"   -mode <style>       - default='block'\n",
+DEF_SERVER_ADDRESS, DEF_NUM_CONNS, DEF_PING_SIZE, DEF_PING_NUM);
 #ifdef SUPPORT_UPDATE
-	SYS_fprintf(SYS_stderr, "   -update <secs>      - default=<none>\n");
-	SYS_fprintf(SYS_stderr, "   -units [k|m|g]<b|B> - default='%s'\n", UNITS2STR(DEF_UNITS));
+	SYS_fprintf(SYS_stderr,
+"   -update <secs>      - default=<none>\n"
+"   -units [k|m|g]<b|B> - default='%s'\n", UNITS2STR(DEF_UNITS));
 #endif
-	SYS_fprintf(SYS_stderr, "   -peek\n");
-	SYS_fprintf(SYS_stderr, "   -quiet\n");
-	SYS_fprintf(SYS_stderr, "alternative styles for '-mode' are;\n");
-	SYS_fprintf(SYS_stderr, "   zero    - all packets are zero\n");
-	SYS_fprintf(SYS_stderr, "   block   - each packet set to a different byte\n");
-	SYS_fprintf(SYS_stderr, "   noise   - messy data\n");
+	SYS_fprintf(SYS_stderr,
+"   -peek\n"
+"   -quiet\n"
 #ifdef SUPPORT_UPDATE
-	SYS_fprintf(SYS_stderr, "'units' displays traffic rates as bits or bytes per second.\n");
-	SYS_fprintf(SYS_stderr, "An optional prefix can scale to kilo, mega, or giga bits/bytes.\n");
+"'units' displays traffic rates as bits or bytes per second.\n"
+"An optional prefix can scale to kilo, mega, or giga bits/bytes.\n"
 #endif
+"alternative styles for '-mode' are;\n"
+"   zero    - all packets are zero\n"
+"   block   - each packet set to a different byte\n"
+"   noise   - messy data\n");
 }
 
 typedef enum {
