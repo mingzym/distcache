@@ -19,9 +19,14 @@ Current version: x.x
 Changes between 1.4.2 and x.x
 -----------------------------
 
-  *) Add setuid support to libsys, (testing for it in configure.ac,) and
-     add a corresponding "-user <user>" command-line switch to dc_server and
-     dc_client.
+  *) Add fchown and fchmod support to libsys as SYS_fchown() and SYS_fchmod()
+     respectively. These will be used to allow changing of permissions for
+     unix domain (listening) sockets.
+     [Geoff Thorpe and Joe Orton <jorton@redhat.com>]
+
+  *) Add setuid support to libsys as SYS_setuid(), corresponding tests in
+     configure.ac, and add a corresponding "-user <user>" command-line switch
+     to dc_server and dc_client.
      [Joe Orton <jorton@redhat.com>]
 
   *) In the last release, certain functions operating on selectors and

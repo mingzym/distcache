@@ -146,6 +146,9 @@
 #ifndef ssize_t
 #define ssize_t int
 #endif /* !defined(ssize_t) */
+#ifndef ULONG_MAX
+#define ULONG_MAX ((unsigned long)-1)
+#endif /* !defined(ULONG_MAX) */
 
 #endif /* !defined(HEADER_LIBSYS_PRE_H) */
 

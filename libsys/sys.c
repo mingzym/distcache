@@ -101,17 +101,49 @@ int SYS_daemon(int nochdir)
 #endif
 }
 
+int SYS_fchown(int fd, const char *username, const char *groupname)
+{
+	/* according to chown(2), -1 can be used as an owner or group value to
+	 * specify "no change". */
+#if defined(HAVE_FCHOWN) && defined(HAVE_GETPWNAM)
+	struct passwd *p = (username ? getpwnam(username) : NULL);
+	uid_t uid = (p ? p->pw_uid : (uid_t)-1);
+	gid_t gid = (p ? p->pw_gid : (uid_t)-1);
+#if defined(HAVE_GETGRNAM)
+	struct group *g = (groupname ? getgrnam(groupname) : NULL);
+	if(g) gid = g->gr_gid;
+#endif
+	if(fchown(fd, uid, gid) != 0)
+		return 0;
+	return 1;
+#else
+	return 0;
+#endif
+}
+
+int SYS_fchmod(int fd, const char *perms)
+{
+#if defined(HAVE_FCHMOD) && defined(HAVE_STRTOUL)
+        unsigned long n;
+	char *endptr;
+        n = strtol(perms, &endptr, 8);
+	if ((endptr == perms) || (*endptr != '\0') || (n == ULONG_MAX))
+		/* invalid string */
+		return 0;
+        if (fchmod(fd, n) != 0)
+                return 0;
+	return 1;
+#else
+	return 0;
+#endif
+}
+
 int SYS_setuid(const char *username)
 {
 #if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
 	struct passwd *p = getpwnam(username);
-	
-	if(p == NULL)
+	if(!p || (setuid(p->pw_uid) != 0))
 		return 0;
-	
-	if(setuid(p->pw_uid))
-		return 0;
-
 	return 1;
 #else
 	return 0;
