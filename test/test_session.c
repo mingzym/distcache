@@ -23,7 +23,8 @@
 #include <libdistcache/dc_enc.h>
 #include <libdistcacheserver/dc_server.h>
 
-#ifndef IN_MAKEDEPEND
+#if defined(HAVE_LIBSSL) || defined(HAVE_OPENSSL_SSL_H)
+#define INTERNAL_SSL
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #endif
@@ -56,7 +57,9 @@ static int usage(void)
 "  -connect <addr>  (connect to server at address 'addr')\n"
 "  -progress <num>  (report transaction count every 'num' operations)\n"
 "  -sessions <num>  (create 'num' sessions to use for testing)\n"
+#ifdef INTERNAL_SSL
 "  -withcert <num>  (make 'num' of the sessions use peer certificates)\n"
+#endif
 "  -timeout <secs>  (add sessions with a timeout of 'secs')\n"
 "  -timevar <secs>  (randomly offset '-timeout' +/- 'secs')\n"
 "  -ops <num>       (run <num> random tests, def: 10 * ('sessions')^2)\n"
@@ -146,6 +149,11 @@ int main(int argc, char *argv[])
 			sessions = (unsigned int)atoi(*argv);
 			sessions_set = 1;
 		} else if(strcmp(*argv, CMD_WITHCERT) == 0) {
+#ifndef INTERNAL_SSL
+			NAL_fprintf(NAL_stderr(), "Error, no OpenSSL support "
+				"compiled in, -with-cert not available.\n");
+			return 1;
+#endif
 			ARG_CHECK(CMD_WITHCERT);
 			withcert = (unsigned int)atoi(*argv);
 		} else if(strcmp(*argv, CMD_TIMEOUT) == 0) {
@@ -208,8 +216,21 @@ int main(int argc, char *argv[])
 			ops, progress, persistent);
 }
 
+#ifdef INTERNAL_SSL
 /* Prototype some ugliness we want to leave at the end */
 static SSL_SESSION *int_new_ssl_session(int withcert);
+#else
+/* Define a function to produce binary noise in place of SSL_SESSION */
+static unsigned char *int_new_noise(unsigned int len)
+{
+	unsigned int idx = 0;
+	unsigned char *ptr = NAL_malloc(unsigned char, len);
+	if(!ptr) return ptr;
+	while(idx < len)
+		ptr[idx++] = (unsigned char)(255 * rand() / (RAND_MAX + 1.0));
+	return ptr;
+}
+#endif
 
 static int do_client(const char *address, unsigned int num_sessions,
 			unsigned int withcert, unsigned int timeout,
@@ -234,6 +255,7 @@ static int do_client(const char *address, unsigned int num_sessions,
 	}
 
 	while(idx < num_sessions) {
+#ifdef INTERNAL_SSL
 		SSL_SESSION *tmp_session;
 		unsigned char *ptr;
 		int ret;
@@ -244,8 +266,6 @@ static int do_client(const char *address, unsigned int num_sessions,
 					"SSL_SESSION\n");
 			return 1;
 		}
-		/* It's not currently on the server */
-		sessions_bool[idx] = 0;
 		/* Copy the session id */
 		sessions_idlen[idx] = tmp_session->session_id_length;
 		sessions_len[idx] = i2d_SSL_SESSION(tmp_session, NULL);
@@ -267,6 +287,22 @@ static int do_client(const char *address, unsigned int num_sessions,
 		ret = i2d_SSL_SESSION(tmp_session, &ptr);
 		assert(ret == sessions_len[idx]);
 		SSL_SESSION_free(tmp_session);
+#else
+		/* We generate some kind of arbitrary nonsense due to having no
+		 * OpenSSL support. */
+		sessions_idlen[idx] = 10+(int)(54.0*rand()/(RAND_MAX+1.0));
+		sessions_len[idx] = 50+(int)(2048.0*rand()/(RAND_MAX+1.0));
+		if((sessions_id[idx] = int_new_noise(sessions_idlen[idx])) == NULL) {
+			NAL_fprintf(NAL_stderr(), "Error, malloc failure\n");
+			return 1;
+		}
+		if((sessions_enc[idx] = int_new_noise(sessions_len[idx])) == NULL) {
+			NAL_fprintf(NAL_stderr(), "Error, malloc failure\n");
+			return 1;
+		}
+#endif
+		/* It's not currently on the server */
+		sessions_bool[idx] = 0;
 		idx++;
 	}
 	NAL_fprintf(NAL_stdout(), "Info, %lu sessions generated, will run %lu "
@@ -400,6 +436,7 @@ bail:
 	return 1;
 }
 
+#ifdef INTERNAL_SSL
 /***************************************/
 
 /* Steal this SSL_CIPHER definition from s3_lib.c so that we can manually
@@ -474,3 +511,4 @@ end:
 		fclose(fp);
 	return NULL;
 }
+#endif
