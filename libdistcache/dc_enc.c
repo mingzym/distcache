@@ -19,7 +19,7 @@
  */
 #include <libnal/common.h>
 #include <libnal/nal.h>
-#include <libdistcache/dc_enc.h>
+#include <distcache/dc_enc.h>
 
 /* Uncomment this precompiler symbol if you want encoding and decoding of DC_MSG
  * frames to be debugged to the controlling console. */

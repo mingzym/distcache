@@ -45,7 +45,7 @@
 #else
 
 /* We're a less disabled system - use autoconf results */
-#include "config/config.h"
+#include "config.h"
 
 #if !defined(HAVE_SELECT)
 	#error "'select()' must be supported on your system, sorry"

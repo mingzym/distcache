@@ -1,4 +1,4 @@
-INCLUDES=-I$(top_srcdir) -I$(top_builddir)
+INCLUDES=-I$(top_srcdir)/include -I$(top_builddir)/config
 
 bin_PROGRAMS		= dc_client
 dc_client_SOURCES	= clients.c multiplexer.c private.h sclient.c \

@@ -19,8 +19,8 @@
  */
 #include <libnal/common.h>
 #include <libnal/nal.h>
-#include <libdistcache/dc_enc.h>
-#include <libdistcacheserver/dc_server.h>
+#include <distcache/dc_enc.h>
+#include <distcache/dc_server.h>
 
 static const char *def_server = NULL;
 static const unsigned int def_sessions = 512;

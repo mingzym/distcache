@@ -19,6 +19,25 @@ Current version: 0.4-dev
 Changes between 0.3 and 0.xx
 ----------------------------
 
+  *) A top-level "include" directory has been created with sub-directories
+     matching the format in which we install API headers. All header files that
+     need to be used outside their own source directory have been moved into
+     this tree, and the automake support has been added so that only those we
+     wish to be treated as API will be installed. Eg. libdistcache/dc_enc.h
+     needs to be used in a few directories but is not an API header so it has
+     moved to include/distcache/ but will not be installed by automake. Ditto
+     for libnal/common.h. A consequence of this is that our own source code now
+     uses the same include paths as we document for users of the API, which is
+     a "Good Thing". Also, we can refine the INCLUDES settings during building
+     to be less loose than before. Previously the top-level directory would be
+     available as an include path and so would the build directory. The latter
+     was only needed to get to the autoconf-generated config/config.h file when
+     building outside the source tree, and the former was to allow paths like
+     libdistcache/ to be visible. For include paths, the top-level directory is
+     now replaced by it include/" sub-directory, and the build directory is now
+     replaced by its "config/ sub-directory.
+     [Geoff Thorpe]
+
   *) dc_enc.h has been made an internal-only header and the parts of it we want
      exported have been moved to a new exported header, dc_plug.h. This hides
      DC_MSG and other protocol details from the API, which reduces the hassle

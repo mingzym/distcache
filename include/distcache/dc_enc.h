@@ -22,7 +22,7 @@
 
 /* We declare stuff that we didn't want to expose in dc_plug.h, so source all
  * that stuff first. */
-#include "libdistcache/dc_plug.h"
+#include <distcache/dc_plug.h>
 
 /* This header supports the binary standard unpinning the session caching.
  *

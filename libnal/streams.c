@@ -21,7 +21,7 @@
  * the *real* stdin, stdout, fprintf, etc. */
 #define IN_STREAMS_C
 
-#include "common.h"
+#include <libnal/common.h>
 
 typedef struct st_int_stream_t {
 	/* null -> hasn't been set yet.

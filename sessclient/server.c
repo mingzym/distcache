@@ -19,7 +19,7 @@
  */
 #include <libnal/common.h>
 #include <libnal/nal.h>
-#include <libdistcache/dc_enc.h>
+#include <distcache/dc_enc.h>
 
 #include "private.h"
 

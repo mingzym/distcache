@@ -19,7 +19,7 @@
  */
 #include <libnal/common.h>
 #include <libnal/nal.h>
-#include <libdistcache/dc_enc.h>
+#include <distcache/dc_enc.h>
 
 /* We can't handle proxying of more than this many connections at a time */
 #define SNOOP_MAX_ITEMS		10

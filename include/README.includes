@@ -1,0 +1,33 @@
+This directory exists to provide include paths that match the installation
+format. Not all headers in this tree are installed/exported - the rule of thumb
+for deciding what to do with a header file in a source directory goes like
+this;
+
+(1) Does the header need to be used outside the source directory?
+
+if NO -> leave the header inside the source directory, otherwise (2);
+
+(2) Move the header to the appropriate sub-directory of include/ and in all
+source code, refer to it as "#include <directory/header.h>".
+
+(3) Does this header need to be used outside the distcache source code? Ie. is it
+to be an installed API header?
+
+if NO -> you're done, otherwise (4);
+
+(4) Add the header to the EXTRA_include_HEADERS directive in the Makefile.am
+for the corresponding directory.
+
+Part of the reason for this is legacy - the header installed to
+<includedir>/distcache/dc_enc.h came from <sourcedir>/libdistcache/dc_enc.h
+which was the path used in source code and yet different to what we had to
+document for users of the (installed) API. To avoid renaming the source code
+directories (which isn't that desirable anyway), it makes a certain kind of
+sense to have headers in a different tree to strictly internal headers and C
+files.
+
+This also allows us to namespace the headers independantly of how we divide up
+the source code that implements the declared APIs. With the use of automake and
+libtool, the choice of how to divide up C code is better governed by how we
+divide up the functionality into libraries.
+

@@ -19,7 +19,7 @@
  */
 #include <libnal/common.h>
 #include <libnal/nal.h>
-#include <libnal/nal_internal.h>
+#include "nal_internal.h"
 
 /* Noone outside this file should need to know about these defines, so I'm
  * scoping them down here where noone else *can*. */

@@ -19,8 +19,8 @@
  */
 #include <libnal/common.h>
 #include <libnal/nal.h>
-#include <libdistcache/dc_enc.h>
-#include <libdistcacheserver/dc_server.h>
+#include <distcache/dc_enc.h>
+#include <distcache/dc_server.h>
 
 /* If you define DC_CACHE_DEBUG, the cached-lookup code in this default
  * implementation will have extra debugging; it will print to stdout each time

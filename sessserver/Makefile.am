@@ -1,4 +1,4 @@
-INCLUDES=-I$(top_srcdir) -I$(top_builddir)
+INCLUDES=-I$(top_srcdir)/include -I$(top_builddir)/config
 
 bin_PROGRAMS	 = dc_server
 dc_server_SOURCES= server.c

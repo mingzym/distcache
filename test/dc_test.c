@@ -19,9 +19,9 @@
  */
 #include <libnal/common.h>
 #include <libnal/nal.h>
-#include <libdistcache/dc_client.h>
-#include <libdistcache/dc_enc.h>
-#include <libdistcacheserver/dc_server.h>
+#include <distcache/dc_client.h>
+#include <distcache/dc_enc.h>
+#include <distcache/dc_server.h>
 
 /* I want to take OpenSSL out of the picture for now but am reluctant to simply
  * axe all code relating to it. Eg. the "-withcert" option may be useful one

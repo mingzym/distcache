@@ -19,8 +19,8 @@
  */
 #include <libnal/common.h>
 #include <libnal/nal.h>
-#include <libdistcache/dc_client.h>
-#include <libdistcache/dc_enc.h>
+#include <distcache/dc_client.h>
+#include <distcache/dc_enc.h>
 
 /* How big connection's buffers should be */
 #define DC_CTX_BUFFER_SIZE		4096

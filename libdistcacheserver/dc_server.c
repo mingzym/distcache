@@ -19,8 +19,8 @@
  */
 #include <libnal/common.h>
 #include <libnal/nal.h>
-#include <libdistcacheserver/dc_server.h>
-#include <libdistcache/dc_enc.h>
+#include <distcache/dc_server.h>
+#include <distcache/dc_enc.h>
 
 /* The starting size of the array of *pointers* to client items */
 #define DC_SERVER_START_SIZE		256
