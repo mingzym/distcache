@@ -1,0 +1,76 @@
+=head1 NAME
+
+swamp - SSL/TLS load-tester based on OpenSSL
+
+
+=head1 SYNOPSIS
+
+B<swamp> -connect <address> [options]
+
+
+=head1 DESCRIPTION
+
+B<swamp> is a utility that can be used to test and/or benchmark SSL/TLS
+servers. It is quite configurable and allows for various different
+characteristics of the server's behaviour to be tested.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-connect> address
+
+Configures the address to which B<swamp> should connect for incoming connections.
+The syntax is that defined by the I<libnal> API. For connecting to TCP/IP addresses,
+the syntax is illustrated below (you may use an explicit IP address or a host name);
+
+    # swamp -connect IP:192.168.0.1:443
+    # swamp -connect IP:www.localnet:443
+
+To connect to an SSL/TLS server on a unix domain socket, the syntax is;
+
+    # swamp -connect UNIX:/path/to/some/socket
+
+=item B<-h>, B<-help>, B<-?>
+
+Any of these flags will cause B<swamp> to display a brief usage summary to
+the console and exit cleanly. Any other flags are ignored.
+
+=back
+
+
+=head1 BUGS
+
+This man page is utterly incomplete.
+
+
+=head1 SEE ALSO
+
+=over 4
+
+=item L<NAL_ADDRESS_new(2)>
+
+Information on the I<libnal> network abstraction library used by swamp. This
+provides some information about the syntax used for B<-connect>.
+
+=item L<distcache(8)>
+
+Overview of the distcache architecture, of which swamp is a component.
+
+=item F<http://www.distcache.org/>
+
+Distcache home page.
+
+=back
+
+
+=head1 AUTHOR
+
+Swamp was designed and implemented by Geoff Thorpe. Steve Robb has contributed
+numerous tweaks and fixes along the way too. To consolidate resources and
+provide an improved framework for ongoing development, the swamp utility was
+made a component of the distcache project in 2003 (swamp happens to be the
+ideal tool for testing distcache's most common usage - secure web servers).
+
+Home Page: F<http://www.distcache.org>
+
