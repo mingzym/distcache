@@ -217,13 +217,29 @@ int main(int argc, char *argv[])
 }
 
 /* Generate 'num' pseudo-random bytes of a specified length, placing them in
- * 'buf'.  If available, OpenSSL's random number generator is used. */
+ * 'buf'.  If available, OpenSSL's random number generator is used. Otherwise we
+ * try /dev/urandom, and failing all else we *warn*! */
 static void generate_random_bytes(unsigned char *buf, unsigned int num)
 {
 #ifdef HAVE_OPENSSL
 	RAND_pseudo_bytes(buf, num);
 #else
+	static int first_time = 1;
+	static FILE *urandom = NULL;
 	int i;
+	if(first_time) {
+		urandom = fopen("/dev/urandom", "r");
+	}
+	if(urandom) {
+		fread(buf, 1, num, urandom);
+		first_time = 0;
+		return;
+	}
+	if(first_time) {
+		NAL_fprintf(NAL_stderr(), "Warning - no random seed, will "
+			"generate repeating sequence!!!\n");
+		first_time = 0;
+	}
 	for (i = 0; i < num; i++) {
 		buf[i] = (unsigned char)(255.0 * rand() / (RAND_MAX + 1.0));
 	}
