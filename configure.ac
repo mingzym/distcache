@@ -39,7 +39,7 @@ AC_CHECK_FUNCS([gethostbyname gettimeofday memmove memset select socket strstr s
 AC_CHECK_FUNCS([daemon])
 
 # Find out where OpenSSL is
-DISTCACHE_WITH_SSL
+#DISTCACHE_WITH_SSL
 
 AC_CONFIG_FILES([Makefile
 		 libdistcache/Makefile
