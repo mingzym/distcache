@@ -1,0 +1,31 @@
+
+     _          _                   _
+  __| |o ___ __| |__ ___  __ _  ___| |__   ___     distcache
+ / _` |_/ __|__   __/ __|/ _` |/ __| '_ \ / , \    Distributed session caching
+| (_| | \__ \  | | | (__| (_| | (__| | | |  __/    www.distcache.org
+ \__,_|_|___/  |_|  \___|\__,_|\___|_| |_|\___|    distcache.sourceforge.net
+
+-------------------------------------------------------------------------------
+
+                                      ``It is not necessary to change. Survival
+                                        is not mandatory.''
+                                                         -- W. Edwards Deming
+
+
+Version notes
+-------------
+
+The seed code to discache was derived from commercial code belonging to
+Cryptographic Appliances who gave permission for it to be open sourced under an
+LGPL license. Upon importing this code, an initial "0.1-seed" release will be
+made to allow the code to be easily downloaded for those wanting to take a look
+without requiring a CVS checkout. This version will provide no promise of
+network interoperability with future versions as versioning had not been
+integrated into the protocol at that point.
+
+
+Current version: 0.1-seed
+-------------------------
+
+[no changes yet]
+
