@@ -19,6 +19,13 @@ Current version: x.x.x
 Changes between 1.4.4 and x.x.x
 -------------------------------
 
+  *) Created CVS branch "BRANCH_1_4", this is the first commit to the CVS head
+     since then. Some libnal development and rewirings are in the works to
+     support alternative I/O models, so BRANCH_1_4 exists for maintenance
+     releases with the intention of this branch producing the "stable" releases
+     (eventually deprecating 0.4).
+     [Geoff Thorpe]
+
   *) Minor restructuring in NAL_SELECTOR to more cleanly separate between the
      API and the underlying details.
      [Geoff Thorpe]
