@@ -1,11 +1,11 @@
-AC_INIT(distcache-ssl, 1.4.4dev, distcache-users@lists.sourceforge.net)
+AC_INIT()
 
 echo ""
 echo "------------------------------------"
 echo "Configuring SSL/TLS-specific targets"
 echo "------------------------------------"
 
-AM_INIT_AUTOMAKE(distcache-ssl, 1.4.4dev)
+AM_INIT_AUTOMAKE()
 
 AC_CONFIG_SRCDIR(swamp/swamp.c)
 AM_CONFIG_HEADER(config.h)
