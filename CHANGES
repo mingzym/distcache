@@ -22,13 +22,13 @@ Changes between 1.4.2 and x.x
   *) Add fchown/fchmod support to libnal listener objects via two new API
      functions;
        NAL_LISTENER_set_fs_owner();
-       NAL_LISTENER_set_fs_perms(NAL_LISTENER *list,
-     When dealing with unix domain sockets created for listening, their
-     ownership and permissions can be altered to control connection access.
-     Note, this usually requires root permissions. This uses two new handlers
-     added to the listener vtable type, and listener types that do not support
-     this functionality (TCP/IP, "FD:" pipes, [etc]) supply NULL handlers and
-     the API will return errors on their behalf.
+       NAL_LISTENER_set_fs_perms();
+     When creating listener objects over unix domain sockets, the ownership and
+     permissions can be altered to control connection access. (Note, this
+     usually requires root permissions.) This functionality uses two new
+     handlers added to the listener vtable type, and listener types that do not
+     support this functionality (TCP/IP, "FD:" pipes, [etc]) supply NULL
+     handlers and the API will return errors on their behalf.
      [Geoff Thorpe, based on code from Joe Orton <jorton@redhat.com>]
 
   *) Add setuid support to libsys as SYS_setuid(), corresponding tests in
