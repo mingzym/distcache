@@ -46,5 +46,5 @@ if [ "`hostname`" = "grumpy.geoffnet" ]; then
 		-Wbad-function-cast -Wcast-qual -Wcast-align \
 		-Wsign-compare -Wstrict-prototypes -Wmissing-prototypes \
 		-Wmissing-declarations -Wredundant-decls \
-		-Wunreachable-code" CC=gcc-2.96 ./configure
+		-Wunreachable-code -g" CC=gcc-2.96 ./configure
 fi
