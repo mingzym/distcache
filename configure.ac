@@ -6,10 +6,6 @@ AM_CONFIG_HEADER(config/config.h)
 
 AM_INIT_AUTOMAKE
 
-# Make sure the top-level directory is available as an include path
-TOP_DIR=`pwd`
-CFLAGS="$CFLAGS -I$TOP_DIR"
-
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_MAKE_SET
