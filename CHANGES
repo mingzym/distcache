@@ -20,7 +20,11 @@ Changes between 1.4.1 and x.x
 -----------------------------
 
   *) Modularisation of libnal
-     - NAL_BUFFER implementation separated out from net.c into buffer.c
+     - NAL_BUFFER implementation separated out into buffer.c
+     - NAL_SELECTOR implementation separated out into selector.c
+     - addition of NAL_LISTENER_get_fd()
+     - addition of const versions of NAL_CONNECTION_get_[read|send]
+     - minor tidy-ups
      [Geoff Thorpe]
 
   *) Put libtool in charge of compilation and linking again and, by default,

@@ -25,12 +25,6 @@
 #include "nal_internal.h"
 #include <libsys/post.h>
 
-/* Noone outside this file should need to know about these defines, so I'm
- * scoping them down here where noone else *can*. */
-#define SELECTOR_FLAG_READ	0x01
-#define SELECTOR_FLAG_SEND	0x02
-#define SELECTOR_FLAG_EXCEPT	0x04
-
 /* This global flag, if set to zero, will cause new ipv4 connections to have the
  * Nagle algorithm turned off (by setting TCP_NODELAY). */
 static int int_use_nagle = 1;
@@ -45,42 +39,9 @@ static int sol_tcp = -1;
 #define socklen_t int
 #endif
 
-/*******************/
-/* Internal macros */
-/*******************/
-
-/* Workaround signed/unsigned conflicts between real systems and windows */
-#ifndef WIN32
-#define FD_SET2(a,b) FD_SET((a),(b))
-#define FD_CLR2(a,b) FD_CLR((a),(b))
-#else
-#define FD_SET2(a,b) FD_SET((SOCKET)(a),(b))
-#define FD_CLR2(a,b) FD_CLR((SOCKET)(a),(b))
-#endif
-
 /**************************************/
 /* Internal network utility functions */
 /**************************************/
-
-/* Functions I've decided not to expose any further so they're static now and
- * I'm predeclaring them here. Eg. a call to NAL_CONNECTION_io(conn,sel) would
- * call this itself. */
-static void int_selector_get_conn(const NAL_SELECTOR *sel,
-			const NAL_CONNECTION *conn,
-			unsigned char *flags);
-static void int_selector_get_list(const NAL_SELECTOR *sel,
-			const NAL_LISTENER *list,
-			unsigned char *flags);
-/* Also used by NAL_CONNECTION_io() - used to unset read/write flags once a
- * NAL_CONNECTION has already been processed. NB: Does not unset exception
- * flags, a redundant call to NAL_CONNECTION_io() should still notice
- * exceptions, it just shouldn't be retrying reads and sends that already
- * succeeded (otherwise it'll wrongly diagnose them as clean disconnects by the
- * peer). */
-static void int_selector_conn_done(NAL_SELECTOR *sel,
-			const NAL_CONNECTION *conn);
-static void int_selector_list_done(NAL_SELECTOR *sel,
-			const NAL_LISTENER *listener);
 
 static int int_make_non_blocking(int fd, int non_blocking)
 {
@@ -700,7 +661,7 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 			(conn->fd == -1));
 	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
 		goto err;
-	int_selector_get_list(sel, list, &flags);
+	flags = nal_selector_fd_test(sel, list->fd);
 	if(flags & SELECTOR_FLAG_EXCEPT) {
 #if SYS_DEBUG_LEVEL > 1
 		SYS_fprintf(SYS_stderr, "Warn, listener has exception flag set\n\n");
@@ -723,7 +684,7 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 	SYS_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
 	conn->fd = conn_fd;
 	conn->established = 1;
-	int_selector_list_done(sel, list);
+	nal_selector_fd_clear(sel, list->fd, 0);
 	return 1;
 err:
 	int_close(&conn_fd);
@@ -733,6 +694,11 @@ err:
 const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list)
 {
 	return &list->addr;
+}
+
+int NAL_LISTENER_get_fd(const NAL_LISTENER *list)
+{
+	return list->fd;
 }
 
 /************************/
@@ -889,6 +855,21 @@ NAL_BUFFER *NAL_CONNECTION_get_send(NAL_CONNECTION *conn)
 	return &conn->send;
 }
 
+/* "const" versions of the above */
+const NAL_BUFFER *NAL_CONNECTION_get_read_c(const NAL_CONNECTION *conn)
+{
+	return &conn->read;
+}
+
+const NAL_BUFFER *NAL_CONNECTION_get_send_c(const NAL_CONNECTION *conn)
+{
+	/* A "dummy" connection reads and writes into the same buffer, so handle
+	 * this special case. */
+	if(conn->fd == -2)
+		return &conn->read;
+	return &conn->send;
+}
+
 /* If this function returns zero (failure), then it is a bad thing and means
  * the connection should be closed by the caller. */
 int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
@@ -902,7 +883,7 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 	/* If we're a dummy connection, "io" has no useful meaning */
 	if(conn->fd == -2)
 		return 1;
-	int_selector_get_conn(sel, conn, &flags);
+	flags = nal_selector_fd_test(sel, conn->fd);
 	if(flags & SELECTOR_FLAG_EXCEPT) {
 #if SYS_DEBUG_LEVEL > 1
 		SYS_fprintf(SYS_stderr, "Warn, connection has exception flag set\n\n");
@@ -972,7 +953,7 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 ok:
 	/* Remove this connection from the select sets so a redundant call does
 	 * nothing. */
-	int_selector_conn_done(sel, conn);
+	nal_selector_fd_clear(sel, conn->fd, 0);
 	/* Success! */
 	return 1;
 closing:
@@ -1007,196 +988,9 @@ int NAL_CONNECTION_get_fd(const NAL_CONNECTION *conn)
 	return conn->fd;
 }
 
-/**********************/
-/* SELECTOR FUNCTIONS */
-/**********************/
-
-static void int_selector_item_init(NAL_SELECTOR_item *item)
-{
-	FD_ZERO(&item->reads);
-	FD_ZERO(&item->sends);
-	FD_ZERO(&item->excepts);
-	item->max = 0;
-}
-
-static void int_selector_item_close(NAL_SELECTOR_item *item)
-{
-	/* No cleanup required */
-	int_selector_item_init(item);
-}
-
-NAL_SELECTOR *NAL_SELECTOR_new(void)
-{
-	NAL_SELECTOR *sel = SYS_malloc(NAL_SELECTOR, 1);
-	if(sel) {
-		int_selector_item_init(&sel->last_selected);
-		int_selector_item_init(&sel->to_select);
-	}
-	return sel;
-}
-
-void NAL_SELECTOR_free(NAL_SELECTOR *a)
-{
-	/* No cleanup required */
-	SYS_free(NAL_SELECTOR, a);
-}
-
-void NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
-			unsigned int flags)
-{
-	/* If we're a "dummy" connection, our file-descriptor is -2! */
-	if(conn->fd == -2)
-		return;
-	/* We always select for excepts, but reads and sends depend on the
-	 * buffers and the flags. Oh yes, we select on write even if we have an
-	 * empty buffer if we happen to be waiting for a non-blocking connect
-	 * to complete. */
-	FD_SET2(conn->fd, &sel->to_select.excepts);
-	if(NAL_BUFFER_notfull(&conn->read) && (flags & NAL_SELECT_FLAG_READ))
-		FD_SET2(conn->fd, &sel->to_select.reads);
-	if((NAL_BUFFER_notempty(&conn->send) && (flags & NAL_SELECT_FLAG_SEND)) ||
-				!conn->established)
-		FD_SET2(conn->fd, &sel->to_select.sends);
-	/* We need to adjust the max for the select() call */
-	sel->to_select.max = ((sel->to_select.max <= (conn->fd + 1)) ?
-				(conn->fd + 1) : sel->to_select.max);
-}
-
-void NAL_SELECTOR_add_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn)
-{
-	NAL_SELECTOR_add_conn_ex(sel, conn, NAL_SELECT_FLAG_RW);
-}
-
-void NAL_SELECTOR_del_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn)
-{
-	FD_CLR2(conn->fd, &sel->to_select.reads);
-	FD_CLR2(conn->fd, &sel->to_select.sends);
-	FD_CLR2(conn->fd, &sel->to_select.excepts);
-}
-
-void NAL_SELECTOR_add_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list)
-{
-	FD_SET2(list->fd, &sel->to_select.excepts);
-	FD_SET2(list->fd, &sel->to_select.reads);
-	sel->to_select.max = ((sel->to_select.max <= (list->fd + 1)) ?
-				(list->fd + 1) : sel->to_select.max);
-}
-
-void NAL_SELECTOR_del_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list)
-{
-	FD_CLR2(list->fd, &sel->to_select.reads);
-	FD_CLR2(list->fd, &sel->to_select.excepts);
-}
-
-/* This function is now static and only used internally. It's predeclared up
- * the top somewhere but I leave the implementation down here in some kind of
- * semi-logical order. NB: As its internal, any error is fatal, so there's no
- * return value. */
-static void int_selector_get_conn(const NAL_SELECTOR *sel,
-			const NAL_CONNECTION *conn,
-			unsigned char *flags)
-{
-	*flags = 0;
-	/* If it's a dummy connection go quietly */
-	if(conn->fd == -2)
-		return;
-	if(FD_ISSET(conn->fd, &sel->last_selected.reads))
-		*flags |= SELECTOR_FLAG_READ;
-	if(FD_ISSET(conn->fd, &sel->last_selected.sends))
-		*flags |= SELECTOR_FLAG_SEND;
-	if(FD_ISSET(conn->fd, &sel->last_selected.excepts))
-		*flags |= SELECTOR_FLAG_EXCEPT;
-}
-
-/* ditto */
-static void int_selector_get_list(const NAL_SELECTOR *sel,
-			const NAL_LISTENER *list,
-			unsigned char *flags)
-{
-	*flags = 0;
-	if(FD_ISSET(list->fd, &sel->last_selected.reads))
-		*flags |= SELECTOR_FLAG_READ;
-	if(FD_ISSET(list->fd, &sel->last_selected.excepts))
-		*flags |= SELECTOR_FLAG_EXCEPT;
-}
-
-/* This function is used by NAL_CONNECTION_io() after processing a connection to
- * turn off read/write flags so that any redundant calls to not try to do
- * redundant reads or writes. */
-static void int_selector_conn_done(NAL_SELECTOR *sel,
-			const NAL_CONNECTION *conn)
-{
-	/* If it's a dummy connection go quietly */
-	if(conn->fd == -2)
-		return;
-	FD_CLR2(conn->fd, &sel->last_selected.reads);
-	FD_CLR2(conn->fd, &sel->last_selected.sends);
-	/* We do not clear any exception flag that might be set, repeated calls
-	 * to connection_io() should not retain flags for readability or
-	 * writability, but it should retain flags for exceptions. */
-}
-
-/* ditto */
-static void int_selector_list_done(NAL_SELECTOR *sel,
-			const NAL_LISTENER *list)
-{
-	FD_CLR2(list->fd, &sel->last_selected.reads);
-}
-
-int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
-			int use_timeout)
-{
-	struct timeval timeout;
-
-	timeout.tv_sec = usec_timeout / 1000000;
-	timeout.tv_usec = usec_timeout % 1000000;
-	/* Migrate to_select over to last_selected */
-	int_selector_item_close(&sel->last_selected);
-	SYS_memcpy(fd_set, &sel->last_selected.reads, &sel->to_select.reads);
-	SYS_memcpy(fd_set, &sel->last_selected.sends, &sel->to_select.sends);
-	SYS_memcpy(fd_set, &sel->last_selected.excepts, &sel->to_select.excepts);
-	sel->last_selected.max = sel->to_select.max;
-	int_selector_item_close(&sel->to_select);
-	return select(sel->last_selected.max,
-			&sel->last_selected.reads,
-			&sel->last_selected.sends,
-			&sel->last_selected.excepts,
-			(use_timeout ? &timeout : NULL));
-}
-
-/* Specials, these relate to adding "other bits" to our select engine, most
- * notably, stdin (eg. we may want to break on input as well as network
- * activity). */
-
 int NAL_stdin_set_non_blocking(int non_blocking)
 {
 	return int_make_non_blocking(fileno(SYS_stdin), non_blocking);
-}
-
-int NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel)
-{
-	int fd = fileno(SYS_stdin);
-
-	/* We always select for excepts, but reads and sends depend on the
-	 * buffers. */
-	FD_SET2(fd, &sel->to_select.reads);
-	/* We need to adjust the max for the select() call */
-	sel->to_select.max = ((sel->to_select.max <= fd + 1) ?
-				(fd + 1) : sel->to_select.max);
-	return 1;
-}
-
-int NAL_SELECTOR_stdin_readable(NAL_SELECTOR *sel)
-{
-	int ret, fd = fileno(SYS_stdin);
-
-	/* This should only be called once per-select because we unset the flag
-	 * for stdin once reading. This is say stdin is not accidently read a
-	 * second time causing a block. */
-	ret = FD_ISSET(fd, &sel->last_selected.reads);
-	if(ret)
-		FD_CLR2(fd, &sel->last_selected.reads);
-	return ret;
 }
 
 /* This special sets our global flag that controls whether new ipv4 connections

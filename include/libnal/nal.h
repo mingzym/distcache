@@ -64,6 +64,7 @@ int		NAL_LISTENER_accept(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel,
 				NAL_CONNECTION *conn);
 const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list);
+int		NAL_LISTENER_get_fd(const NAL_LISTENER *list);
 
 /************************/
 /* Connection functions */
@@ -80,6 +81,8 @@ int		NAL_CONNECTION_set_size(NAL_CONNECTION *conn,
 				unsigned int size);
 NAL_BUFFER *	NAL_CONNECTION_get_read(NAL_CONNECTION *conn);
 NAL_BUFFER *	NAL_CONNECTION_get_send(NAL_CONNECTION *conn);
+const NAL_BUFFER *NAL_CONNECTION_get_read_c(const NAL_CONNECTION *conn);
+const NAL_BUFFER *NAL_CONNECTION_get_send_c(const NAL_CONNECTION *conn);
 int		NAL_CONNECTION_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel);
 int		NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 				unsigned int max_read, unsigned int max_send);
@@ -114,7 +117,7 @@ int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
  * don't promise that I won't butcher these at some point, and if anyone wants
  * them anyway, they would probably be better off implementing a new
  * NAL_CONNECTION type to encapsulate arbitrary fd's. */
-int		NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel);
+void		NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel);
 int		NAL_SELECTOR_stdin_readable(NAL_SELECTOR *sel);
 int		NAL_stdin_set_non_blocking(int non_blocking);
 

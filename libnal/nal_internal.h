@@ -28,13 +28,16 @@
 	#error "Must include libnal/nal.h prior to libnal/nal_internal.h"
 #endif
 
-
 /*****************************************************/
 /* NETWORK ABSTRACTION INTERNAL LIBRARY DECLARATIONS */
 /*                                                   */
 /* (1) data "buffer" type and functions              */
 /* (2) network wrapper types and functions           */
 /*****************************************************/
+
+/****************************************/
+/* NAL_BUFFER - implemented in buffer.c */
+/****************************************/
 
 /* There's little point making data buffers bigger than this, but it can be
  * changed later if desired. To cut down latencies, buffers used for network IO
@@ -137,18 +140,15 @@ struct st_NAL_CONNECTION {
 	NAL_BUFFER read, send;
 };
 
-typedef struct _NAL_SELECTOR_item {
-	fd_set reads;
-	fd_set sends;
-	fd_set excepts;
-	int max;
-} NAL_SELECTOR_item;
+/********************************************/
+/* NAL_SELECTOR - implemented in selector.c */
+/********************************************/
 
-struct st_NAL_SELECTOR {
-	/* The result of a select */
-	NAL_SELECTOR_item last_selected;
-	/* The list we're building up to select with next */
-	NAL_SELECTOR_item to_select;
-};
+#define SELECTOR_FLAG_READ	0x01
+#define SELECTOR_FLAG_SEND	0x02
+#define SELECTOR_FLAG_EXCEPT	0x04
+
+unsigned char nal_selector_fd_test(const NAL_SELECTOR *sel, int fd);
+void nal_selector_fd_clear(NAL_SELECTOR *sel, int fd, unsigned char mask);
 
 #endif /* !defined(HEADER_PRIVATE_NAL_INTERNAL_H) */
