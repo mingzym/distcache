@@ -19,7 +19,9 @@ Current version: x.x.x
 Changes between 1.4.4 and x.x.x
 -------------------------------
 
-  *)
+  *) Minor restructuring in NAL_SELECTOR to more cleanly separate between the
+     API and the underlying details.
+     [Geoff Thorpe]
 
 Changes between 1.4.3 and 1.4.4
 -------------------------------
