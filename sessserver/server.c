@@ -248,6 +248,7 @@ static int do_server(const char *address, unsigned int max_sessions,
 				address);
 		goto err;
 	}
+#ifndef WIN32
 	if((sockowner || sockgroup) && !NAL_LISTENER_set_fs_owner(listener,
 						sockowner, sockgroup))
 		SYS_fprintf(SYS_stderr, "Warning, can't set socket ownership "
@@ -257,7 +258,6 @@ static int do_server(const char *address, unsigned int max_sessions,
 	if(sockperms && !NAL_LISTENER_set_fs_perms(listener, sockperms))
 		SYS_fprintf(SYS_stderr, "Warning, can't set socket permissions "
 				"to '%s', continuing anyway\n", sockperms);
-#ifndef WIN32
 	/* If we're going daemon() mode, do it now */
 	if(daemon_mode) {
 		/* working directory becomes "/" */
