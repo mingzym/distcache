@@ -105,6 +105,7 @@ NAL_SELECTOR *nal_selector_new(const NAL_SELECTOR_vtable *vtable)
 		sel->vt_data = NULL;
 	sel->vt = vtable;
 	sel->vt_data_size = vtable->vtdata_size;
+	sel->reset = NULL;
 	SYS_zero_n(unsigned char, sel->vt_data, vtable->vtdata_size);
 	if(!vtable->on_create(sel)) goto err;
 	return sel;
