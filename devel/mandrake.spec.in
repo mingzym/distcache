@@ -191,6 +191,9 @@ rm -rf $RPM_BUILD_ROOT
 #########
 
 %changelog
+* Wed Oct 15 2003 Geoff Thorpe <geoff@geoffthorpe.net> 1.4.2-1
+- Release distcache version 1.4.2
+
 * Wed May 28 2003 Geoff Thorpe <geoff@geoffthorpe.net> 1.4.1-1
 - Release distcache version 1.4.1
 - Use build RPM macros for running configure

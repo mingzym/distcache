@@ -16,8 +16,8 @@ Current version: x.x
 --------------------
 
 
-Changes between 1.4.1 and x.x
------------------------------
+Changes between 1.4.1 and 1.4.2
+-------------------------------
 
   *) Add a new shell tool called "piper" to help support and test
      file-descriptor based addresses. This code is in a new directory, "util/".
