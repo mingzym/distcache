@@ -25,6 +25,9 @@
 static const char *def_server = NULL;
 static const unsigned int def_sessions = 512;
 static const unsigned long def_progress = 0;
+#ifndef WIN32
+static const char *def_pidfile = NULL;
+#endif
 
 #define MAX_SESSIONS		DC_CACHE_MAX_SIZE
 #define MAX_PROGRESS		(unsigned long)1000000
@@ -32,15 +35,22 @@ static const unsigned long def_progress = 0;
 
 /* Prototypes used by main() */
 static int do_server(const char *address, unsigned int max_sessions,
-			unsigned long progress);
+			unsigned long progress, int daemon_mode,
+			const char *pidfile);
 
 static int usage(void)
 {
 	NAL_fprintf(NAL_stderr(), "\n"
 "Usage: sserver [options]     where 'options' are from;\n"
+#ifndef WIN32
+"  -daemon          (detach and run in the background)\n"
+#endif
 "  -listen <addr>   (act as a server listening on address 'addr')\n"
 "  -sessions <num>  (make the cache hold a maximum of 'num' sessions)\n"
 "  -progress <num>  (report cache progress at least every 'num' operations)\n"
+#ifndef WIN32
+"  -pidfile <path>  (a file to store the process ID in)\n"
+#endif
 "  -<h|help|?>      (display this usage message)\n"
 "\n"
 "Eg. sserver -listen IP:9001\n"
@@ -54,6 +64,10 @@ static int usage(void)
 static const char *CMD_HELP1 = "-h";
 static const char *CMD_HELP2 = "-help";
 static const char *CMD_HELP3 = "-?";
+#ifndef WIN32
+static const char *CMD_DAEMON = "-daemon";
+static const char *CMD_PIDFILE = "-pidfile";
+#endif
 static const char *CMD_SERVER = "-listen";
 static const char *CMD_SESSIONS = "-sessions";
 static const char *CMD_PROGRESS = "-progress";
@@ -94,6 +108,10 @@ int main(int argc, char *argv[])
 	unsigned int sessions = 0;
 	const char *server = def_server;
 	unsigned long progress = def_progress;
+#ifndef WIN32
+	int daemon_mode = 0;
+	const char *pidfile = def_pidfile;
+#endif
 
 	ARG_INC;
 	while(argc > 0) {
@@ -101,6 +119,14 @@ int main(int argc, char *argv[])
 				(strcmp(*argv, CMD_HELP2) == 0) ||
 				(strcmp(*argv, CMD_HELP3) == 0))
 			return usage();
+#ifndef WIN32
+		if(strcmp(*argv, CMD_DAEMON) == 0)
+			daemon_mode = 1;
+		else if(strcmp(*argv, CMD_PIDFILE) == 0) {
+			ARG_CHECK(CMD_PIDFILE);
+			pidfile = *argv;
+		} else
+#endif
 		if(strcmp(*argv, CMD_SERVER) == 0) {
 			ARG_CHECK(CMD_SERVER);
 			server = *argv;
@@ -133,11 +159,12 @@ int main(int argc, char *argv[])
 #endif
 		return 1;
 	}
-	return do_server(server, sessions, progress);
+	return do_server(server, sessions, progress, daemon_mode, pidfile);
 }
 
 static int do_server(const char *address, unsigned int max_sessions,
-			unsigned long progress)
+			unsigned long progress, int daemon_mode,
+			const char *pidfile)
 {
 	int res;
 	struct timeval now, last_now;
@@ -162,6 +189,28 @@ static int do_server(const char *address, unsigned int max_sessions,
 				address);
 		goto err;
 	}
+#ifndef WIN32
+	/* If we're going daemon() mode, do it now */
+	if(daemon_mode) {
+		/* working directory becomes "/" */
+		/* stdin/stdout/stdout -> /dev/null */
+		if(!NAL_daemon(0)) {
+			NAL_fprintf(NAL_stderr(), "Error, couldn't detach!\n");
+			return 1;
+		}
+	}
+	/* If we're storing our pid, do it now */
+	if(pidfile) {
+		FILE *fp = fopen(pidfile, "w");
+		if(!fp) {
+			NAL_fprintf(NAL_stderr(), "Error, couldn't open 'pidfile' "
+					"at '%s'.\n", pidfile);
+			return 1;
+		}
+		NAL_fprintf(fp, "%lu", (unsigned long)NAL_getpid());
+		fclose(fp);
+	}
+#endif
 	/* Set "last_now" to the current-time */
 	NAL_gettime(&last_now);
 network_loop:
