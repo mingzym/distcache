@@ -163,17 +163,6 @@
 FILE *NAL_stdin(void);
 FILE *NAL_stdout(void);
 FILE *NAL_stderr(void);
-/* Close and NULL-out a stream. */
-int NAL_stdin_close(void);
-int NAL_stdout_close(void);
-int NAL_stderr_close(void);
-/* Create file-based streams for std[in|out|err]. */
-int NAL_stdin_set(const char *path);
-int NAL_stdout_set(const char *path);
-int NAL_stderr_set(const char *path);
-/* Special - if stdout and stderr should be the same file, set stdout and call
- * this function to have stderr use the same output stream. */
-int NAL_stderr_to_stdout(void);
 int NAL_fprintf(FILE *fp, const char *fmt, ...);
 #ifndef IN_STREAMS_C
 #undef stdin
