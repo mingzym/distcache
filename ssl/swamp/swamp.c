@@ -30,7 +30,7 @@
 /* The list of paths to try for a CA cert if one is not supplied on the command
  * line. NB: This list must be NULL terminated. */
 static const char *cacert_paths[] = {
-	"cacert.pem",
+	"CA.pem", "cacert.pem",
 	CACERT_PATH,
 	"/etc/cacert.pem", NULL};
 
