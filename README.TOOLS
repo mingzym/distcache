@@ -33,15 +33,23 @@ writing) coupled with a unique binary key (up to a limit of 64 bytes). It so
 happens that this works very nicely with SSL/TLS, but that should come as no
 surprise to those who know why 'distcache' exists in the first place :-)
 
-"test_session" on the other hand is very much SSL/TLS specific - or to be more
-exact, it is very much OpenSSL specific. To build the "test_session" executable,
-the 'distcache' package must be able to include OpenSSL headers and link against
-OpenSSL libraries. The use of the resulting "test_session" program on a
-distributed session cache assumes that the underlying session store is to hold
-SSL/TLS sessions as encoded and decoded by OpenSSL's API functions;
-
-   i2d_SSL_SESSION() - encoding to binary data for storage in 'distcache'
-   d2i_SSL_SESSION() - decoding from binary data retrieved from 'distcache'
+"test_session" on the other hand is usually very much SSL/TLS specific - or to
+be more exact, it is usually very much OpenSSL specific. If OpenSSL support is
+detected by the "configure" script (and it hasn't been disabled by building with
+"--with-ssl=no" or "--without-ssl") then test_session will generate sample
+SSL/TLS sessions that are compatible with the OpenSSL API functions;
+  * i2d_SSL_SESSION() - encoding to binary data for storage in 'distcache'
+  * d2i_SSL_SESSION() - decoding from binary data retrieved from 'distcache'
+otherwise, it will simply generate random noise for session data (random session
+IDs and session data within appropriate size ranges). If the cache server (or
+proxy) implementation you wish to test operates only at the distcache protocol
+level, this should not matter at all (eg. the bundled sclient and sserver
+programs are like this). However if the implementation(s) attempt to decode and
+inspect protocol data assuming it to contain OpenSSL-compatible SSL/TLS session
+data, then you should only expect successful operations when using a
+test_session built with OpenSSL support. On the other hand, throwing random data
+at an SSL/TLS-specific cache server may also provide a good stability test of
+the SSL/TLS encoding code! :-)
 
 Fortunately, the SSL/TLS functionality in most open source server applications
 is provided by OpenSSL and for those applications, plugging in session cache
@@ -49,8 +57,10 @@ hooks to use the 'distcache' protocol should be very straightforward. This has
 already been done for Apache 2.0 (or Apache 1.3 + mod_ssl) by using the
 'libdistcache' library and the high-level API provided by the
 "libdistcache/dc_client.h" header. Developers wanting to implement 'distcache'
-support into their other SSL/TLS-enabled applications should read README.API and
-perhaps refer to the Apache integration code for more details.
+support into other SSL/TLS-enabled applications should read README.API and
+perhaps refer to the Apache integration code for more details. The Apache 2
+integration can be found in the "distcache-httpd-2" package, and the Apache 1.3
++ mod_ssl integration can be found in the "distcache-mod_ssl" package.
 
 
 Overview of the utilities
@@ -121,35 +131,41 @@ which rules out the use of unix domain sockets. A very simple example can show
 why;
 
    # Execute this first in its own shell
-   ./sserver -listen IP:9001
+   sserver -listen IP:9001
 
    # Execute this in another shell once the above is running
-   ./test_session -connect IP:localhost:9001 -ops 500000
+   test_session -connect IP:localhost:9001 -ops 500000
 
 In all likelihood the "test_session" failed after a few thousand operations due
-to the kernel's internal socket tables filling up with TIME_WAIT (eg. run
-"netstat -a"). For reasons like this, it makes sense for session cache server to
-be accessed using a smaller number of persistent connections that can each carry
-multiple requests and responses for multiple operations. Whilst client
-applications can theoretically do this directly, eg. using DC_CTX_PERSISTENT
-with the libdistcache/dc_client.h API, it suffers a problem of scalability - how
-does this allow client applications to scale, and for the number of machines in
-the distributed cache framework to grow linearly? What happens in client
-applications if cache servers experience sporadic service interruptions?
+to the kernel's internal socket tables filling up with TIME_WAIT descriptors
+(eg. run "netstat -a"). For reasons like this, it makes sense for session cache
+server to be accessed using a smaller number of persistent connections that can
+each carry multiple requests and responses for multiple operations. Whilst
+client applications can theoretically do this directly, eg. using
+DC_CTX_PERSISTENT with the libdistcache/dc_client.h API, it suffers a problem of
+scalability and performance. Eg. how does this allow client applications to
+scale, and for the number of machines in the distributed cache framework to grow
+linearly? Also, each new client process/thread needs to create its own such
+connection to the server and the latency and scalability problems are
+immediately evident. From a stability point of view, what happens in client
+applications if cache servers experience sporadic service interruptions? Or vice
+versa, how is server performance affected if it has to deal with hundreds of
+connections coming and going from each client machine?
 
 By deploying "sclient" on each machine that needs access to the distributed
 cache, many of these questions can be addressed.
 
  o it doesn't matter whether client applications use DC_CTX_PERSISTENT-style
-   connections or temporary ones, they will be able to communicate using unix
-   domain sockets which are much faster than TCP/IPv4 connections and less
-   likely to flood the kernel socket tables (unix domain sockets can close
-   immediately, without having to sit in TIME_WAIT).
+   connections or temporary ones, they will be able to communicate directly with
+   sclient using unix domain sockets - these are much faster than TCP/IPv4
+   connections and less likely to flood the kernel socket tables (unix domain
+   sockets can close immediately, without having to sit in TIME_WAIT).
  o "sclient" will automatically close connections to cache servers that
    experience fatal errors, and will periodically try to reestablish
    connections with such servers. In the mean time, "sclient"'s own clients will
-   still get immediate responses to operation requests, though they may return
-   failure results until "sclient" can reconnect to the server(s).
+   still get immediate and reliable responses to operation requests, even if
+   those responses indicate server errors until until "sclient" can reconnect to
+   the server(s) again.
  o "sclient" uses *one* persistent connection with each cache server it
    communicates with, so network latency and "sserver" performance pose less
    threats to the scalability of the framework.
@@ -163,6 +179,10 @@ cache, many of these questions can be addressed.
    sending any requests across the network to cache servers - or at least it may
    be able to use lower-overhead requests to verify that information it already
    has is suitable for the client.
+ o "sclient" uses non-blocking I/O logic so that a heavily-loaded machine
+   requiring many cache operations at the same time will typically result in
+   larger network packets being sent and received by "sclient", containing
+   multiple requests/responses each, thus improving network performance.
 
 So, let's try some ASCII-art ... this illustration assumes there is a single
 session caching server machine running "sserver -listen IP:cache:9001"
@@ -192,6 +212,17 @@ and that all other machines are Apache/mod_ssl SSL/TLS webservers;
              . -----------------------------       +-------------------------+
              .
 
+Each machine has a single copy of "sclient" running that establishes a single
+connection to the cache server. All the Apache/mod_ssl processes will
+communicate with their local "sclient" daemon using unix domain sockets, and
+each "sclient" will handle multiplexing those requests on to (and back from) the
+server, and will additionally handle any network connectivity problems between
+itself and the server using periodic retries and responding locally to its
+clients with "temporary error" responses. The server running "sserver" then only
+has as many clients as there are Apache/mod_ssl host machines - it does not from
+its point of view see that "sclient" is acting on behalf of multiple
+Apache/mod_ssl processes.
+
 
 --- test_session, test/benchmark utility ---
 
@@ -214,25 +245,35 @@ encode *much* larger (the encoding has to include a copy of the client
 certificate!). To generate some or all of the SSL/TLS sessions of this form, use
 the "-withcert" command-line switch.
 
+IMPORTANT NOTE: If distcache is built with OpenSSL-support, the above is
+strictly true. If not, test_session will actually just generate random binary
+data for session-IDs and session-data. This can be useful for testing the
+correct behaviour of servers (and proxies) that do not care about SSL/TLS
+specifics (such as sserver and sclient). It can also be useful for testing the
+stability of servers/proxies that *do* care about SSL/TLS specifics and could
+have SSL/TLS encoding/decoding bugs that this kind of testing would highlight.
+
 Note, a question that might have occurred to perceptive users is why bother
 using genuine SSL/TLS sessions at all if the entire protocol and framework work
 purely with the binary key-values and ignore *what* the data means? The answer
-is two-fold; (1) SSL/TLS is the most common and important case worth testing and
+is three-fold; (1) SSL/TLS is the most common and important case worth testing and
 benchmarking, so it makes sense to generate session data that matches this
 profile, (2) the bundled "sclient" and "sserver" programs are simplistic
 reference implementations of the protocol, and real-world users may write their
 own implementations - in which case it's possible they may also be interpreting
 the data (either at the proxy level and/or at the server) *as* SSL/TLS session
-data. In any case, test_session could be modified or forked to create different
-kinds of tests if required, eg. occasionally corrupting the SSL/TLS data in
-random ways to catch bugs in custom implementations. On the other hand, if
-people develop their own SSL/TLS-specific caching programs, test_session is
+data. Finally, (3) as mentioned - building distcache without OpenSSL support
+will in fact case test_session *not* to generate genuine SSL/TLS sessions
+anyway. In any case, test_session could be modified or forked to create
+different kinds of tests if required, eg. occasionally corrupting the SSL/TLS
+data in random ways to catch bugs in custom implementations. On the other hand,
+if people develop their own SSL/TLS-specific caching programs, test_session is
 likely to be useful as-is without requiring complicated re-engineering (a glance
 at "int_new_ssl_session()" would explain why this might be a relief).
 
 After creating and encoding the test SSL/TLS sessions for use in testing the
-distributed caching, test_session will proceed to hit the cache server or cache
-proxy specified with the obligatory "-connect" command-line switch. If the
+distributed caching, test_session will proceed to hit the cache server (or 
+proxy) specified with the obligatory "-connect" command-line switch. If the
 "-persistent" switch is specified, then "test_session" will try to perform
 operations over a single persistent connection rather than opening and closing
 connections for each operation (eg. the IPv4 example shown in the "sclient"
@@ -247,34 +288,34 @@ operation to succeed or fail - if the corresponding session had never been
 "add"ed to the cache (or not since it was last "remove"d) then it would expect
 all operation types to fail except "add". If the session is supposed to be in
 the cache, then "add" should be the only operation to fail. If any operation
-that should succeed fails, or if any operation that should fail succeeds,
+that should succeed fails, or any operation that should fail succeeds,
 "test_session" will automatically stop with an error message.
 
 There are other tweaks that can be specified on the "test_session" command-line.
 The timeout is perhaps the most important to understand. Each session added into
 a distributed cache must at the same time specify a number of milliseconds after
-which the cache should regard the session as "stale", or "expired". After a
+which the cache should regard the session as "stale" or "expired". After a
 stored session has past this "used-by" time, it will (as far as clients are
 concerned anyway) disappear from the cache. It is possible that tweaking of
 timeout handling could cause "test_session" to stop on false-positive errors.
-Eg. when adding a session it expects to fail because the session is already
-there when in fact it succeeds because the session was expired. Likewise removes
-that should succeed might fail for the same reason.
+Eg. expecting an "add" to fail because the session is already supposed to be in
+the cache, when in fact it succeeds because the session had since expired!
+Likewise removes that should succeed might fail for the same reason.
 
 Timeouts are only specified in an "add" operation, after which the distributed
 cache itself maintains an "expiry" time attached to each session object and
 ensures that that object, for all intents and purposes, disappears after the
 expiry time. Using the "-timeout" and "-timevar" command-line switches allows
 the user to control what timeout values will be provided each time an "add"
-operation takes place. By default "-timevar" is zero, in which case each "add"
-operation specifies a timeout of exactly "-timeout" seconds (default 60
-seconds). If "-timevar" is non-zero, then each add operation will randomly
-generate a timeout in the range [timeout-timevar,timeout+timevar]. The main use
-for this functionality is to stress the ordering logic and processing of the
-cache server implementation - the easiest way to handle expiry logic efficiently
-in a cache is to order sessions according to their expiry time - ie. not by
-their timeout value or in the order they arrive, but by the order they will be
-*removed*. By using a "-timevar" switch, it's possible to generate operation
-requests that cause sessions to be added in a different order to the order in
-which they will be expired.
+operation takes place in test_session. By default "-timevar" is zero, in which
+case each "add" operation specifies a timeout of exactly "-timeout" seconds
+(default 60 seconds). If "-timevar" is non-zero, then each add operation will
+randomly generate a timeout in the range [timeout-timevar,timeout+timevar]. The
+main use for this functionality is to stress the ordering logic and processing
+of the cache server implementation - the easiest way to handle expiry logic
+efficiently in a cache is to order sessions according to their expiry time - ie.
+not by their timeout value or in the order they arrive, but by the order they
+will be *removed*. By using a "-timevar" switch, it's possible to generate
+operation requests that cause sessions to be added in a different order to the
+order in which they will be expired.
 
