@@ -49,6 +49,10 @@ Changes between 1.4.4 and x.x.x
      The libnal API now has been simplified as a result (and some unnecessary
      and unused extensions removed). In particular, the binding between objects
      now means many functions no longer take a NAL_SELECTOR pointer parameter.
+     There is also a second selector implementation based on poll() to
+     complement the existing (though modified) one based on select().  If both
+     are supported, then poll() is used by preference unless "--disable-poll"
+     is specified to the configuration script.
      [Geoff Thorpe]
 
   *) A somewhat serious race bug has been uncovered in the 'dc_client' utility

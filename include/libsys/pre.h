@@ -64,7 +64,7 @@
 /* We're a less disabled system - use autoconf results */
 #include "config.h"
 
-#if !defined(HAVE_SELECT)
+#if !defined(HAVE_SELECT) && !defined(HAVE_POLL)
 	#error "'select()' must be supported on your system, sorry"
 #endif
 #if !defined(HAVE_SOCKET)
@@ -108,6 +108,9 @@
 #endif
 #if defined(HAVE_NETINET_TCP_H)
 #include <netinet/tcp.h>
+#endif
+#if defined(HAVE_SYS_POLL_H)
+#include <sys/poll.h>
 #endif
 #if defined(HAVE_SYS_RESOURCE_H)
 #include <sys/resource.h>

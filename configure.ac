@@ -23,7 +23,7 @@ AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([fcntl.h netdb.h time.h unistd.h pwd.h grp.h \
 		  netinet/in.h netinet/tcp.h \
-		  sys/resource.h sys/socket.h sys/stat.h sys/time.h \
+		  sys/poll.h sys/resource.h sys/socket.h sys/stat.h sys/time.h \
 		  sys/types.h sys/un.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -44,7 +44,7 @@ AC_FUNC_MEMCMP
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gettimeofday memmove memset select socket strstr \
 		strtoul daemon getrusage setuid getpwnam getgrnam chown chmod \
-		getsockname])
+		getsockname poll])
 
 # This makes sure "@VERSION@" can be used in Makefile.am's for things like
 # pod2man. I've noticed that some versions of autoconf (or automake?) don't
