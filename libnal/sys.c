@@ -49,15 +49,49 @@ pid_t NAL_getpid(void)
 	return getpid();
 }
 
+/* 
+ * NAL_daemon() is a utility function to make the current process a "daemon"
+ * such that it detaches from the current terminal and holds the attributes
+ * normally associated with daemon processes.
+ *
+ * The "nochdir" parameter, if zero, changes the current working directory to
+ * "/", thereby preventing the daemon process keeping a hold on directories
+ * (Where this might be useful is, for example, NFS file systems preventing
+ * those machines from unmounting the exported file system.)
+ *
+ * Returns non-zero for success, zero otherwise.
+ */
 int NAL_daemon(int nochdir)
 {
-#ifndef HAVE_DAEMON
-	NAL_fprintf(NAL_stderr(), "Error, this platform doesn't have daemon()\n");
-	return 0;
-#else
+#ifdef HAVE_DAEMON
        if(daemon(nochdir, 0) == -1)
 	       return 0;
        return 1;
+#else
+       /* The system has no daemon() function, so we have to duplicate
+	* the functionality.  */
+	pid_t pid;
+
+	if ( (pid = fork()) < 0)
+		return 0;
+	else if (pid != 0)
+		exit(0);
+
+	/* At this point we're the child process, and our parent has been
+	 * killed off */
+
+	setsid();
+
+	if (!nochdir)
+		chdir("/");
+
+	umask(0);
+
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
+
+	return 1;
 #endif
 }
 
