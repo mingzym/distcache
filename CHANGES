@@ -19,6 +19,13 @@ Current version: x.x
 Changes between 0.4pre2 and x.x
 -------------------------------
 
+  *) Force the use of alternative wrappers for strncpy and strdup because
+     these may be defined as macros by the system that use memcpy and malloc
+     and our debugging code shuts those off. As an added check, our strncpy
+     wrapper macro null-terminates all strings unlike the normal version which
+     can leave cropped strings without any terminator.
+     [Geoff Thorpe]
+
   *) Fixed the NAL_CONNECTION_is_established() logic. Non-blocking connects are
      now handled and their eventual completion (or failure) will now break
      NAL_SELECTOR_select() operations. NAL_CONNECTION_is_established() and

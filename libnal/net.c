@@ -238,7 +238,7 @@ static void int_sockaddr_from_unix(sockaddr_safe *addr, const char *start_ptr)
 	struct sockaddr_un un_addr;
 
 	un_addr.sun_family = AF_UNIX;
-	strncpy(un_addr.sun_path, start_ptr, UNIX_PATH_MAX);
+	NAL_strncpy(un_addr.sun_path, start_ptr, UNIX_PATH_MAX);
 	/* Now sandblast the sockaddr_un structure onto the sockaddr structure
 	 * (which one hopes is greater than or equal to it in size :-). */
 	NAL_zero(sockaddr_safe, addr);

@@ -223,12 +223,16 @@ void *nal_memmove(void *dest, const void *src, size_t n);
 #undef memset
 #undef memcpy
 #undef memmove
+#undef strncpy
+#undef strdup
 #define malloc dont_use_malloc
 #define realloc dont_use_realloc
 #define free dont_use_free
 #define memset dont_use_memset
 #define memcpy dont_use_memcpy
 #define memmove dont_use_memmove
+#define strncpy dont_use_strncpy
+#define strdup dont_use_strdup
 #endif
 
 #else
@@ -307,6 +311,28 @@ void *nal_memmove(void *dest, const void *src, size_t n);
 
 #define NAL_zero(t,p)		NAL_cover(0,t,(p))
 #define NAL_zero_n(t,p,n)	NAL_cover_n(0,t,(p),(n))
+/* This wrapper always zero-terminates, unlike a normal strncpy which does not */
+#define NAL_strncpy(d,s,n)	do { \
+				char *tmp_NAL_strncpy1 = (d); \
+				const char *tmp_NAL_strncpy2 = (s); \
+				size_t tmp_NAL_strncpy3 = strlen(tmp_NAL_strncpy2), \
+					tmp_NAL_strncpy4 = (n); \
+				if(tmp_NAL_strncpy3 < tmp_NAL_strncpy4) \
+					NAL_memcpy_n(char, (d), (s), tmp_NAL_strncpy3 + 1); \
+				else { \
+					NAL_memcpy_n(char, (d), (s), tmp_NAL_strncpy4); \
+					tmp_NAL_strncpy1[tmp_NAL_strncpy4 - 1] = '\0'; \
+				} \
+				} while(0)
+#define NAL_strdup(d,s)		do { \
+				char **tmp_NAL_strdup1 = (d); \
+				const char *tmp_NAL_strdup2 = (s); \
+				size_t tmp_NAL_strdup3 = strlen(tmp_NAL_strdup2) + 1; \
+				*tmp_NAL_strdup1 = NAL_malloc(char, tmp_NAL_strdup3); \
+				if(*tmp_NAL_strdup1) \
+					NAL_memcpy_n(char, *tmp_NAL_strdup1, \
+						tmp_NAL_strdup2, tmp_NAL_strdup3); \
+				} while(0)
 
 /* Now a structure version that is useful for example with fixed size char
  * arrays ... eg. char v[20]; NAL_zero_s(v); Because you'd either need to use
