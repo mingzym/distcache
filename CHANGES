@@ -22,7 +22,10 @@ Changes between 0.4pre1 and x.x
   *) Removed the unnecessary NAL_BUFFER_read_ptr() function as it is equivalent
      to NAL_BUFFER_data() except the latter (correctly) returns a const
      pointer. This function was apparently written when I was too distracted to
-     realise that NAL_BUFFER is a FIFO and the read pointer is invariant.
+     realise that NAL_BUFFER is a FIFO and the read pointer is invariant. Also,
+     remove the NAL_BUFFER_takedata() function and consolidate its slightly
+     additional functionality into NAL_BUFFER_read() (namely that a NULL
+     pointer can be used to turn the "read" into a "discard").
      [Geoff Thorpe]
 
   *) Add more API documents;

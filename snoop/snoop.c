@@ -286,7 +286,7 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 		 * should also catch jamming from corrupt wire-data, so this
 		 * assert should only catch bugs in snoop code. */
 		assert(*buf_used < SNOOP_BUF_WINDOW);
-		moved = NAL_BUFFER_takedata(buf_in, buf + *buf_used,
+		moved = NAL_BUFFER_read(buf_in, buf + *buf_used,
 					SNOOP_BUF_WINDOW - *buf_used);
 		assert(moved > 0);
 		*buf_used += moved;

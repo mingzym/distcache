@@ -165,7 +165,7 @@ static int int_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send)
 	if(ret > 0) {
 		unsigned int uret = (unsigned int)ret;
 		/* Scroll the buffer forward */
-		NAL_BUFFER_takedata(buf, NULL, uret);
+		NAL_BUFFER_read(buf, NULL, uret);
 #if NAL_DEBUG_LEVEL > 1
 		NAL_fprintf(NAL_stdout(), "Debug: net.c (fd=%d) sent %lu bytes\n",
 			fd, (unsigned long)uret);
@@ -1340,32 +1340,18 @@ unsigned int NAL_BUFFER_read(NAL_BUFFER *buf, unsigned char *ptr,
 		toread = size;
 	if(toread == 0)
 		return 0;
-	memcpy(ptr, buf->_data, toread);
+	if(ptr)
+		NAL_memcpy_n(unsigned char, ptr, buf->_data, toread);
 	buf->_used -= toread;
 	if(buf->_used > 0)
-		memmove(buf->_data, buf->_data + toread, buf->_used);
+		NAL_memmove_n(unsigned char, buf->_data,
+				buf->_data + toread, buf->_used);
 	return toread;
 }
 
 unsigned char *NAL_BUFFER_write_ptr(NAL_BUFFER *buf)
 {
 	return (buf->_data + buf->_used);
-}
-
-unsigned int NAL_BUFFER_takedata(NAL_BUFFER *buf,
-		unsigned char *dest,
-		unsigned int size)
-{
-	unsigned int totake = NAL_BUFFER_used(buf);
-	if(totake > size)
-		totake = size;
-	if(dest)
-		NAL_memcpy_n(unsigned char, dest, buf->_data, totake);
-	buf->_used -= totake;
-	if(buf->_used > 0)
-		NAL_memmove_n(unsigned char, buf->_data,
-				buf->_data + totake, buf->_used);
-	return totake;
 }
 
 unsigned int NAL_BUFFER_wrote(NAL_BUFFER *buf, unsigned int size)

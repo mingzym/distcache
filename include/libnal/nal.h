@@ -131,8 +131,8 @@ int		NAL_BUFFER_notempty(const NAL_BUFFER *buf);
 int		NAL_BUFFER_notfull(const NAL_BUFFER *buf);
 unsigned int	NAL_BUFFER_used(const NAL_BUFFER *buf);
 unsigned int	NAL_BUFFER_unused(const NAL_BUFFER *buf);
-const unsigned char *NAL_BUFFER_data(const NAL_BUFFER *buf);
 unsigned int	NAL_BUFFER_size(const NAL_BUFFER *buf);
+const unsigned char *NAL_BUFFER_data(const NAL_BUFFER *buf);
 /* Now we define the general "access" functions for the buffer type */
 unsigned int 	NAL_BUFFER_write(NAL_BUFFER *buf,
 				const unsigned char *ptr,
@@ -150,13 +150,6 @@ unsigned int 	NAL_BUFFER_read(NAL_BUFFER *buf,
 /* Returns a pointer to the tail of the buffer's data, you should never attempt
  * to write more than NAL_BUFFER_unused(buf) bytes from the return value. */
 unsigned char *	NAL_BUFFER_write_ptr(NAL_BUFFER *buf);
-/* If you have read data from the buffer using ...read_ptr(), use this with
- * "dest"==NULL to scroll the data you've already consumed out of the buffer.
- * Otherwise this scrolls data out and places it at *dest.  NB: The return value
- * is the amount *actually* taken - it can be less than "size". */
-unsigned int	NAL_BUFFER_takedata(NAL_BUFFER *buf,
-				unsigned char *dest,
-				unsigned int size);
 /* If you wrote data directly to the buffer using ...write_ptr() rather than
  * NAL_BUFFER_write(), then use this call to indicate that the buffer has "size"
  * more bytes available to it at the position ...write_ptr() returned. NB: The

@@ -442,7 +442,7 @@ start_over:
 		return 0;
 	}
 	tmp = DC_MSG_decode(&io->msg, buf_ptr, buf_len);
-	NAL_BUFFER_takedata(buffer, NULL, tmp);
+	NAL_BUFFER_read(buffer, NULL, tmp);
 	cmd = DC_MSG_get_cmd(&io->msg);
 	if((to_server && !io->msg.is_response) ||
 			(!to_server && io->msg.is_response))
