@@ -247,44 +247,44 @@ void nal_free_int(void *ptr);
  * by the precompiler. Ie. debugging levels greater than 2 help find source
  * bugs, but release builds are still optimised. */
 #if NAL_DEBUG_LEVEL > 2
-#define NAL_cover(c,t,p)	{ \
+#define NAL_cover(c,t,p)	do { \
 				t *temp_NAL_cover_ptr = (p); \
 				memset(temp_NAL_cover_ptr, (c), \
 						sizeof(t)); \
-				}
-#define NAL_cover_n(c,t,p,n)	{ \
+				} while(0)
+#define NAL_cover_n(c,t,p,n)	do { \
 				t *temp_NAL_cover_n_ptr = (p); \
 				memset(temp_NAL_cover_n_ptr, (c), \
 						(n) * sizeof(t)); \
-				}
-#define NAL_memcpy(t,d,s)	{ \
+				} while(0)
+#define NAL_memcpy(t,d,s)	do { \
 				t *temp_NAL_memcpy_ptr1 = (d); \
 				const t *temp_NAL_memcpy_ptr2 = (s); \
 				memcpy(temp_NAL_memcpy_ptr1, \
 					temp_NAL_memcpy_ptr2, \
 					sizeof(t)); \
-				}
-#define NAL_memcpy_n(t,d,s,n)	{ \
+				} while(0)
+#define NAL_memcpy_n(t,d,s,n)	do { \
 				t *temp_NAL_memcpy_ptr1 = (d); \
 				const t *temp_NAL_memcpy_ptr2 = (s); \
 				memcpy(temp_NAL_memcpy_ptr1, \
 					temp_NAL_memcpy_ptr2, \
 					(n) * sizeof(t)); \
-				}
-#define NAL_memmove(t,d,s)	{ \
+				} while(0)
+#define NAL_memmove(t,d,s)	do { \
 				t *temp_NAL_memmove_ptr1 = (d); \
 				const t *temp_NAL_memmove_ptr2 = (s); \
 				memmove(temp_NAL_memmove_ptr1, \
 					temp_NAL_memmove_ptr2, \
 					sizeof(t)); \
-				}
-#define NAL_memmove_n(t,d,s,n)	{ \
+				} while(0)
+#define NAL_memmove_n(t,d,s,n)	do { \
 				t *temp_NAL_memmove_ptr1 = (d); \
 				const t *temp_NAL_memmove_ptr2 = (s); \
 				memmove(temp_NAL_memmove_ptr1, \
 					temp_NAL_memmove_ptr2, \
 					(n) * sizeof(t)); \
-				}
+				} while(0)
 #else
 #define NAL_cover(c,t,p)	memset((p), (c), sizeof(t))
 #define NAL_cover_n(c,t,p,n)	memset((p), (c), (n) * sizeof(t))
