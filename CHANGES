@@ -19,6 +19,18 @@ Current version: x.x.x
 Changes between 1.4.4 and x.x.x
 -------------------------------
 
+  *) A somewhat serious race bug has been uncovered in the 'dc_client' utility
+     used to proxy distcache operations between applications and a remote
+     server. The multiplexing code that handles rewriting request uids was
+     horribly broken when cleaning up after a disconnected client, and would
+     cause all requests on other client connections to be orphaned. The fact
+     this hasn't been discovered before is largely due to lucky timing, but
+     would almost certainly cause instabilities long term in any real-world
+     deployment. Upgrading is highly recommended, and apologies that such a
+     wild bug has managed to slip through my testing this long, I'm somewhat
+     stunned myself!
+     [Geoff Thorpe]
+
   *) Make NAL_SELECTOR vtable-based like NAL_ADDRESS, NAL_LISTENER, [etc]. The
      main difference between the others is that there is no "create()" step
      after allocating the structure with NAL_SELECTOR_new() - a default vtable

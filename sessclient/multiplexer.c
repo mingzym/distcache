@@ -89,12 +89,18 @@ void multiplexer_mark_dead_client(multiplexer_t *m, unsigned long client_uid)
 	unsigned int loop = 0;
 	item_t *item = m->items;
 	while(loop < m->used) {
-		if(item->state == ITEM_SERVER_DEAD)
-			/* The item already had an orphaned server, now the
-			 * client too! Just remove it. */
-			int_remove(m, loop);
-		else {
-			item->state = ITEM_CLIENT_DEAD;
+		if(item->c_uid == client_uid) {
+			if(item->state == ITEM_SERVER_DEAD)
+				/* The item already had an orphaned server, now
+				 * the client too! Just remove it. */
+				int_remove(m, loop);
+			else {
+				abort();
+				item->state = ITEM_CLIENT_DEAD;
+				loop++;
+				item++;
+			}
+		} else {
 			loop++;
 			item++;
 		}
@@ -181,3 +187,4 @@ found:
 		clients_digest_response(c, item->c_uid, cmd, data, data_len);
 	int_remove(m, loop);
 }
+
