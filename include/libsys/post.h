@@ -310,7 +310,8 @@ int SYS_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
 		const struct timeval *timenow);
 unsigned long SYS_msecs_between(const struct timeval *a, const struct timeval *b);
 
-#endif /* defined(SYS_GENERATING_EXE) */
+
+#endif /* defined(SYS_GENERATING_EXE) || defined(SYS_LOCAL) */
 
 #endif /* !defined(HEADER_LIBSYS_POST_H) */
 
