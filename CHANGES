@@ -19,16 +19,23 @@ Current version: xx.xx
 Changes between 0.1-seed and xx.xx
 ----------------------------------
 
-  *) [Steve Robb]
-  
-     Add the first part of autoconf/autmake/libtool support to distcache
-     including numerous followup tweaks.
+  *) Added DISTCACHE_CLIENT_API and DISTCACHE_CLIENT_BINARY version defines to
+     dc_client.h so that apache/mod_ssl plugins can run sanity checks on the
+     version of distcache.
+     [Geoff Thorpe]
 
-  *) [Geoff Thorpe]
+  *) Allow building without OpenSSL support (only affects test_session which
+     can generate garbage sessions to test with rather than OpenSSL-compatible
+     ones).
+     [Geoff Thorpe, Steve Robb]
 
-     Use the autoconf-generated config.h to control #includes.
+  *) Add "-pidfile" and "-daemon" switches to the 'sserver' utility.
+     [Geoff Thorpe]
 
-     Removed various things from 0.1-seed that aren't relevant;
+  *) Added a self-test script to test sserver and sclient with test_session.
+     [Geoff Thorpe]
+
+  *) Removed various things from 0.1-seed that aren't relevant;
      - IN_MAKEDEPEND hacks no longer needed as autoconf/automake handle
        dependencies.
      - wrapper functions removed for unneeded stuff, fork(), waitpid(), etc.
@@ -37,15 +44,12 @@ Changes between 0.1-seed and xx.xx
        initialise static versions.
      - Get rid of some unnecessary types and use just DC_ERR where possible
        (this altered the protocol slightly).
+     [Geoff Thorpe]
 
-     Add "-pidfile" and "-daemon" switches to the 'sserver' utility.
+  *) Use the autoconf-generated config.h to control #includes.
+     [Geoff Thorpe]
 
-     Allow building without OpenSSL support (only affects test_session which
-     can generate garbage sessions to test with rather than OpenSSL-compatible
-     ones).
+  *) Add the first part of autoconf/automake/libtool support to distcache
+     including numerous followup tweaks.
+     [Steve Robb]
 
-     Added a self-test script to test sserver and sclient with test_session.
-
-     Added DISTCACHE_CLIENT_API and DISTCACHE_CLIENT_BINARY version defines to
-     dc_client.h so that apache/mod_ssl plugins can run sanity checks on the
-     version of distcache.
