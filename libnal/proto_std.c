@@ -459,10 +459,12 @@ static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 	conn_ctx *ctx = nal_connection_get_vtdata(conn);
 	nal_selector_fd_set(sel, ctx->fd,
 		/* Do we select for readability? */
-		(((flags & NAL_SELECT_FLAG_READ) && NAL_BUFFER_notfull(ctx->b_read)) ?
+		(ctx->established &&
+		(flags & NAL_SELECT_FLAG_READ) && NAL_BUFFER_notfull(ctx->b_read) ?
 			SELECTOR_FLAG_READ : 0) |
 		/* Do we select for writability? */
-		(((flags & NAL_SELECT_FLAG_SEND) && NAL_BUFFER_notempty(ctx->b_send)) ?
+		(!ctx->established ||
+		((flags & NAL_SELECT_FLAG_SEND) && NAL_BUFFER_notempty(ctx->b_send)) ?
 			SELECTOR_FLAG_SEND : 0) |
 		SELECTOR_FLAG_EXCEPT);
 }

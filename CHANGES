@@ -19,6 +19,18 @@ Current version: x.x
 Changes between 1.4.2 and x.x
 -----------------------------
 
+  *) Fix a bug that can cause non-blocking connects to jam. If a non-blocking
+     connect begins, the appropriate way to spot completion (or failure) is by
+     selecting for writability, but this was not necessarily happening. Worse
+     still, the application can go into an infinite loop with select() breaking
+     because of readability despite the fact that the read IO logic was not
+     checking for nb-connect completions (this happens only in the send IO
+     logic). The cleanest way is to not select for readability until the
+     connect is complete, though an alternative would be to duplicate the
+     completion checking code for the read case too - I'll stick with this one
+     for now.
+     [Geoff Thorpe]
+
   *) Add "-sockowner", "-sockgroup", and "-sockperms" command-line switches to
      dc_server and dc_client to allow ownership and permission controls when
      listening on unix domain sockets. On most systems, these would only
