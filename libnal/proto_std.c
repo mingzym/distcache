@@ -73,7 +73,7 @@ static int list_set_fs_owner(NAL_LISTENER *l, const char *ownername,
 static int list_set_fs_perms(NAL_LISTENER *l, const char *octal_string);
 /* This is the type we attach to our listeners */
 typedef struct st_list_ctx {
-	int fd, caught, taken;
+	int fd, caught;
 	nal_sockaddr_type type;
 } list_ctx;
 static const NAL_LISTENER_vtable list_vtable = {
@@ -291,8 +291,7 @@ static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l)
 {
 	list_ctx *ctx = nal_listener_get_vtdata(l);
 	if(ctx->caught) {
-		/* ctx->caught = 0; */
-		ctx->taken = 1;
+		/* ctx->caught = 0; */ /* this is unset in conn::accept */
 		return &conn_vtable;
 	}
 	return NULL;
@@ -327,9 +326,8 @@ static void list_pre_select(NAL_LISTENER *l, NAL_SELECTOR *sel,
 			NAL_SELECTOR_TOKEN tok)
 {
 	list_ctx *ctx = nal_listener_get_vtdata(l);
-	if(!ctx->caught || ctx->taken)
+	if(!ctx->caught)
 		nal_selector_fd_set(sel, tok, ctx->fd, SELECTOR_FLAG_READ);
-	ctx->taken = 0;
 }
 
 static void list_post_select(NAL_LISTENER *l, NAL_SELECTOR *sel,
@@ -432,7 +430,9 @@ static int conn_accept(NAL_CONNECTION *conn, const NAL_LISTENER *l)
 	int fd = -1;
 	list_ctx *ctx_list = nal_listener_get_vtdata(l);
 	conn_ctx *ctx_conn = nal_connection_get_vtdata(conn);
+	assert(ctx_list->caught);
 	if(!nal_sock_accept(ctx_list->fd, &fd)) {
+#if 0 /* We only support one accept per readability so this stuff simply shouldn't occur */
 		switch(errno) {
 		case EAGAIN:
 #if EAGAIN != EWOULDBLOCK
@@ -444,9 +444,10 @@ static int conn_accept(NAL_CONNECTION *conn, const NAL_LISTENER *l)
 		default:
 			break;
 		}
+#endif
 		goto err;
 	}
-	ctx_list->taken = 1;
+	ctx_list->caught = 0;
 	if(!nal_fd_make_non_blocking(fd, 1) ||
 			!nal_sock_set_nagle(fd, gb_use_nagle, ctx_list->type) ||
 			!conn_ctx_setup(ctx_conn, fd, 1,
