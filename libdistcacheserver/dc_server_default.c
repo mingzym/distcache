@@ -335,7 +335,7 @@ static int cache_add_session(DC_CACHE *cache,
 		 * array to the left one space). If it's greater than one, it's
 		 * a little unfair on some extra sessions (expiring them when
 		 * it's not strictly necessary), but we don't do nearly as many
-		 * memmove() operations. */
+		 * memmove operations. */
 		int_force_expire(cache, cache->expire_delta);
 	/* Set the time that the new session will expire */
 	SYS_timeadd(&expiry, now, timeout_msecs);

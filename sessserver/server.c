@@ -258,7 +258,7 @@ static int do_server(const char *address, unsigned int max_sessions,
 	if(sockperms && !NAL_LISTENER_set_fs_perms(listener, sockperms))
 		SYS_fprintf(SYS_stderr, "Warning, can't set socket permissions "
 				"to '%s', continuing anyway\n", sockperms);
-	/* If we're going daemon() mode, do it now */
+	/* If we're going daemon mode, do it now */
 	if(daemon_mode) {
 		/* working directory becomes "/" */
 		/* stdin/stdout/stderr -> /dev/null */

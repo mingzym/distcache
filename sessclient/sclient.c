@@ -292,7 +292,7 @@ int main(int argc, char *argv[])
 	}
 
 #ifndef WIN32
-	/* If we're going daemon() mode, do it now */
+	/* If we're going daemon mode, do it now */
 	if(daemon_mode) {
 		/* working directory becomes "/" */
 		/* stdin/stdout/SYS_stderr -> /dev/null */
