@@ -31,9 +31,57 @@
 /*****************************************************/
 /* NETWORK ABSTRACTION INTERNAL LIBRARY DECLARATIONS */
 /*                                                   */
-/* (1) data "buffer" type and functions              */
-/* (2) network wrapper types and functions           */
+/* (1) internal utility functions                    */
+/* (2) data "buffer" type and functions              */
+/* (3) network wrapper types and functions           */
 /*****************************************************/
+
+/* Utility functions and types used inside libnal. Eventually these should be
+ * hidden from API functions (only protocol implementations should require
+ * them) but until that's organised, I'm putting everything here. */
+
+/* Some platforms don't get socklen_t ... use int */
+#ifndef socklen_t
+#define socklen_t int
+#endif
+
+/* This is a dummy type used to ensure our "sockaddr" is big enough to store
+ * whatever. I previously assumed "struct sockaddr" already was, but it turns
+ * out (dammit) that;
+ *     sizeof(struct sockaddr_un) > sizeof(struct sockaddr)
+ */
+typedef union {
+	struct sockaddr_in val_in;
+#ifndef WIN32
+	struct sockaddr_un val_un;
+#endif
+} sockaddr_safe;
+
+/***********/
+/* util_fd */
+/***********/
+
+int nal_fd_make_non_blocking(int fd, int non_blocking);
+int nal_fd_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send);
+int nal_fd_buffer_from_fd(NAL_BUFFER *buf, int fd, unsigned int max_read);
+void nal_fd_close(int *fd);
+
+/***************/
+/* util_socket */
+/***************/
+
+int nal_sock_set_nagle(int fd, int use_nagle);
+void nal_sock_sockaddr_from_ipv4(sockaddr_safe *addr, unsigned char *ip,
+			unsigned short port);
+void nal_sock_sockaddr_from_unix(sockaddr_safe *addr, const char *start_ptr);
+int nal_sock_create_socket(int *fd, int type);
+int nal_sock_create_unix_pair(int sv[2]);
+int nal_sock_set_reuse(int fd);
+int nal_sock_bind(int fd, const sockaddr_safe *addr, int address_type);
+int nal_sock_connect(int fd, const sockaddr_safe *addr, int address_type,
+			int *established);
+int nal_sock_listen(int fd);
+int nal_sock_accept(int listen_fd, int *conn);
 
 /****************************************/
 /* NAL_BUFFER - implemented in buffer.c */
@@ -49,7 +97,7 @@
  * Anyway - it'll get changed if it's a problem ... for now it's a good check to
  * make sure the other code isn't too loose. */
 #define NAL_BUFFER_MAX_SIZE  32768
-#define int_check_buffer_size(sz) (((sz) > NAL_BUFFER_MAX_SIZE) ? 0 : 1)
+#define nal_check_buffer_size(sz) (((sz) > NAL_BUFFER_MAX_SIZE) ? 0 : 1)
 
 /* Builtin transport types */
 typedef enum {
@@ -71,16 +119,6 @@ typedef enum {
 	NAL_ADDRESS_TYPE_LAST	/* so that "NAL_ADDRESS_TYPE_LAST-1" is the
 				   last valid type */
 } NAL_PROTOCOL_TYPE;
-
-/* A dummy type used to ensure our "sockaddr" is big enough to store whatever. I
- * previously assumed it was, but it turns out that;
- * sizeof(struct sockaddr_un) > sizeof(struct sockaddr). Dammit. */
-typedef union {
-	struct sockaddr_in val_in;
-#ifndef WIN32
-	struct sockaddr_un val_un;
-#endif
-} sockaddr_safe;
 
 #define NAL_LISTENER_BACKLOG	511
 #define NAL_ADDRESS_MAX_STR_LEN	255

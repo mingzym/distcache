@@ -78,7 +78,7 @@ int NAL_BUFFER_set_size(NAL_BUFFER *buf, unsigned int size)
 	 * (realloc becomes free). */
 	if(size == buf->size)
 		return 1;
-	if(!int_check_buffer_size(size)) {
+	if(!nal_check_buffer_size(size)) {
 #if SYS_DEBUG_LEVEL > 1
 		SYS_fprintf(SYS_stderr, "Error, NAL_BUFFER_set_size() called with too "
 				"large a size\n");

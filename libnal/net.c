@@ -25,337 +25,13 @@
 #include "nal_internal.h"
 #include <libsys/post.h>
 
-/* This global flag, if set to zero, will cause new ipv4 connections to have the
- * Nagle algorithm turned off (by setting TCP_NODELAY). */
-static int int_use_nagle = 1;
-static int int_always_one = 1; /* used in setsockopt() */
+/***********/
+/* globals */
+/***********/
 
-/* Solaris (among possibly many platforms) doesn't know what SOL_TCP is, we need
- * to use getprotobyname() to find it. The result is stored here. */
-static int sol_tcp = -1;
-
-/* Some platforms don't get socklen_t ... use int */
-#ifndef socklen_t
-#define socklen_t int
-#endif
-
-/**************************************/
-/* Internal network utility functions */
-/**************************************/
-
-static int int_make_non_blocking(int fd, int non_blocking)
-{
-#ifdef WIN32
-	u_long dummy = 1;
-	if(ioctlsocket(fd, FIONBIO, &dummy) != 0)
-		return 0;
-	return 1;
-#else
-	int flags;
-
-	if(((flags = fcntl(fd, F_GETFL, 0)) < 0) ||
-			(fcntl(fd, F_SETFL, (non_blocking ?
-			(flags | O_NONBLOCK) : (flags & ~O_NONBLOCK))) < 0)) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, couldn't make socket non-blocking.\n");
-#endif
-		return 0;
-	}
-	return 1;
-#endif
-}
-
-static int int_set_nagle(int fd)
-{
-#ifndef WIN32
-	if(int_use_nagle)
-		return 1;
-
-	if(sol_tcp == -1) {
-		struct protoent *p = getprotobyname("tcp");
-		if(!p) {
-#if SYS_DEBUG_LEVEL > 1
-			SYS_fprintf(SYS_stderr, "Error, couldn't obtain SOL_TCP\n");
-#endif
-			return 0;
-		}
-		sol_tcp = p->p_proto;
-	}
-
-	if(setsockopt(fd, sol_tcp, TCP_NODELAY, &int_always_one,
-			sizeof(int_always_one)) != 0) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, couldn't disable Nagle algorithm\n");
-#endif
-		return 0;
-	}
-#endif
-	return 1;
-}
-
-static int int_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send)
-{
-	ssize_t ret;
-	unsigned int buf_used = NAL_BUFFER_used(buf);
-
-	/* Decide the maximum we should send */
-	if((max_send == 0) || (max_send > buf_used))
-		max_send = buf_used;
-	/* If there's nothing to send, don't waste a system call. This catches
-	 * the case of a non-blocking connect that completed, without adding
-	 * NAL_BUFFER_*** calls one level up. */
-	if(!max_send)
-		return 0;
-#ifdef WIN32
-	ret = send(fd, NAL_BUFFER_data(buf), max_send, 0);
-#elif !defined(MSG_DONTWAIT) || !defined(MSG_NOSIGNAL)
-	ret = write(fd, NAL_BUFFER_data(buf), max_send);
-#else
-	ret = send(fd, NAL_BUFFER_data(buf), max_send,
-		MSG_DONTWAIT | MSG_NOSIGNAL);
-#endif
-	/* There's a couple of "soft errors" we don't consider fatal */
-	if(ret < 0) {
-		switch(errno) {
-		case EAGAIN:
-		case EINTR:
-			return 0;
-		default:
-			break;
-		}
-		return -1;
-	}
-	if(ret > 0) {
-		unsigned int uret = (unsigned int)ret;
-		/* Scroll the buffer forward */
-		NAL_BUFFER_read(buf, NULL, uret);
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stdout, "Debug: net.c (fd=%d) sent %lu bytes\n",
-			fd, (unsigned long)uret);
-#endif
-	}
-	return ret;
-}
-
-static int int_buffer_from_fd(NAL_BUFFER *buf, int fd, unsigned int max_read)
-{
-	ssize_t ret;
-	unsigned int buf_avail = NAL_BUFFER_unused(buf);
-
-	/* Decide the maximum we should read */
-	if((max_read == 0) || (max_read > buf_avail))
-		max_read = buf_avail;
-	/* If there's no room for reading, don't waste a system call */
-	if(!max_read)
-		return 0;
-#ifdef WIN32
-	ret = recv(fd, NAL_BUFFER_write_ptr(buf), max_read, 0);
-#elif !defined(MSG_NOSIGNAL)
-	ret = read(fd, NAL_BUFFER_write_ptr(buf), max_read);
-#else
-	ret = recv(fd, NAL_BUFFER_write_ptr(buf), max_read, MSG_NOSIGNAL);
-#endif
-	/* There's a couple of "soft errors" we don't consider fatal */
-	if(ret < 0) {
-		switch(errno) {
-		case EINTR:
-		case EAGAIN:
-			return 0;
-		default:
-			break;
-		}
-		return -1;
-	}
-	if(ret > 0) {
-		unsigned int uret = (unsigned int)ret;
-		NAL_BUFFER_wrote(buf, uret);
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stdout, "Debug: net.c (fd=%d) received %lu bytes\n",
-			fd, (unsigned long)uret);
-#endif
-	}
-	return ret;
-}
-
-static void int_sockaddr_from_ipv4(sockaddr_safe *addr, unsigned char *ip,
-				unsigned short port)
-{
-	struct sockaddr_in in_addr;
-
-	in_addr.sin_family = AF_INET;
-	if(ip == NULL)
-		in_addr.sin_addr.s_addr = INADDR_ANY;
-	else
-		SYS_memcpy_n(unsigned char,
-			(unsigned char *)&in_addr.sin_addr.s_addr, ip, 4);
-	in_addr.sin_port = htons(port);
-	/* Now sandblast the sockaddr_in structure onto the sockaddr structure
-	 * (which one hopes is greater than or equal to it in size :-). */
-	SYS_zero(sockaddr_safe, addr);
-	SYS_memcpy(struct sockaddr_in, &addr->val_in, &in_addr);
-}
-
-#ifndef WIN32
-static void int_sockaddr_from_unix(sockaddr_safe *addr, const char *start_ptr)
-{
-	struct sockaddr_un un_addr;
-
-	un_addr.sun_family = AF_UNIX;
-	SYS_strncpy(un_addr.sun_path, start_ptr, UNIX_PATH_MAX);
-	/* Now sandblast the sockaddr_un structure onto the sockaddr structure
-	 * (which one hopes is greater than or equal to it in size :-). */
-	SYS_zero(sockaddr_safe, addr);
-	SYS_memcpy(struct sockaddr_un, &addr->val_un, &un_addr);
-}
-#endif
-
-/* Rather than doing this more than once and repeating error output code,
- * I've suctioned it into a function. */
-static int int_create_socket(int *fd, int type)
-{
-	switch(type) {
-	case NAL_ADDRESS_TYPE_IP:
-		*fd = socket(PF_INET, SOCK_STREAM, 0);
-		break;
-#ifndef WIN32
-	case NAL_ADDRESS_TYPE_UNIX:
-		*fd = socket(PF_UNIX, SOCK_STREAM, 0);
-		break;
-#endif
-	default:
-		/* Should never happen */
-		abort();
-	}
-	if(*fd  == -1) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, can't create socket\n\n");
-#endif
-		return 0;
-	}
-	return 1;
-}
-
-#ifndef WIN32
-static int int_create_unix_pair(int sv[2])
-{
-	if(socketpair(PF_UNIX, SOCK_STREAM, 0, sv) != 0) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, can't create socketpair\n\n");
-#endif
-		return 0;
-	}
-	return 1;
-}
-#endif
-
-static int int_set_reuse(int fd)
-{
-	int reuseVal = 1;
-
-	if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
-			(char *)(&reuseVal), sizeof(reuseVal)) != 0) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, couldn't set SO_REUSEADDR\n\n");
-#endif
-		return 0;
-	}
-	return 1;
-}
-
-/* An internal function only used by other internal functions! */
-static int int_int_sockaddr_size(int address_type)
-{
-	switch(address_type) {
-	case NAL_ADDRESS_TYPE_IP:
-		return sizeof(struct sockaddr_in);
-#ifndef WIN32
-	case NAL_ADDRESS_TYPE_UNIX:
-		return sizeof(struct sockaddr_un);
-#endif
-	default:
-		break;
-	}
-	/* for now at least, should *never* happen */
-	abort();
-	/* return 0; */
-}
-
-static int int_bind(int fd, const sockaddr_safe *addr, int address_type)
-{
-	socklen_t addr_size = int_int_sockaddr_size(address_type);
-	sockaddr_safe tmp;
-
-	SYS_memcpy(sockaddr_safe, &tmp, addr);
-	if(bind(fd, (struct sockaddr *)&tmp, addr_size) != 0) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, couldn't bind to the IP/Port\n\n");
-#endif
-		return 0;
-	}
-	return 1;
-}
-
-static int int_connect(int fd, const sockaddr_safe *addr, int address_type,
-			int *established)
-{
-	socklen_t addr_size = int_int_sockaddr_size(address_type);
-	sockaddr_safe tmp;
-
-	SYS_memcpy(sockaddr_safe, &tmp, addr);
-	if(connect(fd, (struct sockaddr *)&tmp, addr_size) != 0) {
-#ifdef WIN32
-		if(WSAGetLastError() != WSAEWOULDBLOCK)
-#else
-		if(errno != EINPROGRESS)
-#endif
-		{
-#if SYS_DEBUG_LEVEL > 1
-			SYS_fprintf(SYS_stderr, "Error, couldn't connect\n\n");
-#endif
-			return 0;
-		}
-		/* non-blocking connect ... connect() succeeded, but it may yet
-		 * fail without a single byte going anywhere. */
-		*established = 0;
-	} else
-		*established = 1;
-	return 1;
-}
-
-static int int_listen(int fd)
-{
-	if(listen(fd, NAL_LISTENER_BACKLOG) != 0) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, couldn't listen on that IP/Port\n\n");
-#endif
-		return 0;
-        }
-	return 1;
-}
-
-static int int_accept(int listen_fd, int *conn)
-{
-	if((*conn = accept(listen_fd, NULL, NULL)) == -1) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, accept failed\n\n");
-#endif
-		return 0;
-	}
-	return 1;
-}
-
-/* A handy little simple function that removes loads of lines of code from
- * elsewhere. */
-static void int_close(int *fd)
-{
-	if(*fd > -1)
-#ifdef WIN32
-		closesocket(*fd);
-#else
-		close(*fd);
-#endif
-	*fd = -1;
-}
+/* This flag, if set to zero, will cause new ipv4 connections to have the Nagle
+ * algorithm turned off (by setting TCP_NODELAY). */
+static int gb_use_nagle = 1;
 
 /* These functions used to be exposed but for encapsulation reasons have been
  * made private. Pre-declaring them here makes the order of function
@@ -397,7 +73,7 @@ void NAL_ADDRESS_free(NAL_ADDRESS *a)
 int NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
 		unsigned int def_buffer_size)
 {
-	if(!int_check_buffer_size(def_buffer_size))
+	if(!nal_check_buffer_size(def_buffer_size))
 		return 0;
 	addr->def_buffer_size = def_buffer_size;
 	return 1;
@@ -420,7 +96,7 @@ int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 	if(addr->family != NAL_ADDRESS_TYPE_NULL)
 		goto err;
 	/* Ensure the buffer size is acceptable */
-	if(!int_check_buffer_size(def_buffer_size))
+	if(!nal_check_buffer_size(def_buffer_size))
 		goto err;
 	/* Before we get into specifics, do the easy bits... :-) */
 	addr->def_buffer_size = def_buffer_size;
@@ -501,7 +177,7 @@ ipv4_port:
 	if((in_ip_piece > 65535) || (*fini_ptr != '\0'))
 		goto err;
 	/* Plonk the ipv4 stuff into the sockaddr structure */
-	int_sockaddr_from_ipv4(&addr->addr, (no_ip ? NULL : in_ip),
+	nal_sock_sockaddr_from_ipv4(&addr->addr, (no_ip ? NULL : in_ip),
 				(unsigned short)in_ip_piece);
 	addr->caps |= NAL_ADDRESS_CAN_LISTEN;
 	addr->family = NAL_ADDRESS_TYPE_IP;
@@ -522,7 +198,7 @@ do_unix:
 	if(len >= UNIX_PATH_MAX)
 		goto err;
 	/* Plonk the path into the sockaddr structure */
-	int_sockaddr_from_unix(&addr->addr, start_ptr);
+	nal_sock_sockaddr_from_unix(&addr->addr, start_ptr);
 	addr->caps = NAL_ADDRESS_CAN_LISTEN | NAL_ADDRESS_CAN_CONNECT;
 	addr->family = NAL_ADDRESS_TYPE_UNIX;
 #if SYS_DEBUG_LEVEL > 2
@@ -573,7 +249,7 @@ NAL_LISTENER *NAL_LISTENER_new(void)
 
 void NAL_LISTENER_free(NAL_LISTENER *list)
 {
-	int_close(&list->fd);
+	nal_fd_close(&list->fd);
 	nal_address_close(&list->addr);
 	SYS_free(NAL_LISTENER, list);
 }
@@ -604,20 +280,20 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 		 * noticing it's gone even!). */
 		unlink(addr->addr.val_un.sun_path);
 #endif
-	if(!int_create_socket(&listen_fd, addr->family))
+	if(!nal_sock_create_socket(&listen_fd, addr->family))
 		goto err;
 	if((addr->family == NAL_ADDRESS_TYPE_IP) &&
-			!int_set_reuse(listen_fd))
+			!nal_sock_set_reuse(listen_fd))
 		goto err;
-	if(!int_bind(listen_fd, &addr->addr, addr->family) ||
-			!int_listen(listen_fd))
+	if(!nal_sock_bind(listen_fd, &addr->addr, addr->family) ||
+			!nal_sock_listen(listen_fd))
 		goto err;
 	/* Success! */
 	SYS_memcpy(NAL_ADDRESS, &(list->addr), addr);
 	list->fd = listen_fd;
 	return 1;
 err:
-	int_close(&listen_fd);
+	nal_fd_close(&listen_fd);
 	return 0;
 }
 
@@ -631,12 +307,12 @@ int NAL_LISTENER_accept_block(const NAL_LISTENER *list, NAL_CONNECTION *conn)
 	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
 		goto err;
 	/* Do the accept */
-	if(!int_accept(list->fd, &conn_fd) ||
-			!int_make_non_blocking(conn_fd, 1))
+	if(!nal_sock_accept(list->fd, &conn_fd) ||
+			!nal_fd_make_non_blocking(conn_fd, 1))
 		goto err;
 	/* If appropriate, apply "nagle" setting */
 	if((list->addr.family == NAL_ADDRESS_TYPE_IPv4) &&
-			!int_set_nagle(conn_fd))
+			!nal_sock_set_nagle(conn_fd, gb_use_nagle))
 		goto err;
 	if(!NAL_CONNECTION_set_size(conn, list->addr.def_buffer_size))
 		goto err;
@@ -646,7 +322,7 @@ int NAL_LISTENER_accept_block(const NAL_LISTENER *list, NAL_CONNECTION *conn)
 	conn->established = 1;
 	return 1;
 err:
-	int_close(&conn_fd);
+	nal_fd_close(&conn_fd);
 	return 0;
 }
 
@@ -672,12 +348,12 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 		/* No incoming connections */
 		return 0;
 	/* Do the accept */
-	if(!int_accept(list->fd, &conn_fd) ||
-			!int_make_non_blocking(conn_fd, 1))
+	if(!nal_sock_accept(list->fd, &conn_fd) ||
+			!nal_fd_make_non_blocking(conn_fd, 1))
 		goto err;
 	/* If appropriate, apply "nagle" setting */
 	if((list->addr.family == NAL_ADDRESS_TYPE_IPv4) &&
-			!int_set_nagle(conn_fd))
+			!nal_sock_set_nagle(conn_fd, gb_use_nagle))
 		goto err;
 	if(!NAL_CONNECTION_set_size(conn, list->addr.def_buffer_size))
 		goto err;
@@ -687,7 +363,7 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 	nal_selector_fd_clear(sel, list->fd);
 	return 1;
 err:
-	int_close(&conn_fd);
+	nal_fd_close(&conn_fd);
 	return 0;
 }
 
@@ -734,7 +410,7 @@ NAL_CONNECTION *NAL_CONNECTION_new(void)
 
 void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 {
-	int_close(&conn->fd);
+	nal_fd_close(&conn->fd);
 	/* destroy the buffers */
 	NAL_BUFFER_free(conn->read);
 	NAL_BUFFER_free(conn->send);
@@ -762,12 +438,13 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 #endif
 		goto err;
 	}
-	if(!int_create_socket(&fd, addr->family) ||
-			!int_make_non_blocking(fd, 1) ||
-			!int_connect(fd, &addr->addr, addr->family, &established))
+	if(!nal_sock_create_socket(&fd, addr->family) ||
+			!nal_fd_make_non_blocking(fd, 1) ||
+			!nal_sock_connect(fd, &addr->addr, addr->family, &established))
 		goto err;
 	/* If appropriate, apply "nagle" setting */
-	if((addr->family == NAL_ADDRESS_TYPE_IPv4) && !int_set_nagle(fd))
+	if((addr->family == NAL_ADDRESS_TYPE_IPv4) &&
+			!nal_sock_set_nagle(fd, gb_use_nagle))
 		goto err;
 	if(!NAL_CONNECTION_set_size(conn, addr->def_buffer_size))
 		goto err;
@@ -777,7 +454,7 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 	conn->established = established;
 	return 1;
 err:
-	int_close(&fd);
+	nal_fd_close(&fd);
 	return 0;
 }
 
@@ -788,7 +465,7 @@ int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1, NAL_CONNECTION *conn2,
 #ifndef WIN32
 	int sv[2] = {-1,-1};
 
-	if(!int_check_buffer_size(def_buffer_size))
+	if(!nal_check_buffer_size(def_buffer_size))
 		return 0;
 	/* Try to catch any cases of being called with used 'conns' */
 	assert((conn1->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn1->fd == -1));
@@ -797,9 +474,9 @@ int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1, NAL_CONNECTION *conn2,
 		goto err;
 	if((conn2->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn2->fd != -1))
 		goto err;
-	if(!int_create_unix_pair(sv) ||
-			!int_make_non_blocking(sv[0], 1) ||
-			!int_make_non_blocking(sv[1], 1) ||
+	if(!nal_sock_create_unix_pair(sv) ||
+			!nal_fd_make_non_blocking(sv[0], 1) ||
+			!nal_fd_make_non_blocking(sv[1], 1) ||
 			!NAL_CONNECTION_set_size(conn1, def_buffer_size) ||
 			!NAL_CONNECTION_set_size(conn2, def_buffer_size))
 		goto err;
@@ -812,8 +489,8 @@ int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1, NAL_CONNECTION *conn2,
 	conn1->addr.family = conn2->addr.family = NAL_ADDRESS_TYPE_PAIR;
 	return 1;
 err:
-	int_close(sv);
-	int_close(sv + 1);
+	nal_fd_close(sv);
+	nal_fd_close(sv + 1);
 #endif
 	return 0;
 }
@@ -821,7 +498,7 @@ err:
 int NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 			unsigned int def_buffer_size)
 {
-	if(!int_check_buffer_size(def_buffer_size))
+	if(!nal_check_buffer_size(def_buffer_size))
 		return 0;
 	/* Try to catch any cases of being called with used a 'conn' */
 	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn->fd == -1));
@@ -842,7 +519,7 @@ int NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 
 int NAL_CONNECTION_set_size(NAL_CONNECTION *conn, unsigned int size)
 {
-	if(!int_check_buffer_size(size))
+	if(!nal_check_buffer_size(size))
 		return 0;
 	if(!NAL_BUFFER_set_size(conn->read, size) ||
 			((conn->addr.family != NAL_ADDRESS_TYPE_DUMMY) &&
@@ -950,13 +627,13 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 	}
 #endif
 	if(flags & SELECTOR_FLAG_READ) {
-		io_ret = int_buffer_from_fd(conn->read, conn->fd, max_read);
+		io_ret = nal_fd_buffer_from_fd(conn->read, conn->fd, max_read);
 		if(io_ret <= 0)
 			/* (<0) --> error, (==0) --> clean disconnect */
 			goto closing;
 	}
 	if(flags & SELECTOR_FLAG_SEND) {
-		io_ret = int_buffer_to_fd(conn->send, conn->fd, max_send);
+		io_ret = nal_fd_buffer_to_fd(conn->send, conn->fd, max_send);
 		if(io_ret < 0)
 			/* error */
 			goto closing;
@@ -1016,14 +693,14 @@ void NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,
 
 int NAL_stdin_set_non_blocking(int non_blocking)
 {
-	return int_make_non_blocking(fileno(SYS_stdin), non_blocking);
+	return nal_fd_make_non_blocking(fileno(SYS_stdin), non_blocking);
 }
 
 /* This special sets our global flag that controls whether new ipv4 connections
  * (explicitly connected or via an accept()) have nagle turned off or not. */
 int NAL_config_set_nagle(int enabled)
 {
-	int_use_nagle = (enabled ? 1 : 0);
+	gb_use_nagle = (enabled ? 1 : 0);
 	return 1;
 }
 

@@ -34,6 +34,11 @@ Changes between 1.4.1 and x.x
      - updated documentation for the above changes and tried to improve
        clarity in the process.
      - NAL_CONNECTION now dynamically allocates its NAL_BUFFER buffers.
+     - file-descriptor work is now handled in util_fd.c, and functions are
+       called nal_fd_*** instead of int_***.
+     - socket work is now handled in util_socket.c, and functions are called
+       nal_sock_*** instead of int_***.
+     - int_check_buffer_size() is now nal_check_buffer_size
      - minor tidy-ups and bug-fixes
      [Geoff Thorpe]
 
