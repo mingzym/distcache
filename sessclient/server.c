@@ -95,6 +95,7 @@ server_t *server_new(const char *address, unsigned long retry_msecs,
 		goto err;
 	s->plug = NULL;
 	s->address = a;
+	s->retry_msecs = retry_msecs;
 	/* Ensure the "last_fail" is set so that we'll attempt a connect on the
 	 * very first attempt */
 	NAL_timesub(&s->last_fail, now, retry_msecs + 1);
