@@ -19,7 +19,11 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
-  *)
+  *) Update copyright dates to 2003.
+     [Geoff Thorpe]
+
+  *) Some minor bug fixes in sslswamp.
+     [Geoff Thorpe]
 
 Changes between 0.4 and 1.4.1 
 -----------------------------
