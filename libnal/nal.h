@@ -56,7 +56,6 @@ int		NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 				unsigned int def_buffer_size);
 int		NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
 				unsigned int def_buffer_size);
-int		NAL_ADDRESS_move(NAL_ADDRESS *to, NAL_ADDRESS *from);
 int		NAL_ADDRESS_can_connect(NAL_ADDRESS *addr);
 int		NAL_ADDRESS_can_listen(NAL_ADDRESS *addr);
 const char *	NAL_ADDRESS_source_string(NAL_ADDRESS *addr);
@@ -70,7 +69,6 @@ int		NAL_LISTENER_accept_block(const NAL_LISTENER *list,
 int		NAL_LISTENER_accept(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel,
 				NAL_CONNECTION *conn);
-int		NAL_LISTENER_move(NAL_LISTENER *to, NAL_LISTENER *from);
 const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list);
 
 /************************/
@@ -89,7 +87,6 @@ NAL_BUFFER *	NAL_CONNECTION_get_send(NAL_CONNECTION *conn);
 int		NAL_CONNECTION_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel);
 int		NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 				unsigned int max_read, unsigned int max_send);
-int		NAL_CONNECTION_move(NAL_CONNECTION *to, NAL_CONNECTION *from);
 const NAL_ADDRESS *NAL_CONNECTION_address(const NAL_CONNECTION *conn);
 int		NAL_CONNECTION_is_established(const NAL_CONNECTION *conn);
 int		NAL_CONNECTION_get_fd(const NAL_CONNECTION *conn);

@@ -41,6 +41,21 @@ static int sol_tcp = -1;
 #define socklen_t int
 #endif
 
+/*******************/
+/* Internal macros */
+/*******************/
+
+#define int_check_buffer_size(sz) (((sz) > NAL_BUFFER_MAX_SIZE) ? 0 : 1)
+
+/* Workaround signed/unsigned conflicts between real systems and windows */
+#ifndef WIN32
+#define FD_SET2(a,b) FD_SET((a),(b))
+#define FD_CLR2(a,b) FD_CLR((a),(b))
+#else
+#define FD_SET2(a,b) FD_SET((SOCKET)(a),(b))
+#define FD_CLR2(a,b) FD_CLR((SOCKET)(a),(b))
+#endif
+
 /**************************************/
 /* Internal network utility functions */
 /**************************************/
@@ -378,66 +393,43 @@ static void int_close(int *fd)
 	*fd = -1;
 }
 
-/* buffer size checking that includes a debug error message - means it isn't
- * duplicated in all the functions that should check it */
-static int int_check_buffer_size(unsigned int size)
-{
-	if(size > NAL_BUFFER_MAX_SIZE) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, NAL_ADDRESS_create with too large a "
-				"buffer\n\n");
-#endif
-		return 0;
-	}
-	return 1;
-}
-
 /* These functions used to be exposed but for encapsulation reasons have been
  * made private. Pre-declaring them here makes the order of function
  * implementations less restrictive. */
-static void NAL_ADDRESS_init(NAL_ADDRESS *addr);
-static int NAL_ADDRESS_close(NAL_ADDRESS *addr);
-static void NAL_LISTENER_init(NAL_LISTENER *list);
-static int NAL_LISTENER_close(NAL_LISTENER *list);
-static void NAL_CONNECTION_init(NAL_CONNECTION *list);
-static int NAL_CONNECTION_close(NAL_CONNECTION *list);
-static void NAL_SELECTOR_init(NAL_SELECTOR *list);
-static int NAL_SELECTOR_close(NAL_SELECTOR *list);
-static void NAL_BUFFER_init(NAL_BUFFER *list);
-static int NAL_BUFFER_close(NAL_BUFFER *list);
+static void nal_address_init(NAL_ADDRESS *addr);
+static int nal_address_close(NAL_ADDRESS *addr);
+static void nal_buffer_init(NAL_BUFFER *list);
+static int nal_buffer_close(NAL_BUFFER *list);
 
 /*********************/
 /* ADDRESS FUNCTIONS */
 /*********************/
 
-NAL_ADDRESS *NAL_ADDRESS_malloc(void)
-{
-	NAL_ADDRESS *a = NAL_malloc(NAL_ADDRESS, 1);
-	if(a)
-		NAL_ADDRESS_init(a);
-	return a;
-}
-
-void NAL_ADDRESS_free(NAL_ADDRESS *a)
-{
-	NAL_ADDRESS_close(a);
-	NAL_free(NAL_ADDRESS, a);
-}
-
-static void NAL_ADDRESS_init(NAL_ADDRESS *addr)
+static void nal_address_init(NAL_ADDRESS *addr)
 {
 	/* Fortunately, zero is fine for this structure! */
 	NAL_zero(NAL_ADDRESS, addr);
 }
 
-static int NAL_ADDRESS_close(NAL_ADDRESS *addr)
+static int nal_address_close(NAL_ADDRESS *addr)
 {
-	if(addr == NULL)
-		return 0;
 	/* So far "address" is completely static, so there's no real cleanup
 	 * required, just reinitialisation. */
-	NAL_ADDRESS_init(addr);
 	return 1;
+}
+
+NAL_ADDRESS *NAL_ADDRESS_malloc(void)
+{
+	NAL_ADDRESS *a = NAL_malloc(NAL_ADDRESS, 1);
+	if(a)
+		nal_address_init(a);
+	return a;
+}
+
+void NAL_ADDRESS_free(NAL_ADDRESS *a)
+{
+	nal_address_close(a);
+	NAL_free(NAL_ADDRESS, a);
 }
 
 int NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
@@ -512,7 +504,7 @@ do_ipv4:
 		goto err;
 	/* Logic: if our string contains another ":" we assume it's of the form
 	 * IP[v4]:nnn.nnn.nnn.nnn:nnn, otherwise assume IP[v4]:nnn. Exception,
-	 * if it's of the form IP[v4}::nnn, we treat it as equivalent to one
+	 * if it's of the form IP[v4]::nnn, we treat it as equivalent to one
 	 * colon. */
 	if(((fini_ptr = strstr(start_ptr, ":")) == NULL) ||
 			(start_ptr == fini_ptr)) {
@@ -587,24 +579,8 @@ err:
 			addr_string);
 #endif
 	/* Reverse any progress made up until the point of failure */
-	NAL_ADDRESS_close(addr);
+	nal_address_close(addr);
 	return 0;
-}
-
-int NAL_ADDRESS_move(NAL_ADDRESS *to, NAL_ADDRESS *from)
-{
-	if((to == NULL) || (from == NULL))
-		return 0;
-	/* Try to catch any cases of being called with a used 'to' */
-	assert(to->family == NAL_ADDRESS_TYPE_NULL);
-	if(to->family != NAL_ADDRESS_TYPE_NULL)
-		return 0;
-	/* Fortunately, NAL_ADDRESS (for now) is a static structure and has no
-	 * aggregation of other types, so we don't need to run any checks or
-	 * call any functions for aggregated types, we just copy and init :-) */
-	NAL_memcpy(NAL_ADDRESS, to, from);
-	NAL_ADDRESS_close(from);
-	return 1;
 }
 
 int NAL_ADDRESS_can_connect(NAL_ADDRESS *addr)
@@ -629,32 +605,18 @@ const char *NAL_ADDRESS_source_string(NAL_ADDRESS *addr)
 NAL_LISTENER *NAL_LISTENER_malloc(void)
 {
 	NAL_LISTENER *l = NAL_malloc(NAL_LISTENER, 1);
-	if(l)
-		NAL_LISTENER_init(l);
+	if(l) {
+		nal_address_init(&l->addr);
+		l->fd = -1;
+	}
 	return l;
 }
 
-void NAL_LISTENER_free(NAL_LISTENER *a)
+void NAL_LISTENER_free(NAL_LISTENER *list)
 {
-	NAL_LISTENER_close(a);
-	NAL_free(NAL_LISTENER, a);
-}
-
-static void NAL_LISTENER_init(NAL_LISTENER *list)
-{
-	NAL_ADDRESS_init(&list->addr);
-	list->fd = -1;
-}
-
-static int NAL_LISTENER_close(NAL_LISTENER *list)
-{
-	if(list == NULL)
-		return 0;
 	int_close(&list->fd);
-	NAL_ADDRESS_close(&list->addr);
-	/* Now reinitialise */
-	NAL_LISTENER_init(list);
-	return 1;
+	nal_address_close(&list->addr);
+	NAL_free(NAL_LISTENER, list);
 }
 
 int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
@@ -700,7 +662,6 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 	return 1;
 err:
 	int_close(&listen_fd);
-	NAL_LISTENER_close(list);
 	return 0;
 }
 
@@ -712,27 +673,27 @@ int NAL_LISTENER_accept_block(const NAL_LISTENER *list, NAL_CONNECTION *conn)
 		/* should never happen */
 		abort();
 	/* Try to catch any cases of being called with a used 'conn' */
-	assert(conn->addr.family == NAL_ADDRESS_TYPE_NULL);
-	if(conn->addr.family != NAL_ADDRESS_TYPE_NULL)
+	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) &&
+			(conn->fd == -1));
+	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
 		goto err;
 	/* Do the accept */
 	if(!int_accept(list->fd, &conn_fd) ||
-			!int_make_non_blocking(conn_fd, 1) ||
-			!NAL_CONNECTION_set_size(conn,
-				list->addr.def_buffer_size))
+			!int_make_non_blocking(conn_fd, 1))
 		goto err;
 	/* If appropriate, apply "nagle" setting */
 	if((list->addr.family == NAL_ADDRESS_TYPE_IPv4) &&
 			!int_set_nagle(conn_fd))
 		goto err;
+	if(!NAL_CONNECTION_set_size(conn, list->addr.def_buffer_size))
+		goto err;
 	/* Success! */
 	NAL_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
 	conn->fd = conn_fd;
+	conn->established = 1;
 	return 1;
 err:
 	int_close(&conn_fd);
-	/* This takes care of all cleanup, including deallocation */
-	NAL_CONNECTION_close(conn);
 	return 0;
 }
 
@@ -745,8 +706,9 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 	if((list == NULL) || (sel == NULL) || (conn == NULL))
 		abort();
 	/* Try to catch any cases of being called with a used 'conn' */
-	assert(conn->addr.family == NAL_ADDRESS_TYPE_NULL);
-	if(conn->addr.family != NAL_ADDRESS_TYPE_NULL)
+	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) &&
+			(conn->fd == -1));
+	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
 		goto err;
 	int_selector_get_list(sel, list, &flags);
 	if(flags & SELECTOR_FLAG_EXCEPT) {
@@ -755,54 +717,26 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 #endif
 		goto err;
 	}
-	if(flags & SELECTOR_FLAG_READ) {
-		/* Do the accept */
-		if(!int_accept(list->fd, &conn_fd) ||
-				!int_make_non_blocking(conn_fd, 1) ||
-				!NAL_CONNECTION_set_size(conn,
-					list->addr.def_buffer_size))
-			goto err;
-		/* If appropriate, apply "nagle" setting */
-		if((list->addr.family == NAL_ADDRESS_TYPE_IPv4) &&
-				!int_set_nagle(conn_fd))
-			goto err;
-		NAL_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
-		conn->fd = conn_fd;
-		int_selector_list_done(sel, list);
-		return 1;
-	}
-err:
-	int_close(&conn_fd);
-	NAL_CONNECTION_close(conn);
-	return 0;
-}
-
-/* Add a listener version of this theme for completeness */
-int NAL_LISTENER_move(NAL_LISTENER *to, NAL_LISTENER *from)
-{
-	if((to == NULL) || (from == NULL))
+	if(!(flags & SELECTOR_FLAG_READ))
+		/* No incoming connections */
 		return 0;
-	/* Try to catch any cases of being called with a used 'to' */
-	assert(to->addr.family == NAL_ADDRESS_TYPE_NULL);
-	if(to->addr.family != NAL_ADDRESS_TYPE_NULL)
+	/* Do the accept */
+	if(!int_accept(list->fd, &conn_fd) ||
+			!int_make_non_blocking(conn_fd, 1))
 		goto err;
-	/* Now move the address across */
-	if(!NAL_ADDRESS_move(&to->addr, &from->addr)) {
-#if NAL_DEBUG_LEVEL > 2
-		NAL_fprintf(NAL_stderr(), "Warn, NAL_LISTENER_move failing because of "
-				"address_move errors\n");
-#endif
+	/* If appropriate, apply "nagle" setting */
+	if((list->addr.family == NAL_ADDRESS_TYPE_IPv4) &&
+			!int_set_nagle(conn_fd))
 		goto err;
-	}
-	/* Success, all that's needed is to move the file descriptor */
-	to->fd = from->fd;
-	from->fd = -1;
-	/* The file descriptor and the address are "nulled", but use our close
-	 * function to make anything else gets sorted out too */
-	NAL_LISTENER_close(from);
+	if(!NAL_CONNECTION_set_size(conn, list->addr.def_buffer_size))
+		goto err;
+	NAL_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
+	conn->fd = conn_fd;
+	conn->established = 1;
+	int_selector_list_done(sel, list);
 	return 1;
 err:
-	NAL_LISTENER_close(to);
+	int_close(&conn_fd);
 	return 0;
 }
 
@@ -818,52 +752,40 @@ const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list)
 NAL_CONNECTION *NAL_CONNECTION_malloc(void)
 {
 	NAL_CONNECTION *conn = NAL_malloc(NAL_CONNECTION, 1);
-	if(conn)
-		NAL_CONNECTION_init(conn);
+	if(conn) {
+		nal_address_init(&conn->addr);
+		conn->fd = -1;
+		conn->established = 0;
+		nal_buffer_init(&conn->read);
+		nal_buffer_init(&conn->send);
+	}
 	return conn;
 	
 }
 
-void NAL_CONNECTION_free(NAL_CONNECTION *a)
+void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 {
-	NAL_CONNECTION_close(a);
-	NAL_free(NAL_CONNECTION, a);
-}
-
-static void NAL_CONNECTION_init(NAL_CONNECTION *conn)
-{
-	NAL_ADDRESS_init(&conn->addr);
-	conn->fd = -1;
-	conn->established = 0;
-	NAL_BUFFER_init(&conn->read);
-	NAL_BUFFER_init(&conn->send);
-}
-
-static int NAL_CONNECTION_close(NAL_CONNECTION *conn)
-{
-	if(conn == NULL)
-		return 0;
 	int_close(&conn->fd);
 	/* clear the buffers */
-	if(!NAL_CONNECTION_set_size(conn, 0))
-		return 0;
+	if(!NAL_CONNECTION_set_size(conn, 0)) {
+		assert(NULL == "NAL_CONNECTION_set_size(,0) failed during cleanup\n");
+	}
 	/* good aggregation programming practice. :-) */
-	NAL_ADDRESS_close(&conn->addr);
-	/* reinitialise */
-	NAL_CONNECTION_init(conn);
-	return 1;
+	nal_address_close(&conn->addr);
+	NAL_free(NAL_CONNECTION, conn);
 }
 
 int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 {
+	int established;
 	int fd = -1;
 
 	if((conn == NULL) || (addr == NULL))
 		/* should *never* happen */
 		abort();
 	/* Try to catch any cases of being called with a used 'conn' */
-	assert(conn->addr.family == NAL_ADDRESS_TYPE_NULL);
-	if(conn->addr.family != NAL_ADDRESS_TYPE_NULL)
+	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn->fd == -1));
+	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
 		goto err;
 	if(addr->family == NAL_ADDRESS_TYPE_NULL) 
 		/* also should never happen */
@@ -877,20 +799,20 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 	}
 	if(!int_create_socket(&fd, addr->family) ||
 			!int_make_non_blocking(fd, 1) ||
-			!int_connect(fd, &addr->addr, addr->family,
-				&conn->established) ||
-			!NAL_CONNECTION_set_size(conn, addr->def_buffer_size))
+			!int_connect(fd, &addr->addr, addr->family, &established))
 		goto err;
 	/* If appropriate, apply "nagle" setting */
 	if((addr->family == NAL_ADDRESS_TYPE_IPv4) && !int_set_nagle(fd))
 		goto err;
+	if(!NAL_CONNECTION_set_size(conn, addr->def_buffer_size))
+		goto err;
 	/* Success! */
 	NAL_memcpy(NAL_ADDRESS, &(conn->addr), addr);
 	conn->fd = fd;
+	conn->established = established;
 	return 1;
 err:
 	int_close(&fd);
-	NAL_CONNECTION_close(conn);
 	return 0;
 }
 
@@ -907,11 +829,11 @@ int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1, NAL_CONNECTION *conn2,
 	if(!int_check_buffer_size(def_buffer_size))
 		return 0;
 	/* Try to catch any cases of being called with used 'conns' */
-	assert(conn1->addr.family == NAL_ADDRESS_TYPE_NULL);
-	assert(conn2->addr.family == NAL_ADDRESS_TYPE_NULL);
-	if(conn1->addr.family != NAL_ADDRESS_TYPE_NULL)
+	assert((conn1->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn1->fd == -1));
+	assert((conn2->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn2->fd == -1));
+	if((conn1->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn1->fd != -1))
 		goto err;
-	if(conn2->addr.family != NAL_ADDRESS_TYPE_NULL)
+	if((conn2->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn2->fd != -1))
 		goto err;
 	if(!int_create_unix_pair(sv) ||
 			!int_make_non_blocking(sv[0], 1) ||
@@ -930,8 +852,6 @@ int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1, NAL_CONNECTION *conn2,
 err:
 	int_close(sv);
 	int_close(sv + 1);
-	NAL_CONNECTION_close(conn1);
-	NAL_CONNECTION_close(conn2);
 #endif
 	return 0;
 }
@@ -945,8 +865,8 @@ int NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 	if(!int_check_buffer_size(def_buffer_size))
 		return 0;
 	/* Try to catch any cases of being called with used a 'conn' */
-	assert(conn->addr.family == NAL_ADDRESS_TYPE_NULL);
-	if(conn->addr.family != NAL_ADDRESS_TYPE_NULL)
+	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn->fd == -1));
+	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
 		return 0;
 	/* We only use one buffer, so only expand one */
 	if(!NAL_BUFFER_set_size(&conn->read, def_buffer_size))
@@ -1026,20 +946,18 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 #endif
 	if(flags & SELECTOR_FLAG_READ) {
 		io_ret = int_buffer_from_fd(&conn->read, conn->fd, max_read);
-		if(io_ret <= 0) {
+		if(io_ret <= 0)
 			/* (<0) --> error, (==0) --> clean disconnect */
 			goto closing;
-		}
 		/* This ensures that a successful read from the socket will
 		 * mark the connection as established if it isn't already. */
 		conn->established = 1;
 	}
 	if(flags & SELECTOR_FLAG_SEND) {
 		io_ret = int_buffer_to_fd(&conn->send, conn->fd, max_send);
-		if(io_ret <= 0) {
+		if(io_ret <= 0)
 			/* (<0) --> error, (==0) --> clean disconnect */
 			goto closing;
-		}
 		/* This ensures that a successful read from the socket will
 		 * mark the connection as established if it isn't already. */
 		conn->established = 1;
@@ -1066,52 +984,6 @@ int NAL_CONNECTION_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel)
 	return NAL_CONNECTION_io_cap(conn, sel, 0, 0);
 }
 
-/* Sometimes it's desirable for one part of the code to create (or accept)
- * a connection into say a local variable, and then pass it by pointer to
- * something that should "consume" the connection. This function does that by
- * copying the connection details into a new location and nullifying the values
- * in the previous location - eg. so a NAL_CONNECTION_close() on the previous
- * variable does not result in the connection being closed. */
-int NAL_CONNECTION_move(NAL_CONNECTION *to, NAL_CONNECTION *from)
-{
-	if((to == NULL) || (from == NULL))
-		return 0;
-	/* Try to catch any cases of being called with used a 'to' */
-	assert(to->addr.family == NAL_ADDRESS_TYPE_NULL);
-	if(to->addr.family != NAL_ADDRESS_TYPE_NULL)
-		goto err;
-	/* First, the new connection needs identical buffers */
-	if(!NAL_BUFFER_set_size(&to->read, NAL_BUFFER_size(&from->read)) ||
-			!NAL_BUFFER_set_size(&to->send,
-				NAL_BUFFER_size(&from->send))) {
-#if NAL_DEBUG_LEVEL > 2
-		NAL_fprintf(NAL_stderr(), "Warn, NAL_CONNECTION_move failing because of "
-				"buffer_set_size errors\n");
-#endif
-		goto err;
-	}
-	/* Now move the address across */
-	if(!NAL_ADDRESS_move(&to->addr, &from->addr)) {
-#if NAL_DEBUG_LEVEL > 2
-		NAL_fprintf(NAL_stderr(), "Warn, NAL_CONNECTIONn_move failing because of "
-				"address_move errors\n");
-#endif
-		goto err;
-	}
-	/* Success, all that's needed is to move the file descriptor */
-	to->fd = from->fd;
-	to->established = from->established;
-	from->fd = -1;
-	/* The file descriptor and the address are "nulled", so we can use our
-	 * close function to make sure the buffers get sorted without closing
-	 * the file descriptor. */
-	NAL_CONNECTION_close(from);
-	return 1;
-err:
-	NAL_CONNECTION_close(to);
-	return 0;
-}
-
 const NAL_ADDRESS *NAL_CONNECTION_address(const NAL_CONNECTION *conn)
 {
 	return &conn->addr;
@@ -1131,20 +1003,6 @@ int NAL_CONNECTION_get_fd(const NAL_CONNECTION *conn)
 /* SELECTOR FUNCTIONS */
 /**********************/
 
-NAL_SELECTOR *NAL_SELECTOR_malloc(void)
-{
-	NAL_SELECTOR *sel = NAL_malloc(NAL_SELECTOR, 1);
-	if(sel)
-		NAL_SELECTOR_init(sel);
-	return sel;
-}
-
-void NAL_SELECTOR_free(NAL_SELECTOR *a)
-{
-	NAL_SELECTOR_close(a);
-	NAL_free(NAL_SELECTOR, a);
-}
-
 static void int_selector_item_init(NAL_SELECTOR_item *item)
 {
 	FD_ZERO(&item->reads);
@@ -1159,29 +1017,21 @@ static void int_selector_item_close(NAL_SELECTOR_item *item)
 	int_selector_item_init(item);
 }
 
-static void NAL_SELECTOR_init(NAL_SELECTOR *sel)
+NAL_SELECTOR *NAL_SELECTOR_malloc(void)
 {
-	int_selector_item_init(&sel->last_selected);
-	int_selector_item_init(&sel->to_select);
+	NAL_SELECTOR *sel = NAL_malloc(NAL_SELECTOR, 1);
+	if(sel) {
+		int_selector_item_init(&sel->last_selected);
+		int_selector_item_init(&sel->to_select);
+	}
+	return sel;
 }
 
-static int NAL_SELECTOR_close(NAL_SELECTOR *sel)
+void NAL_SELECTOR_free(NAL_SELECTOR *a)
 {
-	if(sel == NULL)
-		return 0;
 	/* No cleanup required */
-	NAL_SELECTOR_init(sel);
-	return 1;
+	NAL_free(NAL_SELECTOR, a);
 }
-
-/* Workaround signed/unsigned conflicts between real systems and windows */
-#ifndef WIN32
-#define FD_SET2(a,b) FD_SET((a),(b))
-#define FD_CLR2(a,b) FD_CLR((a),(b))
-#else
-#define FD_SET2(a,b) FD_SET((SOCKET)(a),(b))
-#define FD_CLR2(a,b) FD_CLR((SOCKET)(a),(b))
-#endif
 
 int NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
 			unsigned int flags)
@@ -1373,17 +1223,32 @@ int NAL_config_set_nagle(int enabled)
 /* BUFFER FUNCTIONS */
 /********************/
 
+static void nal_buffer_init(NAL_BUFFER *buf)
+{
+	NAL_zero(NAL_BUFFER, buf);
+}
+
+static int nal_buffer_close(NAL_BUFFER *buf)
+{
+	if(buf == NULL)
+		return 0;
+	/* Deallocate anything we allocated before zeroing the structure */
+	NAL_BUFFER_set_size(buf, 0);
+	nal_buffer_init(buf);
+	return 1;
+}
+
 NAL_BUFFER *NAL_BUFFER_malloc(void)
 {
 	NAL_BUFFER *b = NAL_malloc(NAL_BUFFER, 1);
 	if(b)
-		NAL_BUFFER_init(b);
+		nal_buffer_init(b);
 	return b;
 }
 
 void NAL_BUFFER_free(NAL_BUFFER *a)
 {
-	NAL_BUFFER_close(a);
+	nal_buffer_close(a);
 	NAL_free(NAL_BUFFER, a);
 }
 
@@ -1411,21 +1276,7 @@ int NAL_BUFFER_set_size(NAL_BUFFER *buf, unsigned int size)
 		return 0;
 	buf->_data = next;
 	buf->_size = size;
-	return 1;
-}
-
-static void NAL_BUFFER_init(NAL_BUFFER *buf)
-{
-	NAL_zero(NAL_BUFFER, buf);
-}
-
-static int NAL_BUFFER_close(NAL_BUFFER *buf)
-{
-	if(buf == NULL)
-		return 0;
-	/* Deallocate anything we allocated before zeroing the structure */
-	NAL_BUFFER_set_size(buf, 0);
-	NAL_BUFFER_init(buf);
+	buf->_used = 0;
 	return 1;
 }
 
