@@ -18,6 +18,7 @@ rm -f configure
 find . -type f -name "aclocal.m4*" | xargs rm -f
 rm -f config.*
 rm -f conftest*
+rm -f depcomp
 rm -f install-sh ltmain.sh missing mkinstalldirs
 rm -f stamp-h.in
 rm -f aclocal.m4
