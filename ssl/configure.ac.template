@@ -58,6 +58,7 @@ AC_SUBST(VERSION)
 REPLACE_WERROR
 
 AC_CONFIG_FILES([Makefile
+		 libnalssl/Makefile
 		 swamp/Makefile])
 AC_OUTPUT
 

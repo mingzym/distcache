@@ -1,2 +1,2 @@
-SUBDIRS		= @swamp_dir@
+SUBDIRS		= libnalssl @swamp_dir@
 

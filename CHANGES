@@ -19,6 +19,12 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Add the beginnings of ssl library support in ssl/libnalssl. This builds
+     and installs a libnalssl.a library and the libnal/nal_ssl.h header.
+     Currently, this is just a BIO wrapper for NAL_CONNECTION (which is
+     strictly speaking not even SSL related, but whatever).
+     [Geoff Thorpe]
+
   *) Add a new "dynamic" selector type as the default that allows a listener
      or connection implementation to set it on-the-fly to the kind of selector
      it requires. This is (of course) only a first-use initialisation, after

@@ -51,7 +51,11 @@ AC_HELP_STRING(
 ])
 if test "$dc_ssl_enable" = "yes"; then
 	AC_CONFIG_SUBDIRS(ssl)
+	sslheaders="nal_ssl.h"
+else
+	sslheaders=""
 fi
+AC_SUBST(sslheaders)
 AH_TEMPLATE(PREFER_POLL, [Define to 1 if you prefer poll over select])
 dc_poll_prefer="yes"
 AC_ARG_ENABLE(poll,
