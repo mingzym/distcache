@@ -19,6 +19,10 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Add a return code to the (previously void) API function
+     NAL_BUFFER_transfer() to return the amount of data transfered.
+     [Geoff Thorpe]
+
   *) Add the beginnings of ssl library support in ssl/libnalssl. This builds
      and installs a libnalssl.a library and the libnal/nal_ssl.h header.
      Currently, this is just a BIO wrapper for NAL_CONNECTION (which is

@@ -155,7 +155,7 @@ unsigned int 	NAL_BUFFER_write(NAL_BUFFER *buf,
 unsigned int 	NAL_BUFFER_read(NAL_BUFFER *buf,
 				unsigned char *ptr,
 				unsigned int size);
-void		NAL_BUFFER_transfer(NAL_BUFFER *dest, NAL_BUFFER *src,
+unsigned int	NAL_BUFFER_transfer(NAL_BUFFER *dest, NAL_BUFFER *src,
 				unsigned int max);
 
 /***************** WARNING START ********************/
