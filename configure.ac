@@ -16,10 +16,8 @@ AM_PROG_LIBTOOL
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([assert.h errno.h fcntl.h netdb.h signal.h stdarg.h])
-AC_CHECK_HEADERS([stdio.h stdlib.h string.h unistd.h])
-AC_CHECK_HEADERS([netinet/in.h netinet/tcp.h])
-AC_CHECK_HEADERS([sys/socket.h sys/stat.h sys/time.h sys/types.h sys/un.h sys/wait.h])
+AC_CHECK_HEADERS([fcntl.h netdb.h unistd.h netinet/in.h netinet/tcp.h])
+AC_CHECK_HEADERS([sys/socket.h sys/stat.h sys/time.h sys/types.h sys/un.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

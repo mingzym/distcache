@@ -57,38 +57,27 @@
 #error "'gettimeofday()' must be supported on your system, sorry"
 #endif
 
-#if defined(HAVE_ASSERT_H)
+#if defined(STDC_HEADERS)
 #include <assert.h>
+#include <errno.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #endif
+
 #if defined(HAVE_DIRENT_H)
 #include <dirent.h>
 #endif
 #if defined(HAVE_DLFCN_H)
 #include <dlfcn.h>
 #endif
-#if defined(HAVE_ERRNO_H)
-#include <errno.h>
-#endif
 #if defined(HAVE_FCNTL_H)
 #include <fcntl.h>
 #endif
 #if defined(HAVE_NETDB_H)
 #include <netdb.h>
-#endif
-#if defined(HAVE_SIGNAL_H)
-#include <signal.h>
-#endif
-#if defined(HAVE_STDARG_H)
-#include <stdarg.h>
-#endif
-#if defined(HAVE_STDIO_H)
-#include <stdio.h>
-#endif
-#if defined(HAVE_STDLIB_H)
-#include <stdlib.h>
-#endif
-#if defined(HAVE_STRING_H)
-#include <string.h>
 #endif
 #if defined(HAVE_UNISTD_H)
 #include <unistd.h>
