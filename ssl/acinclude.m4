@@ -91,7 +91,6 @@ if test "x$dc_ssltk_base" = "x"; then
 	if test "$dc_ssl_swamp" = "yes"; then
 		AC_MSG_RESULT(yes)
 		swamp_dir="swamp"
-		dnl AC_CONFIG_SUBDIRS(swamp)
 	else
 		AC_MSG_RESULT(no)
 	fi
