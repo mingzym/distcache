@@ -1,5 +1,9 @@
 # Process this file with autoconf to produce a configure script.
 AC_INIT(distcache, 1.4.1dev, distcache-users@lists.sourceforge.net)
+
+echo ""
+echo "Configuring Distcache libraries and utilities;"
+
 #AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(sessserver/server.c)
 #AM_CONFIG_HEADER(config/config.h)
@@ -39,17 +43,21 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gettimeofday memmove memset select socket strstr strtoul])
 AC_CHECK_FUNCS([daemon])
 
-# Declare all the SSL-related stuff
-TOP_LEVEL_SSL
-
-# Hook whether we have SSL stuff or not
-AM_CONDITIONAL(HAVE_SSL_SUBDIR, test "$enable_ssl" = yes)
-
 # This makes sure "@VERSION@" can be used in Makefile.am's for things like
 # pod2man. I've noticed that some versions of autoconf (or automake?) don't
 # define this, the following trick seems to fix that.
 VERSION=$PACKAGE_VERSION
 AC_SUBST(VERSION)
+
+# Declare all the SSL-related stuff
+TOP_LEVEL_SSL
+
+# Hook whether we have SSL stuff or not
+AM_CONDITIONAL(HAVE_SSL_SUBDIR, test "x$enable_ssl" = "xyes")
+
+if test "x$enable_ssl" = "xyes"; then
+	AC_CONFIG_SUBDIRS(ssl)
+fi
 
 AC_CONFIG_FILES([Makefile
 		 libdistcache/Makefile
@@ -67,8 +75,6 @@ AC_CONFIG_FILES([Makefile
 		 include/libsys/Makefile
 		 devel/Makefile
 		 devel/mandrake.spec])
-AC_OUTPUT
 
-# Run the SSL sub-tree's own configure script
-DO_SSL_CONFIG
+AC_OUTPUT
 

@@ -19,10 +19,11 @@ Current version: x.x
 Changes between 0.4 and x.x
 ---------------------------
 
-  *) Implemented the appropriate tweaks so that --prefix and --srcdir flags
-     (for non-default installations and out-of-tree builds, respectively) work
-     when building the ssl/ sub-tree.
-     [Geoff Thorpe]
+  *) Used AC_CONFIG_SUBDIRS to (conditionally) run the configure script in the
+     ssl/ sub-tree. This is a more robust method for hooking up the build
+     system, and solves the issue of automatically passing command-line flags
+     to the other script (including appropriate changes for --srcdir, etc).
+     [Geoff Thorpe, based on some salient wisdom from Steve Robb]
 
   *) Rename "swamp" to "sslswamp". This is to reduce the chances of name
      collisions with other non-ssl utilities, and to help the chances of
