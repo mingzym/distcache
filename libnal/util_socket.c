@@ -294,3 +294,69 @@ int nal_sock_is_connected(int fd)
 	return 1;
 }
 
+/* To save code-duplication, work out requirements once */
+#if !defined(WIN32) && defined(HAVE_GETSOCKNAME) && defined(HAVE_STRTOUL) && \
+	defined(HAVE_CHOWN) && defined(HAVE_CHMOD) && defined(HAVE_GETPWNAM)
+#define NAL_SOCKADDR_UNIX
+#endif
+
+int nal_sockaddr_get(nal_sockaddr *addr, int fd)
+{
+#ifdef NAL_SOCKADDR_UNIX
+	socklen_t pathlen = sizeof(addr->val.val_un);
+	/* I get a "pointer target in arg 3 differ in signedness" warning from
+	 * gcc despite the fact I am following the exact prototype! So the
+	 * (void*) cast is just to avoid false positives from -Werror. */
+	if(getsockname(fd, (struct sockaddr *)&addr->val.val_un,
+				(void*)&pathlen) != 0)
+		return 0;
+	addr->type = nal_sockaddr_type_unix;
+	addr->caps = 0; /* Can't listen or connect */
+	return 1;
+#else
+	return 0;
+#endif
+}
+
+int nal_sockaddr_chown(const nal_sockaddr *addr, const char *username,
+			const char *groupname)
+{
+#ifdef NAL_SOCKADDR_UNIX
+	/* according to chown(2), -1 can be used as an owner or group value to
+	 * specify "no change". */
+	struct passwd *p = (username ? getpwnam(username) : NULL);
+	uid_t uid = (p ? p->pw_uid : (uid_t)-1);
+	gid_t gid = (p ? p->pw_gid : (uid_t)-1);
+#if defined(HAVE_GETGRNAM)
+	struct group *g = (groupname ? getgrnam(groupname) : NULL);
+	/* Err if 'groupname' is invalid */
+	if(groupname && !g) return 0;
+	if(g) gid = g->gr_gid;
+#endif
+	/* Err if 'username' is invalid */
+	if(username && !p) return 0;
+	/* Err if 'addr' is not unix */
+	if(addr->type != nal_sockaddr_type_unix) return 0;
+	if(chown(addr->val.val_un.sun_path, uid, gid) != 0) return 0;
+	return 1;
+#else
+	return 0;
+#endif
+}
+int nal_sockaddr_chmod(const nal_sockaddr *addr, const char *octal_string)
+{
+#ifdef NAL_SOCKADDR_UNIX
+	unsigned long n;
+	char *endptr;
+	/* Err if 'addr' is not unix */
+	if(addr->type != nal_sockaddr_type_unix) return 0;
+	/* Parse the octal */
+	n = strtol(octal_string, &endptr, 8);
+	if ((endptr == octal_string) || (*endptr != '\0') || (n == ULONG_MAX))
+		return 0;
+	if (chmod(addr->val.val_un.sun_path, n) != 0) return 0;
+	return 1;
+#else
+	return 0;
+#endif
+}

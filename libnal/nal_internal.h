@@ -72,8 +72,6 @@ int nal_fd_make_non_blocking(int fd, int non_blocking);
 int nal_fd_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send);
 int nal_fd_buffer_from_fd(NAL_BUFFER *buf, int fd, unsigned int max_read);
 void nal_fd_close(int *fd);
-int nal_fd_fchown(int fd, const char *username, const char *groupname);
-int nal_fd_fchmod(int fd, const char *octal_string);
 
 /***************/
 /* util_socket */
@@ -88,6 +86,10 @@ int nal_sock_connect(int fd, const nal_sockaddr *addr, int *established);
 int nal_sock_listen(int fd, const nal_sockaddr *addr);
 int nal_sock_accept(int listen_fd, int *conn);
 int nal_sock_is_connected(int fd);
+int nal_sockaddr_get(nal_sockaddr *addr, int fd);
+int nal_sockaddr_chown(const nal_sockaddr *addr, const char *username,
+			const char *groupname);
+int nal_sockaddr_chmod(const nal_sockaddr *addr, const char *octal_string);
 
 /****************/
 /* NAL_LISTENER */

@@ -299,16 +299,20 @@ static int list_finished(const NAL_LISTENER *l)
 static int list_set_fs_owner(NAL_LISTENER *l, const char *ownername,
 				const char *groupname)
 {
+	nal_sockaddr sa;
 	list_ctx *ctx = nal_listener_get_vtdata(l);
 	if(ctx->type != nal_sockaddr_type_unix) return 0;
-	return nal_fd_fchown(ctx->fd, ownername, groupname);
+	if(!nal_sockaddr_get(&sa, ctx->fd)) return 0;
+	return nal_sockaddr_chown(&sa, ownername, groupname);
 }
 
 static int list_set_fs_perms(NAL_LISTENER *l, const char *octal_string)
 {
+	nal_sockaddr sa;
 	list_ctx *ctx = nal_listener_get_vtdata(l);
 	if(ctx->type != nal_sockaddr_type_unix) return 0;
-	return nal_fd_fchmod(ctx->fd, octal_string);
+	if(!nal_sockaddr_get(&sa, ctx->fd)) return 0;
+	return nal_sockaddr_chmod(&sa, octal_string);
 }
 
 /******************************************/

@@ -19,7 +19,7 @@ Current version: x.x
 Changes between 1.4.2 and x.x
 -----------------------------
 
-  *) Add fchown/fchmod support to libnal listener objects via two new API
+  *) Add chown/chmod support to libnal listener objects via two new API
      functions;
        NAL_LISTENER_set_fs_owner();
        NAL_LISTENER_set_fs_perms();
