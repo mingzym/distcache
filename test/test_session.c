@@ -41,7 +41,7 @@ static const unsigned long def_progress = 0;
 #define MAX_PROGRESS		(unsigned long)1000000
 
 /* When contructing sessions with peer-certificates, we use this cert */
-#define CERT_PATH		"KEYS/A-client-nokey.pem"
+#define CERT_PATH		"A-client.pem"
 
 /* Prototypes */
 static void generate_random_bytes(unsigned char *buf, unsigned int num);
