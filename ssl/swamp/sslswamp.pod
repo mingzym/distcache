@@ -14,14 +14,15 @@ B<swamp> is a utility that can be used to test and/or benchmark SSL/TLS
 servers. It is quite configurable and allows for various different
 characteristics of the server's behaviour to be tested.
 
+
 =head1 OPTIONS
 
 =over 4
 
 =item B<-connect> address
 
-Configures the address to which B<swamp> should connect for incoming connections.
-The syntax is that defined by the I<libnal> API. For connecting to TCP/IP addresses,
+Configures the address to which B<swamp> should connect for outgoing connections,
+using the syntax defined by the I<libnal> API. For connecting to TCP/IP addresses,
 the syntax is illustrated below (you may use an explicit IP address or a host name);
 
     # swamp -connect IP:192.168.0.1:443

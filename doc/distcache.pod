@@ -2,24 +2,46 @@
 
 distcache - Distributed session caching
 
+
 =head1 DESCRIPTION
 
 The distcache architecture provides a protocol and set of accompanying tools to
 allow applications, and indeed machines, to share session state between them by
 way of a network service.
 
-The primary use of distcache right now is for SSL/TLS session caching. This
+The primary use of distcache right now is SSL/TLS session caching. This
 allows SSL/TLS servers (eg. a secure Apache web server providing HTTPS support)
-to use a centralised session cache. This allows any server to resume any
-SSL/TLS sessions negotiated by another server on the network. The advantages to
-this approach include increased freedom on mechanisms for load-balancing -
-there is no need nor motivation to route incoming connections to the same
-server to improve the chances for SSL/TLS, and indeed doing so defeats the
-point of load-balancing, is a complex task requiring a lot of state, and the
-resulting routers can become a bottleneck and a single point of failure.
+to use a centralised session cache, i.e any server may resume
+SSL/TLS sessions negotiated by any other server on the network. The advantages to
+this approach include increased freedom of mechanisms for load-balancing.
+
+=head2 Existing SSL/TLS load-balancing solutions
+
+Many load-balancers attempt to route incoming connections to servers based on
+remembering the last mapping from the same source network address. Others,
+called "SSL sticky" load-balancers, attempt to parse SSL/TLS session ids from
+handshake messages and so map future session-resume attempts. Both methods have
+serious weaknesses - the former is generally confused by any form of network
+address translation (eg. when clients are behind masquerading gateways), and
+the latter is confused by any SSL/TLS renegotiations. Moreover both are
+stateful and a potential bottleneck, because there is no obvious way to scale
+the architecture to multiple load-balancers.
+
+=head2 Arbitrary SSL/TLS load-balancing with distcache
+
+There is no need nor motivation to route incoming connections to "the same
+server" to improve the chances for SSL/TLS session resumption, and indeed doing
+so defeats the point of load-balancing (which is to balance according load or
+availability). The use of distcache is to ensure that all servers share the
+same "cache" and so can respond to SSL/TLS session resume requests irrespective of
+where the previous SSL/TLS connection from the same client was mapped to.
+
+=head2 It ain't just for SSL/TLS ...
 
 Future versions of distcache will expand on the protocol and should provide for
-a variety of "shared-state" uses besides SSL/TLS session caching.
+a variety of "shared-state" uses besides SSL/TLS session caching. The
+possibilities include application state caching, network-based shared virtual
+memory, etc.
 
 
 =head1 TOOLS
@@ -33,15 +55,16 @@ L<dc_server(1)>.
 
 =item B<dc_client>
 
-Runs a local client proxy. This presents an interface to applications much like
-B<dc_server> but itself manages multiplexing application requests to/from a
-cache server through a single persistent connection. See L<dc_client(1)>.
+Runs a local client proxy. From the point of view of applications this behaves like
+B<dc_server>, but manages multiplexing application requests to/from a
+cache server over a single persistent connection. See L<dc_client(1)>.
 
 =item B<dc_test>
 
 Sends a (configurable) barrage of session caching requests to a given network
 address using the distcache protocol. Useful for testing correctness of an
-installation as well as benchmarking. See L<dc_test(1)>.
+installation as well as benchmarking. Can be used directly against an instance
+of B<dc_server> or against a B<dc_client> proxy. See L<dc_test(1)>.
 
 =item B<dc_snoop>
 
@@ -51,6 +74,7 @@ between an application and B<dc_client>, or between B<dc_client> and
 B<dc_server>). See L<dc_snoop(1)>.
 
 =back
+
 
 =head1 APIS
 
@@ -146,12 +170,21 @@ mail list and/or monitoring CVS, this gives you an opportunity to influence
 ongoing development and be less surprised at changes the turn up in future
 versions. For more information, see L<DC_SERVER_new(2)>.
 
+
 =head1 LICENSE
 
 The I<distcache> toolkit, including the I<libnal> network abstraction library
 that comes bundled with it, is distributed under the LGPL license ("Library GNU
 Public License") and you should have received a copy of this license with this
 software and its documents.
+
+
+=head1 BUGS
+
+Quite possibly. In particular, portability has not been tested under many
+platforms as the current developers have limited OS resources. Feedback, access
+to alternative platforms, bug-reports, and questions are all welcome - please
+go to the distcache website and subscribe to the distcache-users mail list.
 
 
 =head1 SEE ALSO
