@@ -122,7 +122,7 @@ static void bindump(const unsigned char *data, unsigned int len)
 	ARG_INC
 
 typedef struct st_pingctx {
-	int connected, id, done, peek, quiet;
+	int connected, inread, id, done, peek, quiet;
 	pingmode_t pingmode;
 	NAL_CONNECTION *conn;
 	unsigned int loop, counter, num_repeat, num_size;
@@ -183,90 +183,111 @@ static int pingctx_io(pingctx *ctx)
 			/* Still connecting */
 			return 1;
 		ctx->connected = 1;
-		goto write_ping;
+		ctx->inread = 0;
 	}
-	/* reading */
-	if(NAL_BUFFER_used(NAL_CONNECTION_get_read(ctx->conn)) < ctx->num_size)
-		return 1;
-	if(NAL_BUFFER_read(NAL_CONNECTION_get_read(ctx->conn), ctx->response,
-					ctx->num_size) != ctx->num_size) {
-		SYS_fprintf(SYS_stderr, "(%d) Read error: bad length\n", ctx->id);
-		return 0;
-	}
-	if(ctx->peek)
-		SYS_fprintf(SYS_stdout, "peek: I read "
-		"0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x [...]\n",
-		ctx->response[0], ctx->response[1], ctx->response[2], ctx->response[3],
-		ctx->response[4], ctx->response[5], ctx->response[6], ctx->response[7]);
-	if(memcmp(ctx->packet, ctx->response, ctx->num_size) != 0) {
-		unsigned int loop = 0;
-		while(ctx->packet[loop] == ctx->response[loop])
-			loop++;
-		SYS_fprintf(SYS_stderr, "(%d) Read error: bad match at offset %d\n",
-			ctx->id, loop);
-		if(!ctx->quiet) {
-			SYS_fprintf(SYS_stdout, "output packet was;\n");
-			bindump(ctx->packet, ctx->num_size);
-			SYS_fprintf(SYS_stdout, "response packet was;\n");
-			bindump(ctx->response, ctx->num_size);
+	while(1) switch(ctx->inread) {
+	case 1:
+		/* reading */
+		if(NAL_BUFFER_used(NAL_CONNECTION_get_read(ctx->conn)) <
+					ctx->num_size)
+			return 1;
+		if(NAL_BUFFER_read(NAL_CONNECTION_get_read(ctx->conn),
+				ctx->response, ctx->num_size) != ctx->num_size) {
+			SYS_fprintf(SYS_stderr, "(%d) Read error: bad length\n",
+				ctx->id);
+			return 0;
 		}
-		return 0;
-	}
-	ctx->loop++;
-	if(!ctx->quiet)
-		SYS_fprintf(SYS_stdout, "(%d) Packet %d ok\n", ctx->id, ctx->loop);
-write_ping:
-	if(ctx->loop == ctx->num_repeat) {
-		ctx->done = 1;
-		NAL_CONNECTION_reset(ctx->conn);
-		return 1;
-	}
-	switch(ctx->pingmode) {
-	case pingmode_zero:
-		SYS_zero_n(unsigned char, ctx->packet, ctx->num_size);
-		break;
-	case pingmode_block:
-		SYS_cover_n(ctx->counter + time(NULL), unsigned char,
-			ctx->packet, ctx->num_size);
-		break;
-	case pingmode_noise:
-	{
-		unsigned int loop = ctx->num_size;
-		unsigned char *p = ctx->packet;
-		/* nb: base and mult are initialised to avoid gcc warnings,
-		 * it's not smart enough to realise the (!duration) branch
-		 * executes immediately. */
-		unsigned int base = 0, mult = 0, duration = 0;
-		srand(ctx->counter + time(NULL));
-		do {
-			if(!duration) {
-				/* refresh */
-				base = (int)(65536.0 * rand()/(RAND_MAX+1.0));
-				mult = 1 + (int)(65536.0 * rand()/(RAND_MAX+1.0));
-				duration = 1 + (int)(100.0 * rand()/(RAND_MAX+1.0));
+		if(ctx->peek)
+			SYS_fprintf(SYS_stdout,
+"peek: I read 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x [...]\n",
+			ctx->response[0], ctx->response[1], ctx->response[2],
+			ctx->response[3], ctx->response[4], ctx->response[5],
+			ctx->response[6], ctx->response[7]);
+		if(memcmp(ctx->packet, ctx->response, ctx->num_size) != 0) {
+			unsigned int loop = 0;
+			while(ctx->packet[loop] == ctx->response[loop])
+				loop++;
+			SYS_fprintf(SYS_stderr,
+"(%d) Read error: bad match at offset %d\n",
+				ctx->id, loop);
+			if(!ctx->quiet) {
+				SYS_fprintf(SYS_stdout, "output packet was;\n");
+				bindump(ctx->packet, ctx->num_size);
+				SYS_fprintf(SYS_stdout, "response packet was;\n");
+				bindump(ctx->response, ctx->num_size);
 			}
-			base *= mult;
-			base += mult;
-			*(p++) = (base >> 24) ^ (base & 0xFF);
-		} while(duration--, loop--);
-	}
+			return 0;
+		}
+		ctx->loop++;
+		if(!ctx->quiet)
+			SYS_fprintf(SYS_stdout, "(%d) Packet %d ok\n", ctx->id,
+				ctx->loop);
+		ctx->inread = 0;
+	case 0:
+		/* writing */
+		if(ctx->loop == ctx->num_repeat) {
+			ctx->done = 1;
+			NAL_CONNECTION_reset(ctx->conn);
+			return 1;
+		}
+		if(NAL_BUFFER_unused(NAL_CONNECTION_get_send(ctx->conn)) <
+						ctx->num_size)
+			return 1;
+		switch(ctx->pingmode) {
+		case pingmode_zero:
+			SYS_zero_n(unsigned char, ctx->packet, ctx->num_size);
+			break;
+		case pingmode_block:
+			SYS_cover_n(ctx->counter + time(NULL), unsigned char,
+				ctx->packet, ctx->num_size);
+			break;
+		case pingmode_noise:
+		{
+			unsigned int loop = ctx->num_size;
+			unsigned char *p = ctx->packet;
+			/* nb: base and mult are initialised to avoid gcc
+			 * warnings, it's not smart enough to realise the
+			 * (!duration) branch executes immediately. */
+			unsigned int base = 0, mult = 0, duration = 0;
+			srand(ctx->counter + time(NULL));
+			do {
+				if(!duration) {
+					/* refresh */
+					base = (int)(65536.0 * rand() /
+						(RAND_MAX+1.0));
+					mult = 1 + (int)(65536.0 * rand() /
+						(RAND_MAX+1.0));
+					duration = 1 + (int)(100.0 * rand() /
+						(RAND_MAX+1.0));
+				}
+				base *= mult;
+				base += mult;
+				*(p++) = (base >> 24) ^ (base & 0xFF);
+			} while(duration--, loop--);
+		}
+			break;
+		default:
+			/* bug */
+			abort();
+		}
+		ctx->counter++;
+		if(NAL_BUFFER_write(NAL_CONNECTION_get_send(ctx->conn),
+				ctx->packet, ctx->num_size) != ctx->num_size) {
+			SYS_fprintf(SYS_stderr, "(%d) Write error\n", ctx->id);
+			return 0;
+		}
+		if(ctx->peek)
+			SYS_fprintf(SYS_stdout,
+"peek: I sent 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x [...]\n",
+			ctx->packet[0], ctx->packet[1], ctx->packet[2],
+			ctx->packet[3], ctx->packet[4], ctx->packet[5],
+			ctx->packet[6], ctx->packet[7]);
+		ctx->inread = 1;
 		break;
 	default:
-		/* bug */
+		SYS_fprintf(SYS_stderr, "Error, internal bug!\n");
 		abort();
 	}
-	ctx->counter++;
-	if(NAL_BUFFER_write(NAL_CONNECTION_get_send(ctx->conn), ctx->packet,
-					ctx->num_size) != ctx->num_size) {
-		SYS_fprintf(SYS_stderr, "(%d) Write error\n", ctx->id);
-		return 0;
-	}
-	if(ctx->peek)
-		SYS_fprintf(SYS_stdout, "peek: I sent "
-		"0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x [...]\n",
-		ctx->packet[0], ctx->packet[1], ctx->packet[2], ctx->packet[3],
-		ctx->packet[4], ctx->packet[5], ctx->packet[6], ctx->packet[7]);
-	return 1;
 }
 
 int main(int argc, char *argv[])
