@@ -221,20 +221,28 @@ int NAL_CONNECTION_add_to_selector(NAL_CONNECTION *conn,
 		return 0;
 	if((conn->sel_token = nal_selector_add_connection(sel, conn)) ==
 				NAL_SELECTOR_TOKEN_NULL) {
-		conn->vt->pre_selector_del(conn);
+		conn->vt->post_selector_del(conn, sel);
 		return 0;
 	}
 	conn->sel = sel;
+	if(conn->vt->post_selector_add && !conn->vt->post_selector_add(conn,
+				sel, conn->sel_token)) {
+		NAL_CONNECTION_del_from_selector(conn);
+		return 0;
+	}
 	return 1;
 }
 
 void NAL_CONNECTION_del_from_selector(NAL_CONNECTION *conn)
 {
 	if(conn->vt && conn->sel) {
-		conn->vt->pre_selector_del(conn);
+		NAL_SELECTOR *sel = conn->sel;
+		if(conn->vt->pre_selector_del)
+			conn->vt->pre_selector_del(conn, sel, conn->sel_token);
 		nal_selector_del_connection(conn->sel, conn, conn->sel_token);
 		conn->sel = NULL;
 		conn->sel_token = NULL;
+		conn->vt->post_selector_del(conn, sel);
 	}
 }
 

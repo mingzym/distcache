@@ -23,12 +23,17 @@
 #include <libsys/pre.h>
 #include <libnal/nal.h>
 #include "nal_internal.h"
+#include "ctrl_fd.h"
 #include <libsys/post.h>
 
 #ifndef HAVE_POLL
 
 /* If we don't build poll() support, return a NULL vtable */
 const NAL_SELECTOR_vtable *sel_fdpoll(void)
+{
+	return NULL;
+}
+NAL_SELECTOR *NAL_SELECTOR_new_fdpoll(void)
 {
 	return NULL;
 }
@@ -183,10 +188,7 @@ static NAL_SELECTOR_TOKEN sel_add_listener(NAL_SELECTOR *, NAL_LISTENER *);
 static NAL_SELECTOR_TOKEN sel_add_connection(NAL_SELECTOR *, NAL_CONNECTION *);
 static void sel_del_listener(NAL_SELECTOR *, NAL_LISTENER *, NAL_SELECTOR_TOKEN);
 static void sel_del_connection(NAL_SELECTOR *, NAL_CONNECTION *, NAL_SELECTOR_TOKEN);
-static void sel_fd_set(NAL_SELECTOR *sel, NAL_SELECTOR_TOKEN,
-			int fd, unsigned char flags);
-static unsigned char sel_fd_test(const NAL_SELECTOR *sel, NAL_SELECTOR_TOKEN,
-			int fd);
+static int sel_ctrl(NAL_SELECTOR *, int, void *);
 static const NAL_SELECTOR_vtable sel_fdpoll_vtable = {
 	sizeof(sel_ctx),
 	sel_on_create,
@@ -198,13 +200,16 @@ static const NAL_SELECTOR_vtable sel_fdpoll_vtable = {
 	sel_add_connection,
 	sel_del_listener,
 	sel_del_connection,
-	sel_fd_set,
-	sel_fd_test
+	sel_ctrl
 };
 /* Expose this implementation */
 const NAL_SELECTOR_vtable *sel_fdpoll(void)
 {
 	return &sel_fdpoll_vtable;
+}
+NAL_SELECTOR *NAL_SELECTOR_new_fdpoll(void)
+{
+	return nal_selector_new(&sel_fdpoll_vtable);
 }
 
 /************************************/
@@ -404,6 +409,28 @@ static unsigned char sel_fd_test(const NAL_SELECTOR *sel,
 	}
 	assert(NULL == "sel_fd_test had no collision!");
 	return 0;
+}
+
+static int sel_ctrl(NAL_SELECTOR *sel, int cmd, void *p)
+{
+	switch(cmd) {
+	case NAL_FD_CTRL_FDSET:
+		{
+		NAL_FD_FDSET *args = p;
+		sel_fd_set(sel, args->token, args->fd, args->flags);
+		}
+		break;
+	case NAL_FD_CTRL_FDTEST:
+		{
+		NAL_FD_FDTEST *args = p;
+		args->flags = sel_fd_test(sel, args->token, args->fd);
+		}
+		break;
+	default:
+		abort();
+		return 0;
+	}
+	return 1;
 }
 
 #endif

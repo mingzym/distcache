@@ -83,9 +83,13 @@ struct st_NAL_LISTENER_vtable {
 	int (*listen)(NAL_LISTENER *, const NAL_ADDRESS *);
 	const NAL_CONNECTION_vtable *(*pre_accept)(NAL_LISTENER *);
 	int (*finished)(const NAL_LISTENER *);
-	/* Called prior to (un)binding (from/)to a selector */
-	int (*pre_selector_add)(const NAL_LISTENER *, const NAL_SELECTOR *);
-	void (*pre_selector_del)(const NAL_LISTENER *);
+	/* Called before/after (un)binding (from/)to a selector */
+	int (*pre_selector_add)(NAL_LISTENER *, const NAL_SELECTOR *);
+	int (*post_selector_add)(NAL_LISTENER *, NAL_SELECTOR *,
+				NAL_SELECTOR_TOKEN);
+	void (*pre_selector_del)(NAL_LISTENER *, NAL_SELECTOR *,
+				NAL_SELECTOR_TOKEN);
+	void (*post_selector_del)(NAL_LISTENER *, const NAL_SELECTOR *);
 	/* Called before/after a select */
 	void (*pre_select)(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
 	void (*post_select)(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
@@ -121,9 +125,13 @@ struct st_NAL_CONNECTION_vtable {
 	NAL_BUFFER *(*get_read)(const NAL_CONNECTION *);
 	NAL_BUFFER *(*get_send)(const NAL_CONNECTION *);
 	int (*is_established)(const NAL_CONNECTION *);
-	/* Called prior to (un)binding (from/)to a selector */
-	int (*pre_selector_add)(const NAL_CONNECTION *, const NAL_SELECTOR *);
-	void (*pre_selector_del)(const NAL_CONNECTION *);
+	/* Called before/after (un)binding (from/)to a selector */
+	int (*pre_selector_add)(NAL_CONNECTION *, const NAL_SELECTOR *);
+	int (*post_selector_add)(NAL_CONNECTION *, NAL_SELECTOR *,
+				NAL_SELECTOR_TOKEN);
+	void (*pre_selector_del)(NAL_CONNECTION *, NAL_SELECTOR *,
+				NAL_SELECTOR_TOKEN);
+	void (*post_selector_del)(NAL_CONNECTION *, const NAL_SELECTOR *);
 	/* Called before/after a 'select', depending on the selector model.
 	 * 'pre_select' allows the connection to register specific events if
 	 * appropriate (eg. this would apply for a select/poll-style selector
@@ -157,10 +165,7 @@ void NAL_ADDRESS_vtable_link(NAL_ADDRESS_vtable *vt);
 /* NAL_SELECTOR */
 /****************/
 
-#define SELECTOR_FLAG_READ	0x01
-#define SELECTOR_FLAG_SEND	0x02
-#define SELECTOR_FLAG_EXCEPT	0x04
-
+/* The "type" of a selector */
 typedef enum {
 	/* Invalid/uninitialised place-holder */
 	NAL_SELECTOR_TYPE_ERROR = 0,
@@ -171,6 +176,14 @@ typedef enum {
 	/* Custom implementation types start here */
 	NAL_SELECTOR_TYPE_CUSTOM = 100
 } NAL_SELECTOR_TYPE;
+
+/* general-purpose "ctrl" commands are scoped as follows */
+typedef enum {
+	/* Control commands specific to fdselect and fdpoll start here */
+	NAL_SELECTOR_CTRL_FD = 0x0100,
+	/* Custom commands start here */
+	NAL_SELECTOR_CTRL_CUSTOM = 0x0800
+} NAL_SELECTOR_CTRL_TYPE;
 
 struct st_NAL_SELECTOR_vtable {
 	/* The size of "vtdata" the NAL_SELECTOR should provide */
@@ -186,9 +199,10 @@ struct st_NAL_SELECTOR_vtable {
 	NAL_SELECTOR_TOKEN (*add_connection)(NAL_SELECTOR *, NAL_CONNECTION *);
 	void (*del_listener)(NAL_SELECTOR *, NAL_LISTENER *, NAL_SELECTOR_TOKEN);
 	void (*del_connection)(NAL_SELECTOR *, NAL_CONNECTION *, NAL_SELECTOR_TOKEN);
-	/* Extensions that may not be meaningful, case-by-case */
-	void (*fd_set)(NAL_SELECTOR *, NAL_SELECTOR_TOKEN, int fd, unsigned char flags);
-	unsigned char (*fd_test)(const NAL_SELECTOR *, NAL_SELECTOR_TOKEN, int fd);
+	/* General purpose hook for implementation-specifics. Returns zero if
+	 * the integer (command) parameter is not understood. Other "return"
+	 * information should be handled in the opaque void* reference. */
+	int (*ctrl)(NAL_SELECTOR *, int, void *);
 };
 /* used from NAL_SELECTOR API */
 NAL_SELECTOR *nal_selector_new(const NAL_SELECTOR_vtable *);
@@ -196,7 +210,6 @@ const NAL_SELECTOR_vtable *nal_selector_get_vtable(const NAL_SELECTOR *);
 void *nal_selector_get_vtdata(const NAL_SELECTOR *);
 /* used from inside NAL_CONNECTION/NAL_LISTENER implementations */
 NAL_SELECTOR_TYPE nal_selector_get_type(const NAL_SELECTOR *);
-void nal_selector_fd_set(NAL_SELECTOR *, NAL_SELECTOR_TOKEN, int fd, unsigned char flags);
-unsigned char nal_selector_fd_test(const NAL_SELECTOR *, NAL_SELECTOR_TOKEN, int fd);
+int nal_selector_ctrl(NAL_SELECTOR *, int, void *);
 
 #endif /* !defined(HEADER_LIBNAL_NAL_DEVEL_H) */

@@ -103,17 +103,11 @@ NAL_SELECTOR_TYPE nal_selector_get_type(const NAL_SELECTOR *sel)
 	return sel->vt->get_type(sel);
 }
 
-void nal_selector_fd_set(NAL_SELECTOR *sel, NAL_SELECTOR_TOKEN token,
-			int fd, unsigned char flags)
+int nal_selector_ctrl(NAL_SELECTOR *sel, int cmd, void *p)
 {
-	if(sel->vt) sel->vt->fd_set(sel, token, fd, flags);
-}
-
-unsigned char nal_selector_fd_test(const NAL_SELECTOR *sel,
-			NAL_SELECTOR_TOKEN token, int fd)
-{
-	if(!sel->vt) return 0;
-	return sel->vt->fd_test(sel, token, fd);
+	if(sel->vt && sel->vt->ctrl)
+		return sel->vt->ctrl(sel, cmd, p);
+	return 0;
 }
 
 /*******************/

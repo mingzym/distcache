@@ -186,20 +186,28 @@ int NAL_LISTENER_add_to_selector(NAL_LISTENER *list,
 		return 0;
 	if((list->sel_token = nal_selector_add_listener(sel, list)) ==
 				NAL_SELECTOR_TOKEN_NULL) {
-		list->vt->pre_selector_del(list);
+		list->vt->post_selector_del(list, sel);
 		return 0;
 	}
 	list->sel = sel;
+	if(list->vt->post_selector_add && !list->vt->post_selector_add(list,
+				sel, list->sel_token)) {
+		NAL_LISTENER_del_from_selector(list);
+		return 0;
+	}
 	return 1;
 }
 
 void NAL_LISTENER_del_from_selector(NAL_LISTENER *list)
 {
 	if(list->vt && list->sel) {
-		list->vt->pre_selector_del(list);
+		NAL_SELECTOR *sel = list->sel;
+		if(list->vt->pre_selector_del)
+			list->vt->pre_selector_del(list, sel, list->sel_token);
 		nal_selector_del_listener(list->sel, list, list->sel_token);
 		list->sel = NULL;
 		list->sel_token = NULL;
+		list->vt->post_selector_del(list, sel);
 	}
 }
 

@@ -19,6 +19,18 @@ Current version: x.x.x
 Changes between 1.4.4 and x.x.x
 -------------------------------
 
+  *) Connections and listeners now have both pre and post hooks for binding
+     to and unbinding from selectors.
+     [Geoff Thorpe]
+
+  *) Added implementation-specific constructors for NAL_SELECTORs, allowing
+     poll() or select() to be chosen as desired.
+     [Geoff Thorpe]
+
+  *) Replaced the fd_set/fd_test callbacks from the NAL_SELECTOR_vtable
+     interface with a more general-purpose "ctrl" handler.
+     [Geoff Thorpe]
+
   *) Add two new test programs, "nal_echo" and "nal_ping". The former is a
      simple server program that manages (up to) some configurable number of
      incoming connections, echoing all received data back to the client. The

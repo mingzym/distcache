@@ -66,6 +66,9 @@ void		NAL_SELECTOR_reset(NAL_SELECTOR *sel);
 int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
 				unsigned long usec_timeout,
 				int use_timeout);
+/* implementation-specific constructors */
+NAL_SELECTOR *	NAL_SELECTOR_new_fdselect(void);
+NAL_SELECTOR *	NAL_SELECTOR_new_fdpoll(void);
 
 /********************************/
 /* Listener functions (general) */
