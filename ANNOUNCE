@@ -13,10 +13,26 @@
                                                        -- George Orwell
 
 
-distcache release: xx.xx
-------------------------
+distcache release: 0.3
+----------------------
 
-[Fill in with release notes]
+We are pleased to announce the release of version 0.3 of the distcache package.
+For more information on what distcache is and how to use it, please see the
+README as it provides a good introduction and a guide to the other documents in
+this package.
+
+The main changes in version 0.3 are predominantly bug-fixes of glitches that
+were found in 0.2 under various conditions. However, a new tool "dc_snoop" has
+also been introduced that acts as a transparent proxy to monitors distcache
+protocol traffic passing through it. Also, the existing tools have been renamed
+for consistency and to avoid name-clashes with the Kerberos distribution. Ie.
+{"sserver", "sclient", and "test_session"} have become {"dc_server",
+"dc_client", and "dc_test"}.
+
+This release is being labelled "alpha". This is an improvement from the
+"pre-alpha" state that we used in prior releases, but should still indicate
+that we are fishing for bugs and auditing and would like to see some mileage
+before we go "beta" or "stable".
 
 ----------------------------------------------------------------------------
 
