@@ -92,7 +92,7 @@ static unsigned int cached_hits = 0;
 static void int_lookup_expired(DC_CACHE *cache, unsigned int num)
 {
 	/* Was the cached index in the first 'num' items? */
-	if(cache->cached_idx < num) {
+	if(cache->cached_idx < (int)num) {
 		/* Yes, so cache the fact the session has gone */
 		cache->cached_idx = -1;
 		CACHED_REMOVE
@@ -105,10 +105,10 @@ static void int_lookup_expired(DC_CACHE *cache, unsigned int num)
  * cached-lookup. */
 static void int_lookup_removed(DC_CACHE *cache, unsigned int idx)
 {
-	if(cache->cached_idx == idx) {
+	if(cache->cached_idx == (int)idx) {
 		cache->cached_idx = -1;
 		CACHED_REMOVE
-	} else if(cache->cached_idx > idx)
+	} else if(cache->cached_idx > (int)idx)
 		cache->cached_idx--;
 }
 
@@ -187,7 +187,8 @@ static void int_expire(DC_CACHE *cache, const struct timeval *now)
 static int int_find_DC_ITEM(DC_CACHE *cache, const unsigned char *ptr,
 				unsigned int len, const struct timeval *now)
 {
-	int idx = 0;
+	int ret;
+	unsigned int idx;
 	DC_ITEM *item = cache->items;
 	/* First flush out expired entries */
 	int_expire(cache, now);
@@ -195,16 +196,19 @@ static int int_find_DC_ITEM(DC_CACHE *cache, const unsigned char *ptr,
 	if(int_lookup_check(cache, ptr, len, &idx))
 		/* Yes! */
 		return idx;
+	idx = 0;
 	while(idx < cache->items_used) {
-		if((item->id_len == len) && (memcmp(item->ptr, ptr, len) == 0))
+		if((item->id_len == len) && (memcmp(item->ptr, ptr, len) == 0)) {
+			ret = (int)idx;
 			goto cache_and_return;
+		}
 		idx++;
 		item++;
 	}
-	idx = -1;
+	ret = -1;
 cache_and_return:
 	int_lookup_set(cache, ptr, len, idx);
-	return idx;
+	return ret;
 }
 
 static int int_add_DC_ITEM(DC_CACHE *cache, unsigned int idx,

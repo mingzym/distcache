@@ -148,11 +148,12 @@ static int int_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send)
 		return -1;
 	}
 	if(ret > 0) {
+		unsigned int uret = (unsigned int)ret;
 		/* Scroll the buffer forward */
-		NAL_BUFFER_takedata(buf, NULL, ret);
+		NAL_BUFFER_takedata(buf, NULL, uret);
 #if NAL_DEBUG_LEVEL > 1
 		NAL_fprintf(NAL_stdout(), "Debug: net.c (fd=%d) sent %lu bytes\n",
-			fd, (unsigned long)ret);
+			fd, (unsigned long)uret);
 #endif
 	}
 	return ret;
@@ -188,10 +189,11 @@ static int int_buffer_from_fd(NAL_BUFFER *buf, int fd, unsigned int max_read)
 		return -1;
 	}
 	if(ret > 0) {
-		NAL_BUFFER_wrote(buf, ret);
+		unsigned int uret = (unsigned int)ret;
+		NAL_BUFFER_wrote(buf, uret);
 #if NAL_DEBUG_LEVEL > 1
 		NAL_fprintf(NAL_stdout(), "Debug: net.c (fd=%d) received %lu bytes\n",
-			fd, (unsigned long)ret);
+			fd, (unsigned long)uret);
 #endif
 	}
 	return ret;
@@ -244,7 +246,6 @@ static int int_create_socket(int *fd, int type)
 	default:
 		/* Should never happen */
 		abort();
-		return 0;
 	}
 	if(*fd  == -1) {
 #if NAL_DEBUG_LEVEL > 1
@@ -293,10 +294,11 @@ static int int_int_sockaddr_size(int address_type)
 		return sizeof(struct sockaddr_un);
 #endif
 	default:
-		/* for now at least, should *never* happen */
-		abort();
+		break;
 	}
-	return 0;
+	/* for now at least, should *never* happen */
+	abort();
+	/* return 0; */
 }
 
 static int int_bind(int fd, const sockaddr_safe *addr, int address_type)
