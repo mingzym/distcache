@@ -62,11 +62,12 @@ NAL_ADDRESS_vtable builtin_fd_addr_vtable = {
 static int list_on_create(NAL_LISTENER *l);
 static void list_on_destroy(NAL_LISTENER *l);
 static int list_listen(NAL_LISTENER *l, const NAL_ADDRESS *addr);
-static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l,
-						NAL_SELECTOR *sel);
-static void list_selector_add(const NAL_LISTENER *l, NAL_SELECTOR *sel);
-static void list_selector_del(const NAL_LISTENER *l, NAL_SELECTOR *sel);
+static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l);
 static int list_finished(const NAL_LISTENER *l);
+static int list_pre_selector_add(const NAL_LISTENER *, const NAL_SELECTOR *);
+static void list_pre_selector_del(const NAL_LISTENER *);
+static void list_pre_select(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
+static void list_post_select(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
 /* This is the type we attach to our listeners */
 typedef struct st_list_ctx {
 	/* We accept only once */
@@ -81,9 +82,11 @@ static const NAL_LISTENER_vtable list_vtable = {
 	list_on_destroy, /* reset==destroy */
 	list_listen,
 	list_pre_accept,
-	list_selector_add,
-	list_selector_del,
 	list_finished,
+	list_pre_selector_add,
+	list_pre_selector_del,
+	list_pre_select,
+	list_post_select,
 	NULL, /* set_fs_owner */
 	NULL  /* set_fs_perms */
 };
@@ -98,15 +101,16 @@ static int conn_set_size(NAL_CONNECTION *conn, unsigned int size);
 static NAL_BUFFER *conn_get_read(const NAL_CONNECTION *conn);
 static NAL_BUFFER *conn_get_send(const NAL_CONNECTION *conn);
 static int conn_is_established(const NAL_CONNECTION *conn);
-static int conn_do_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-		unsigned int max_read, unsigned int max_send);
-static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-		unsigned int flags);
-static void conn_selector_del(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
+static int conn_pre_selector_add(const NAL_CONNECTION *, const NAL_SELECTOR *);
+static void conn_pre_selector_del(const NAL_CONNECTION *);
+static void conn_pre_select(NAL_CONNECTION *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
+static void conn_post_select(NAL_CONNECTION *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
+static int conn_do_io(NAL_CONNECTION *);
 /* This is the type we attach to our connections */
 typedef struct st_conn_ctx {
 	int fd_read;
 	int fd_send;
+	unsigned char flags;
 	NAL_BUFFER *b_read;
 	NAL_BUFFER *b_send;
 } conn_ctx;
@@ -121,9 +125,11 @@ static const NAL_CONNECTION_vtable conn_vtable = {
 	conn_get_read,
 	conn_get_send,
 	conn_is_established,
-	conn_do_io,
-	conn_selector_add,
-	conn_selector_del
+	conn_pre_selector_add,
+	conn_pre_selector_del,
+	conn_pre_select,
+	conn_post_select,
+	conn_do_io
 };
 
 /**************************************/
@@ -238,27 +244,59 @@ static int list_listen(NAL_LISTENER *l, const NAL_ADDRESS *addr)
 	return 1;
 }
 
-static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l,
-						NAL_SELECTOR *sel)
+static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l)
 {
 	list_ctx *ctx = nal_listener_get_vtdata(l);
-	if(!ctx->accepted)
+	if(ctx->accepted == 1) {
+		ctx->accepted = 2;
 		return &conn_vtable;
+	}
 	return NULL;
-}
-
-static void list_selector_add(const NAL_LISTENER *l, NAL_SELECTOR *sel)
-{
-}
-
-static void list_selector_del(const NAL_LISTENER *l, NAL_SELECTOR *sel)
-{
 }
 
 static int list_finished(const NAL_LISTENER *l)
 {
 	list_ctx *ctx = nal_listener_get_vtdata(l);
 	return ctx->accepted;
+}
+
+static int list_pre_selector_add(const NAL_LISTENER *l, const NAL_SELECTOR *sel)
+{
+	switch(nal_selector_get_type(sel)) {
+	case NAL_SELECTOR_TYPE_FDSELECT:
+	case NAL_SELECTOR_TYPE_FDPOLL:
+		return 1;
+	default:
+		break;
+	}
+	return 0;
+}
+
+static void list_pre_selector_del(const NAL_LISTENER *l)
+{
+	/* nop */
+}
+
+static void list_pre_select(NAL_LISTENER *l, NAL_SELECTOR *sel,
+			NAL_SELECTOR_TOKEN tok)
+{
+	list_ctx *ctx = nal_listener_get_vtdata(l);
+	/* We fake things out by selecting for readability on the read socket
+	 * if we haven't yet accepted. That way, it will appear that we receive
+	 * "the connection" when the first data arrives. (Not perfect, but
+	 * better than deadlocking.) */
+	if(!ctx->accepted)
+		nal_selector_fd_set(sel, tok, ctx->fd_read, SELECTOR_FLAG_READ);
+}
+
+static void list_post_select(NAL_LISTENER *l, NAL_SELECTOR *sel,
+			NAL_SELECTOR_TOKEN tok)
+{
+	unsigned char flags;
+	list_ctx *ctx = nal_listener_get_vtdata(l);
+	if(ctx->accepted) return;
+	flags = nal_selector_fd_test(sel, tok, ctx->fd_read);
+	if(flags & SELECTOR_FLAG_READ) ctx->accepted = 1;
 }
 
 /******************************************/
@@ -284,6 +322,8 @@ static int conn_on_create(NAL_CONNECTION *conn)
 	if(!ctx->b_read) ctx->b_read = NAL_BUFFER_new();
 	if(!ctx->b_send) ctx->b_send = NAL_BUFFER_new();
 	if(!ctx->b_read || !ctx->b_send) return 0;
+	ctx->fd_read = -1;
+	ctx->fd_send = -1;
 	return 1;
 }
 
@@ -303,6 +343,7 @@ static void conn_on_reset(NAL_CONNECTION *conn)
 	nal_fd_close(&ctx->fd_send);
 	NAL_BUFFER_reset(ctx->b_read);
 	NAL_BUFFER_reset(ctx->b_send);
+	ctx->flags = 0;
 }
 
 static int conn_connect(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
@@ -323,6 +364,8 @@ static int conn_accept(NAL_CONNECTION *conn, const NAL_LISTENER *l)
 {
 	list_ctx *ctx_list = nal_listener_get_vtdata(l);
 	conn_ctx *ctx_conn = nal_connection_get_vtdata(conn);
+	if(ctx_list->accepted != 2)
+		return 0;
 	if((ctx_list->fd_read != -1) && !nal_fd_make_non_blocking(ctx_list->fd_read, 1))
 		return 0;
 	if((ctx_list->fd_send != -1) && !nal_fd_make_non_blocking(ctx_list->fd_send, 1))
@@ -330,7 +373,7 @@ static int conn_accept(NAL_CONNECTION *conn, const NAL_LISTENER *l)
 	if(!conn_ctx_setup(ctx_conn, ctx_list->fd_read, ctx_list->fd_send,
 				nal_listener_get_def_buffer_size(l)))
 		return 0;
-	ctx_list->accepted = 1;
+	ctx_list->accepted = 2;
 	return 1;
 }
 
@@ -361,61 +404,78 @@ static int conn_is_established(const NAL_CONNECTION *conn)
 	return 1;
 }
 
-static int conn_do_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-		unsigned int max_read, unsigned int max_send)
+static int conn_pre_selector_add(const NAL_CONNECTION *conn,
+				const NAL_SELECTOR *sel)
+{
+	switch(nal_selector_get_type(sel)) {
+	case NAL_SELECTOR_TYPE_FDSELECT:
+	case NAL_SELECTOR_TYPE_FDPOLL:
+		return 1;
+	default:
+		break;
+	}
+	return 0;
+}
+
+static void conn_pre_selector_del(const NAL_CONNECTION *conn)
 {
 	conn_ctx *ctx = nal_connection_get_vtdata(conn);
-	unsigned char flags_read = ((ctx->fd_read != -1) ?
-		nal_selector_fd_test(sel, ctx->fd_read) : 0);
-	unsigned char flags_send = ((ctx->fd_read == ctx->fd_send) ? flags_read :
-			((ctx->fd_send != -1) ? nal_selector_fd_test(sel, ctx->fd_send) : 0));
-	if((flags_read | flags_send) & SELECTOR_FLAG_EXCEPT) return 0;
-	if(flags_read & SELECTOR_FLAG_READ) {
-		int io_ret = nal_fd_buffer_from_fd(ctx->b_read, ctx->fd_read, max_read);
+	ctx->flags = 0;
+}
+
+static void conn_pre_select(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
+			NAL_SELECTOR_TOKEN token)
+{
+	conn_ctx *ctx = nal_connection_get_vtdata(conn);
+	unsigned char rflag =
+		(NAL_BUFFER_notfull(ctx->b_read) ?  SELECTOR_FLAG_READ : 0);
+	unsigned char sflag =
+		(NAL_BUFFER_notempty(ctx->b_send) ?  SELECTOR_FLAG_SEND : 0);
+	if(ctx->fd_read == ctx->fd_send) {
+		if(ctx->fd_read != -1)
+			nal_selector_fd_set(sel, token, ctx->fd_read,
+					rflag | sflag | SELECTOR_FLAG_EXCEPT);
+	} else {
+		if(ctx->fd_read != -1)
+			nal_selector_fd_set(sel, token, ctx->fd_read,
+					rflag | SELECTOR_FLAG_EXCEPT);
+		if(ctx->fd_send != -1)
+			nal_selector_fd_set(sel, token, ctx->fd_send,
+					sflag | SELECTOR_FLAG_EXCEPT);
+	}
+}
+
+static void conn_post_select(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
+			NAL_SELECTOR_TOKEN token)
+{
+	conn_ctx *ctx = nal_connection_get_vtdata(conn);
+	if(ctx->fd_read == ctx->fd_send) {
+		if(ctx->fd_read != -1)
+			ctx->flags = nal_selector_fd_test(sel, token, ctx->fd_read);
+	} else {
+		ctx->flags = 0;
+		if(ctx->fd_read != -1)
+			ctx->flags = nal_selector_fd_test(sel, token, ctx->fd_read);
+		if(ctx->fd_send != -1)
+			ctx->flags |= nal_selector_fd_test(sel, token, ctx->fd_send);
+	}
+}
+
+static int conn_do_io(NAL_CONNECTION *conn)
+{
+	conn_ctx *ctx = nal_connection_get_vtdata(conn);
+	if(ctx->flags & SELECTOR_FLAG_EXCEPT) return 0;
+	if(ctx->flags & SELECTOR_FLAG_READ) {
+		int io_ret = nal_fd_buffer_from_fd(ctx->b_read, ctx->fd_read, 0);
 		/* zero shouldn't happen if we're readable, and negative is err */
 		if(io_ret <= 0)
 			return 0;
 	}
-	if(flags_send & SELECTOR_FLAG_SEND) {
-		int io_ret = nal_fd_buffer_to_fd(ctx->b_send, ctx->fd_send, max_send);
+	if(ctx->flags & SELECTOR_FLAG_SEND) {
+		int io_ret = nal_fd_buffer_to_fd(ctx->b_send, ctx->fd_send, 0);
 		if(io_ret <= 0)
 			return 0;
 	}
-	if(ctx->fd_read != -1)
-		nal_selector_fd_clear(sel, ctx->fd_read);
-	if((ctx->fd_read != ctx->fd_send) && (ctx->fd_send != -1))
-		nal_selector_fd_clear(sel, ctx->fd_send);
 	return 1;
-}
-
-static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-			unsigned int flags)
-{
-	conn_ctx *ctx = nal_connection_get_vtdata(conn);
-	unsigned char toread = (((flags & NAL_SELECT_FLAG_READ) &&
-			NAL_BUFFER_notfull(ctx->b_read)) ?  SELECTOR_FLAG_READ : 0);
-	unsigned char tosend = (((flags & NAL_SELECT_FLAG_SEND) &&
-			NAL_BUFFER_notempty(ctx->b_send)) ?  SELECTOR_FLAG_SEND : 0);
-	if(ctx->fd_read == ctx->fd_send) {
-		if(ctx->fd_read != -1)
-			nal_selector_fd_set(sel, ctx->fd_read, toread | tosend |
-						SELECTOR_FLAG_EXCEPT);
-	} else {
-		if(ctx->fd_read != -1)
-			nal_selector_fd_set(sel, ctx->fd_read,
-					toread | SELECTOR_FLAG_EXCEPT);
-		if(ctx->fd_send != -1)
-			nal_selector_fd_set(sel, ctx->fd_send,
-					tosend | SELECTOR_FLAG_EXCEPT);
-	}
-}
-
-static void conn_selector_del(const NAL_CONNECTION *conn, NAL_SELECTOR *sel)
-{
-	conn_ctx *ctx = nal_connection_get_vtdata(conn);
-	if(ctx->fd_read != -1)
-		nal_selector_fd_unset(sel, ctx->fd_read);
-	if((ctx->fd_read != ctx->fd_send) && (ctx->fd_send != -1))
-		nal_selector_fd_unset(sel, ctx->fd_send);
 }
 

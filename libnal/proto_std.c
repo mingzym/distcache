@@ -56,20 +56,21 @@ NAL_ADDRESS_vtable builtin_sock_addr_vtable = {
 };
 
 /* Predeclare the listener functions */
-static int list_on_create(NAL_LISTENER *l);
-static void list_on_destroy(NAL_LISTENER *l);
-static int list_listen(NAL_LISTENER *l, const NAL_ADDRESS *addr);
-static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l,
-						NAL_SELECTOR *sel);
-static void list_selector_add(const NAL_LISTENER *l, NAL_SELECTOR *sel);
-static void list_selector_del(const NAL_LISTENER *l, NAL_SELECTOR *sel);
-static int list_finished(const NAL_LISTENER *l);
+static int list_on_create(NAL_LISTENER *);
+static void list_on_destroy(NAL_LISTENER *);
+static int list_listen(NAL_LISTENER *, const NAL_ADDRESS *);
+static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *);
+static int list_finished(const NAL_LISTENER *);
+static int list_pre_selector_add(const NAL_LISTENER *, const NAL_SELECTOR *);
+static void list_pre_selector_del(const NAL_LISTENER *);
+static void list_pre_select(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
+static void list_post_select(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
 static int list_set_fs_owner(NAL_LISTENER *l, const char *ownername,
 				const char *groupname);
 static int list_set_fs_perms(NAL_LISTENER *l, const char *octal_string);
 /* This is the type we attach to our listeners */
 typedef struct st_list_ctx {
-	int fd;
+	int fd, caught, taken;
 	nal_sockaddr_type type;
 } list_ctx;
 static const NAL_LISTENER_vtable list_vtable = {
@@ -79,31 +80,34 @@ static const NAL_LISTENER_vtable list_vtable = {
 	list_on_destroy, /* destroy==reset */
 	list_listen,
 	list_pre_accept,
-	list_selector_add,
-	list_selector_del,
 	list_finished,
+	list_pre_selector_add,
+	list_pre_selector_del,
+	list_pre_select,
+	list_post_select,
 	list_set_fs_owner,
 	list_set_fs_perms
 };
 
 /* Predeclare the connection functions */
-static int conn_on_create(NAL_CONNECTION *conn);
-static void conn_on_destroy(NAL_CONNECTION *conn);
-static void conn_on_reset(NAL_CONNECTION *conn);
-static int conn_connect(NAL_CONNECTION *conn, const NAL_ADDRESS *addr);
-static int conn_accept(NAL_CONNECTION *conn, const NAL_LISTENER *l);
-static int conn_set_size(NAL_CONNECTION *conn, unsigned int size);
-static NAL_BUFFER *conn_get_read(const NAL_CONNECTION *conn);
-static NAL_BUFFER *conn_get_send(const NAL_CONNECTION *conn);
-static int conn_is_established(const NAL_CONNECTION *conn);
-static int conn_do_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-		unsigned int max_read, unsigned int max_send);
-static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-		unsigned int flags);
-static void conn_selector_del(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
+static int conn_on_create(NAL_CONNECTION *);
+static void conn_on_destroy(NAL_CONNECTION *);
+static void conn_on_reset(NAL_CONNECTION *);
+static int conn_connect(NAL_CONNECTION *, const NAL_ADDRESS *);
+static int conn_accept(NAL_CONNECTION *, const NAL_LISTENER *);
+static int conn_set_size(NAL_CONNECTION *, unsigned int);
+static NAL_BUFFER *conn_get_read(const NAL_CONNECTION *);
+static NAL_BUFFER *conn_get_send(const NAL_CONNECTION *);
+static int conn_is_established(const NAL_CONNECTION *);
+static int conn_pre_selector_add(const NAL_CONNECTION *, const NAL_SELECTOR *);
+static void conn_pre_selector_del(const NAL_CONNECTION *);
+static void conn_pre_select(NAL_CONNECTION *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
+static void conn_post_select(NAL_CONNECTION *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
+static int conn_do_io(NAL_CONNECTION *);
 /* This is the type we attach to our connections */
 typedef struct st_conn_ctx {
 	int fd, established;
+	unsigned char flags;
 	NAL_BUFFER *b_read;
 	NAL_BUFFER *b_send;
 } conn_ctx;
@@ -118,9 +122,11 @@ static const NAL_CONNECTION_vtable conn_vtable = {
 	conn_get_read,
 	conn_get_send,
 	conn_is_established,
-	conn_do_io,
-	conn_selector_add,
-	conn_selector_del
+	conn_pre_selector_add,
+	conn_pre_selector_del,
+	conn_pre_select,
+	conn_post_select,
+	conn_do_io
 };
 
 /***********/
@@ -170,6 +176,7 @@ int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1,
 	ctx2->fd = fds[1];
 	ctx1->established = 1;
 	ctx2->established = 1;
+	ctx1->flags = ctx2->flags = 0;
 	return 1;
 }
 
@@ -253,6 +260,7 @@ static void list_on_destroy(NAL_LISTENER *l)
 {
 	list_ctx *ctx = nal_listener_get_vtdata(l);
 	nal_fd_close(&ctx->fd);
+	ctx->caught = 0;
 }
 
 static int list_listen(NAL_LISTENER *l, const NAL_ADDRESS *addr)
@@ -261,6 +269,7 @@ static int list_listen(NAL_LISTENER *l, const NAL_ADDRESS *addr)
 	list_ctx *ctx_listener = nal_listener_get_vtdata(l);
 	ctx_listener->fd = -1;
 	if(!nal_sock_create_socket(&ctx_listener->fd, ctx_addr) ||
+			!nal_fd_make_non_blocking(ctx_listener->fd, 1) ||
 			!nal_sock_listen(ctx_listener->fd, ctx_addr)) {
 		nal_fd_close(&ctx_listener->fd);
 		return 0;
@@ -269,31 +278,61 @@ static int list_listen(NAL_LISTENER *l, const NAL_ADDRESS *addr)
 	return 1;
 }
 
-static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l,
-						NAL_SELECTOR *sel)
+static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l)
 {
 	list_ctx *ctx = nal_listener_get_vtdata(l);
-	unsigned char flags = nal_selector_fd_test(sel, ctx->fd);
-	if(flags & SELECTOR_FLAG_READ)
+	if(ctx->caught) {
+		/* ctx->caught = 0; */
+		ctx->taken = 1;
 		return &conn_vtable;
+	}
 	return NULL;
-}
-
-static void list_selector_add(const NAL_LISTENER *l, NAL_SELECTOR *sel)
-{
-	list_ctx *ctx = nal_listener_get_vtdata(l);
-	nal_selector_fd_set(sel, ctx->fd, SELECTOR_FLAG_READ);
-}
-
-static void list_selector_del(const NAL_LISTENER *l, NAL_SELECTOR *sel)
-{
-	list_ctx *ctx = nal_listener_get_vtdata(l);
-	nal_selector_fd_unset(sel, ctx->fd);
 }
 
 static int list_finished(const NAL_LISTENER *l)
 {
 	return 0;
+}
+
+static int list_pre_selector_add(const NAL_LISTENER *l, const NAL_SELECTOR *sel)
+{
+	switch(nal_selector_get_type(sel)) {
+	case NAL_SELECTOR_TYPE_FDSELECT:
+	case NAL_SELECTOR_TYPE_FDPOLL:
+		return 1;
+	default:
+		break;
+	}
+	return 0;
+}
+
+static void list_pre_selector_del(const NAL_LISTENER *l)
+{
+	list_ctx *ctx = nal_listener_get_vtdata(l);
+	ctx->caught = 0;
+}
+
+static void list_pre_select(NAL_LISTENER *l, NAL_SELECTOR *sel,
+			NAL_SELECTOR_TOKEN tok)
+{
+	list_ctx *ctx = nal_listener_get_vtdata(l);
+	if(!ctx->caught || ctx->taken)
+		nal_selector_fd_set(sel, tok, ctx->fd, SELECTOR_FLAG_READ);
+	ctx->taken = 0;
+}
+
+static void list_post_select(NAL_LISTENER *l, NAL_SELECTOR *sel,
+			NAL_SELECTOR_TOKEN tok)
+{
+	unsigned char flags;
+	list_ctx *ctx = nal_listener_get_vtdata(l);
+	/* We detect readability on the listener socket and set "caught". */
+	flags = nal_selector_fd_test(sel, tok, ctx->fd);
+	if(flags & SELECTOR_FLAG_READ) {
+		/* We shouldn't have been selectable if this was already set */
+		assert(!ctx->caught);
+		ctx->caught = 1;
+	}
 }
 
 static int list_set_fs_owner(NAL_LISTENER *l, const char *ownername,
@@ -337,6 +376,7 @@ static int conn_on_create(NAL_CONNECTION *conn)
 	if(!ctx->b_read) ctx->b_read = NAL_BUFFER_new();
 	if(!ctx->b_send) ctx->b_send = NAL_BUFFER_new();
 	if(!ctx->b_read || !ctx->b_send) return 0;
+	ctx->fd = -1;
 	return 1;
 }
 
@@ -354,6 +394,8 @@ static void conn_on_reset(NAL_CONNECTION *conn)
 	nal_fd_close(&ctx->fd);
 	NAL_BUFFER_reset(ctx->b_read);
 	NAL_BUFFER_reset(ctx->b_send);
+	ctx->flags = 0;
+	ctx->established = 0;
 }
 
 static int conn_connect(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
@@ -379,8 +421,22 @@ static int conn_accept(NAL_CONNECTION *conn, const NAL_LISTENER *l)
 	int fd = -1;
 	list_ctx *ctx_list = nal_listener_get_vtdata(l);
 	conn_ctx *ctx_conn = nal_connection_get_vtdata(conn);
-	if(!nal_sock_accept(ctx_list->fd, &fd) ||
-			!nal_fd_make_non_blocking(fd, 1) ||
+	if(!nal_sock_accept(ctx_list->fd, &fd)) {
+		switch(errno) {
+		case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+		case EWOULDBLOCK:
+#endif
+			/* We've exhausted the listen queue for now */
+			ctx_list->caught = 0;
+			break;
+		default:
+			break;
+		}
+		goto err;
+	}
+	ctx_list->taken = 1;
+	if(!nal_fd_make_non_blocking(fd, 1) ||
 			!nal_sock_set_nagle(fd, gb_use_nagle, ctx_list->type) ||
 			!conn_ctx_setup(ctx_conn, fd, 1,
 				nal_listener_get_def_buffer_size(l)))
@@ -418,17 +474,57 @@ static int conn_is_established(const NAL_CONNECTION *conn)
 	return ctx_conn->established;
 }
 
-static int conn_do_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-		unsigned int max_read, unsigned int max_send)
+static int conn_pre_selector_add(const NAL_CONNECTION *conn,
+				const NAL_SELECTOR *sel)
+{
+	switch(nal_selector_get_type(sel)) {
+	case NAL_SELECTOR_TYPE_FDSELECT:
+	case NAL_SELECTOR_TYPE_FDPOLL:
+		return 1;
+	default:
+		break;
+	}
+	return 0;
+}
+
+static void conn_pre_selector_del(const NAL_CONNECTION *conn)
+{
+	conn_ctx *ctx = nal_connection_get_vtdata(conn);
+	ctx->flags = 0;
+}
+
+static void conn_pre_select(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
+			NAL_SELECTOR_TOKEN token)
+{
+	conn_ctx *ctx = nal_connection_get_vtdata(conn);
+	nal_selector_fd_set(sel, token, ctx->fd,
+		/* Do we select for readability? Only if connection is complete
+		 * and there is space in the buffer. */
+		(ctx->established && NAL_BUFFER_notfull(ctx->b_read) ?
+			SELECTOR_FLAG_READ : 0) |
+		/* Do we select for writability? We do if the connection isn't
+		 * complete or there is data in the buffer to be sent. */
+		(!ctx->established || NAL_BUFFER_notempty(ctx->b_send) ?
+			SELECTOR_FLAG_SEND : 0) |
+		SELECTOR_FLAG_EXCEPT);
+}
+
+static void conn_post_select(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
+			NAL_SELECTOR_TOKEN token)
+{
+	conn_ctx *ctx = nal_connection_get_vtdata(conn);
+	ctx->flags = nal_selector_fd_test(sel, token, ctx->fd);
+}
+
+static int conn_do_io(NAL_CONNECTION *conn)
 {
 	int nb = 0;
 	conn_ctx *ctx = nal_connection_get_vtdata(conn);
-	unsigned char flags = nal_selector_fd_test(sel, ctx->fd);
-	if(flags & SELECTOR_FLAG_EXCEPT) return 0;
+	if(ctx->flags & SELECTOR_FLAG_EXCEPT) return 0;
 	/* If we're waiting on a non-blocking connect, hook the test here */
 	if(!ctx->established) {
 		/* We need to be sendable after a non-blocking connect */
-		if(!(flags & SELECTOR_FLAG_SEND))
+		if(!(ctx->flags & SELECTOR_FLAG_SEND))
 			return 1;
 		/* Connect or error? */
 		if(!nal_sock_is_connected(ctx->fd))
@@ -438,42 +534,18 @@ static int conn_do_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 		 * nothing to send */
 		nb = 1;
 	}
-	if(flags & SELECTOR_FLAG_READ) {
-		int io_ret = nal_fd_buffer_from_fd(ctx->b_read, ctx->fd, max_read);
+	if(ctx->flags & SELECTOR_FLAG_READ) {
+		int io_ret = nal_fd_buffer_from_fd(ctx->b_read, ctx->fd, 0);
 		/* zero shouldn't happen if we're readable, and negative is err */
 		if(io_ret <= 0)
 			return 0;
 	}
-	if(flags & SELECTOR_FLAG_SEND) {
-		int io_ret = nal_fd_buffer_to_fd(ctx->b_send, ctx->fd, max_send);
+	if(ctx->flags & SELECTOR_FLAG_SEND) {
+		int io_ret = nal_fd_buffer_to_fd(ctx->b_send, ctx->fd, 0);
 		if((io_ret < 0) || (!io_ret && !nb))
 			return 0;
 	}
-	nal_selector_fd_clear(sel, ctx->fd);
+	ctx->flags = 0;
 	return 1;
-}
-
-static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-		unsigned int flags)
-{
-	conn_ctx *ctx = nal_connection_get_vtdata(conn);
-	nal_selector_fd_set(sel, ctx->fd,
-		/* Do we select for readability? Only if connection is complete
-		 * and there is space in the buffer. */
-		(ctx->established &&
-		(flags & NAL_SELECT_FLAG_READ) && NAL_BUFFER_notfull(ctx->b_read) ?
-			SELECTOR_FLAG_READ : 0) |
-		/* Do we select for writability? We do if the connection isn't
-		 * complete or there is data in the buffer to be sent. */
-		(!ctx->established ||
-		((flags & NAL_SELECT_FLAG_SEND) && NAL_BUFFER_notempty(ctx->b_send)) ?
-			SELECTOR_FLAG_SEND : 0) |
-		SELECTOR_FLAG_EXCEPT);
-}
-
-static void conn_selector_del(const NAL_CONNECTION *conn, NAL_SELECTOR *sel)
-{
-	conn_ctx *ctx = nal_connection_get_vtdata(conn);
-	nal_selector_fd_unset(sel, ctx->fd);
 }
 
