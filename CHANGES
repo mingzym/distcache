@@ -19,6 +19,10 @@ Current version: 0.4-dev
 Changes between 0.3 and 0.xx
 ----------------------------
 
+  *) Rename all libnal allocation functions to NAL_***_new() rather than
+     NAL_***_malloc().
+     [Geoff Thorpe]
+
   *) A top-level "include" directory has been created with sub-directories
      matching the format in which we install API headers. All header files that
      need to be used outside their own source directory have been moved into
