@@ -150,20 +150,3 @@ int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
 			(use_timeout ? &timeout : NULL));
 }
 
-void NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel)
-{
-	int fd = fileno(SYS_stdin);
-	if(fd < 0) return;
-	nal_selector_fd_set(sel, fd, SELECTOR_FLAG_READ);
-}
-
-int NAL_SELECTOR_stdin_readable(NAL_SELECTOR *sel)
-{
-	int ret, fd = fileno(SYS_stdin);
-	if(fd < 0) return 0;
-	ret = nal_selector_fd_test(sel, fd) & SELECTOR_FLAG_READ;
-	if(ret)
-		nal_selector_fd_clear(sel, fd);
-	return ret;
-}
-

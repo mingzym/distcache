@@ -28,14 +28,6 @@
 	#error "Must include libnal/nal.h prior to libnal/nal_internal.h"
 #endif
 
-/*****************************************************/
-/* NETWORK ABSTRACTION INTERNAL LIBRARY DECLARATIONS */
-/*                                                   */
-/* (1) internal utility functions                    */
-/* (2) data "buffer" type and functions              */
-/* (3) network wrapper types and functions           */
-/*****************************************************/
-
 /* Utility functions and types used inside libnal. Eventually these should be
  * hidden from API functions (only protocol implementations should require
  * them) but until that's organised, I'm putting everything here. */
@@ -45,16 +37,34 @@
 #define socklen_t int
 #endif
 
+/* Flags used in determining what "kind" of address has been created */
+#define NAL_ADDRESS_CAN_LISTEN	(unsigned char)0x01
+#define NAL_ADDRESS_CAN_CONNECT	(unsigned char)0x02
+
+/* nal_sock code will use this as a default in its call to listen(2) */
+#define NAL_LISTENER_BACKLOG	511
+
+/* An upper limit on the size of address strings that will be allowable */
+#define NAL_ADDRESS_MAX_STR_LEN	255
+
+typedef enum {
+		nal_sockaddr_type_ip,
+		nal_sockaddr_type_unix
+} nal_sockaddr_type;
 /* This is a dummy type used to ensure our "sockaddr" is big enough to store
  * whatever. I previously assumed "struct sockaddr" already was, but it turns
  * out (dammit) that;
  *     sizeof(struct sockaddr_un) > sizeof(struct sockaddr)
  */
-typedef union {
-	struct sockaddr_in val_in;
+typedef struct st_nal_sockaddr {
+	union {
+		struct sockaddr_in val_in;
 #ifndef WIN32
-	struct sockaddr_un val_un;
+		struct sockaddr_un val_un;
 #endif
+	} val;
+	nal_sockaddr_type type;
+	unsigned char caps;
 } nal_sockaddr;
 
 /***********/
@@ -70,18 +80,74 @@ void nal_fd_close(int *fd);
 /* util_socket */
 /***************/
 
-int nal_sock_set_nagle(int fd, int use_nagle);
-unsigned char nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr,
-			const char *start_ptr);
-void nal_sock_sockaddr_from_unix(nal_sockaddr *addr, const char *start_ptr);
-int nal_sock_create_socket(int *fd, int type);
+int nal_sock_set_nagle(int fd, int use_nagle, nal_sockaddr_type type);
+int nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr, const char *start_ptr);
+int nal_sock_sockaddr_from_unix(nal_sockaddr *addr, const char *start_ptr);
+int nal_sock_create_socket(int *fd, nal_sockaddr *addr);
 int nal_sock_create_unix_pair(int sv[2]);
-int nal_sock_set_reuse(int fd);
-int nal_sock_bind(int fd, const nal_sockaddr *addr, int address_type);
-int nal_sock_connect(int fd, const nal_sockaddr *addr, int address_type,
-			int *established);
-int nal_sock_listen(int fd);
+int nal_sock_connect(int fd, const nal_sockaddr *addr, int *established);
+int nal_sock_listen(int fd, const nal_sockaddr *addr);
 int nal_sock_accept(int listen_fd, int *conn);
+int nal_sock_is_connected(int fd);
+
+/***********/
+/* vtables */
+/***********/
+
+typedef struct st_NAL_CONNECTION_vtable {
+	/* constructor after NAL_ADDRESS_vtable->create_connection() */
+	int (*on_create)(NAL_CONNECTION *conn, const NAL_ADDRESS *addr);
+	/* constructor after NAL_LISTENER_vtable->do_accept() */
+	int (*on_accept)(NAL_CONNECTION *conn, const NAL_LISTENER *l);
+	/* destructor */
+	void (*on_destroy)(NAL_CONNECTION *conn);
+	int (*set_size)(NAL_CONNECTION *conn, unsigned int size);
+	NAL_BUFFER *(*get_read)(const NAL_CONNECTION *conn);
+	NAL_BUFFER *(*get_send)(const NAL_CONNECTION *conn);
+	int (*is_established)(const NAL_CONNECTION *conn);
+	int (*do_io)(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
+			unsigned int max_read, unsigned int max_send);
+	void (*selector_add)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
+	void (*selector_del)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
+} NAL_CONNECTION_vtable;
+void *nal_connection_get_vtdata(const NAL_CONNECTION *conn);
+void nal_connection_set_vtdata(NAL_CONNECTION *conn, void *vtdata);
+const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *conn);
+
+typedef struct st_NAL_LISTENER_vtable {
+	int (*on_create)(NAL_LISTENER *l, const NAL_ADDRESS *addr);
+	void (*on_destroy)(NAL_LISTENER *l);
+	const NAL_CONNECTION_vtable *(*do_accept)(NAL_LISTENER *l,
+						NAL_SELECTOR *sel);
+	void (*selector_add)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
+	void (*selector_del)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
+} NAL_LISTENER_vtable;
+void *nal_listener_get_vtdata(const NAL_LISTENER *l);
+void nal_listener_set_vtdata(NAL_LISTENER *l, void *vtdata);
+const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *l);
+const NAL_CONNECTION_vtable *nal_listener_accept_connection(NAL_LISTENER *l,
+							NAL_SELECTOR *sel);
+
+typedef struct st_NAL_ADDRESS_vtable {
+	int (*on_create)(NAL_ADDRESS *addr, const char *addr_string);
+	void (*on_destroy)(NAL_ADDRESS *addr);
+	int (*can_connect)(const NAL_ADDRESS *addr);
+	int (*can_listen)(const NAL_ADDRESS *addr);
+	const NAL_LISTENER_vtable *(*create_listener)(const NAL_ADDRESS *addr);
+	const NAL_CONNECTION_vtable *(*create_connection)(const NAL_ADDRESS *addr);
+	struct st_NAL_ADDRESS_vtable *next;
+} NAL_ADDRESS_vtable;
+void *nal_address_get_vtdata(const NAL_ADDRESS *addr);
+void nal_address_set_vtdata(NAL_ADDRESS *addr, void *vtdata);
+const NAL_ADDRESS_vtable *nal_address_get_vtable(const NAL_ADDRESS *addr);
+const NAL_LISTENER_vtable *nal_address_get_listener(const NAL_ADDRESS *addr);
+const NAL_CONNECTION_vtable *nal_address_get_connection(const NAL_ADDRESS *addr);
+
+/***************************/
+/* Builtin address vtables */
+/***************************/
+
+const NAL_ADDRESS_vtable *NAL_ADDRESS_vtable_builtins(void);
 
 /****************************************/
 /* NAL_BUFFER - implemented in buffer.c */
@@ -98,74 +164,6 @@ int nal_sock_accept(int listen_fd, int *conn);
  * make sure the other code isn't too loose. */
 #define NAL_BUFFER_MAX_SIZE  32768
 #define nal_check_buffer_size(sz) (((sz) > NAL_BUFFER_MAX_SIZE) ? 0 : 1)
-
-/* Builtin transport types */
-typedef enum {
-	NAL_ADDRESS_TYPE_NULL = 0,/* invalid */
-	NAL_ADDRESS_TYPE_IP,	/* regular TCP/IP(v4) addressing */
-	NAL_ADDRESS_TYPE_IPv4 = NAL_ADDRESS_TYPE_IP,
-#if 0
-	NAL_ADDRESS_TYPE_IPv6,	/* For the new IPv6 protocol family */
-#endif
-#ifndef WIN32
-	NAL_ADDRESS_TYPE_UNIX,	/* For addressing in the file-system */
-	NAL_ADDRESS_TYPE_PAIR,	/* For socket-pairs where there is no
-				   real "address" as the end-points are
-				   created together. */
-#endif
-	NAL_ADDRESS_TYPE_DUMMY, /* For connections that have no file-
-				   descriptors and just read and write
-				   to the same buffer. */
-	NAL_ADDRESS_TYPE_LAST	/* so that "NAL_ADDRESS_TYPE_LAST-1" is the
-				   last valid type */
-} NAL_PROTOCOL_TYPE;
-
-#define NAL_LISTENER_BACKLOG	511
-#define NAL_ADDRESS_MAX_STR_LEN	255
-struct st_NAL_ADDRESS {
-	/* This is the string we were parsed from. We don't change it, because
-	 * if we decide to create a "canonical form", then, by definition, it
-	 * could be generated on the fly. :-) */
-	char str_form[NAL_ADDRESS_MAX_STR_LEN + 1];
-	NAL_PROTOCOL_TYPE family;
-	/* The "caps" flag is a OR'd combination of the following; */
-#define NAL_ADDRESS_CAN_LISTEN	(unsigned char)0x01
-#define NAL_ADDRESS_CAN_CONNECT	(unsigned char)0x02
-	unsigned char caps;
-	/* If this is for a connect call, we can specify the default buffer size
-	 * for the connection's read and send buffers here. If this is for a
-	 * listen call, this setting will be used in connections created by
-	 * "accepts" on the listener. */
-	unsigned int def_buffer_size;
-	/* The actual sockaddr, that should be interpreted as the correct
-	 * sockaddr_something depending on "family". */
-	nal_sockaddr addr;
-};
-
-struct st_NAL_LISTENER {
-	/* The underlying file-descriptor */
-	int fd;
-	/* The default buffer size of the address we were created from (used to
-	 * set buffer sizes in accepted NAL_CONNECTION objects). */
-	unsigned int def_buffer_size;
-};
-
-struct st_NAL_CONNECTION {
-	/* The underlying file-descriptor */
-	int fd;
-	/* A curious little entry. As most of the libnal code uses non-blocking
-	 * sockets, there's no real way to determine if a "connect" really
-	 * succeeded, or simply *started* successfully but is doomed because
-	 * there's no server to connect to. This value gets set non-zero only
-	 * when a real read or send on the file-descriptor has happened.
-	 * However, if a connect *does* succed but the server sends no data and
-	 * neither do we, then currently this value won't get set. It is used by
-	 * the "NAL_CONNECTION_is_established()" function and should bear this
-	 * quirk in mind. */
-	int established;
-	/* Read and send buffers. */
-	NAL_BUFFER *read, *send;
-};
 
 /********************************************/
 /* NAL_SELECTOR - implemented in selector.c */

@@ -34,13 +34,13 @@ static int sol_tcp = -1;
 /* Internal socket functions */
 /*****************************/
 
-static int int_sockaddr_size(int address_type)
+static int int_sockaddr_size(const nal_sockaddr *addr)
 {
-	switch(address_type) {
-	case NAL_ADDRESS_TYPE_IP:
+	switch(addr->type) {
+	case nal_sockaddr_type_ip:
 		return sizeof(struct sockaddr_in);
 #ifndef WIN32
-	case NAL_ADDRESS_TYPE_UNIX:
+	case nal_sockaddr_type_unix:
 		return sizeof(struct sockaddr_un);
 #endif
 	default:
@@ -51,14 +51,42 @@ static int int_sockaddr_size(int address_type)
 	/* return 0; */
 }
 
+static int int_sock_set_reuse(int fd, const nal_sockaddr *addr)
+{
+	int reuseVal = 1;
+	if(addr->type != nal_sockaddr_type_ip)
+		return 1;
+	if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
+			(char *)(&reuseVal), sizeof(reuseVal)) != 0)
+		return 0;
+	return 1;
+}
+
+static int int_sock_bind(int fd, const nal_sockaddr *addr)
+{
+	socklen_t addr_size = int_sockaddr_size(addr);
+	nal_sockaddr tmp;
+
+	if(addr->type == nal_sockaddr_type_unix)
+		/* Stevens' book says do it, so I do. Unfortunately - this
+		 * actually needs additional file-locking to prevent one
+		 * application stealing another's listener (without him
+		 * noticing it's gone even!). */
+		unlink(addr->val.val_un.sun_path);
+	SYS_memcpy(nal_sockaddr, &tmp, addr);
+	if(bind(fd, (struct sockaddr *)&tmp, addr_size) != 0)
+		return 0;
+	return 1;
+}
+
 /**********************/
 /* nal_sock functions */
 /**********************/
 
-int nal_sock_set_nagle(int fd, int use_nagle)
+int nal_sock_set_nagle(int fd, int use_nagle, nal_sockaddr_type type)
 {
 #ifndef WIN32
-	if(use_nagle)
+	if(use_nagle || (type != nal_sockaddr_type_ip))
 		return 1;
 
 	if(sol_tcp == -1) {
@@ -83,9 +111,7 @@ int nal_sock_set_nagle(int fd, int use_nagle)
 	return 1;
 }
 
-/* Returns the bitwise-OR'd capabilities (or zero for failure) */
-unsigned char nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr,
-				const char *start_ptr)
+int nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr, const char *start_ptr)
 {
 	char *tmp_ptr;
 	char *fini_ptr;
@@ -93,22 +119,12 @@ unsigned char nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr,
 	/* struct sockaddr_in in_addr; */
 	unsigned long in_ip_piece;
 	unsigned char in_ip[4];
-	int len, no_ip = 0;
-	unsigned char ret = 0;
+	int no_ip = 0;
 
+	addr->caps = 0;
 	/* We're an IPv4 address, and start_ptr points to the first character
 	 * of the address part */
-	len = strlen(start_ptr);
-	/* This function should be robust when passed a raw "[addr:]port"
-	 * string as well as with the accepted "IP:" or "IPv4:" prefixes. */
-	if((len >= 5) && (strncmp(start_ptr, "IPv4:", 5) == 0)) {
-		start_ptr += 5;
-		len -= 5;
-	} else if((len >=3) && (strncmp(start_ptr, "IP:", 3) == 0)) {
-		start_ptr += 3;
-		len -= 3;
-	}
-	if(len < 1) return 0;
+	if(strlen(start_ptr) < 1) return 0;
 	/* Logic: if our string contains another ":" we assume it's of the form
 	 * nnn.nnn.nnn.nnn:nnn, otherwise assume IP[v4]:nnn. Exception,
 	 * if it's of the form IP[v4]::nnn, we treat it as equivalent to one
@@ -139,7 +155,7 @@ unsigned char nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr,
 	/* Align start_ptr to the start of the "port" number. */
 	start_ptr = fini_ptr + 1;
 	/* Ok, this is an address that could be used for connecting */
-	ret |= NAL_ADDRESS_CAN_CONNECT;
+	addr->caps |= NAL_ADDRESS_CAN_CONNECT;
 
 ipv4_port:
 	if(strlen(start_ptr) < 1)
@@ -149,20 +165,21 @@ ipv4_port:
 	if((in_ip_piece > 65535) || (*fini_ptr != '\0'))
 		return 0;
 	/* populate the sockaddr_in structure */
-	addr->val_in.sin_family = AF_INET;
+	addr->val.val_in.sin_family = AF_INET;
 	if(no_ip)
-		addr->val_in.sin_addr.s_addr = INADDR_ANY;
+		addr->val.val_in.sin_addr.s_addr = INADDR_ANY;
 	else
 		SYS_memcpy_n(unsigned char,
-			(unsigned char *)&addr->val_in.sin_addr.s_addr, in_ip, 4);
-	addr->val_in.sin_port = htons((unsigned short)in_ip_piece);
+			(unsigned char *)&addr->val.val_in.sin_addr.s_addr, in_ip, 4);
+	addr->val.val_in.sin_port = htons((unsigned short)in_ip_piece);
 	/* ipv4 addresses are always good for listening */
-	ret |= NAL_ADDRESS_CAN_LISTEN;
-	return ret;
+	addr->caps |= NAL_ADDRESS_CAN_LISTEN;
+	addr->type = nal_sockaddr_type_ip;
+	return 1;
 }
 
 #ifndef WIN32
-void nal_sock_sockaddr_from_unix(nal_sockaddr *addr, const char *start_ptr)
+int nal_sock_sockaddr_from_unix(nal_sockaddr *addr, const char *start_ptr)
 {
 	struct sockaddr_un un_addr;
 
@@ -171,31 +188,36 @@ void nal_sock_sockaddr_from_unix(nal_sockaddr *addr, const char *start_ptr)
 	/* Now sandblast the sockaddr_un structure onto the sockaddr structure
 	 * (which one hopes is greater than or equal to it in size :-). */
 	SYS_zero(nal_sockaddr, addr);
-	SYS_memcpy(struct sockaddr_un, &addr->val_un, &un_addr);
+	SYS_memcpy(struct sockaddr_un, &addr->val.val_un, &un_addr);
+	addr->type = nal_sockaddr_type_unix;
+	addr->caps = NAL_ADDRESS_CAN_LISTEN | NAL_ADDRESS_CAN_CONNECT;
+	return 1;
 }
 #endif
 
-int nal_sock_create_socket(int *fd, int type)
+int nal_sock_create_socket(int *fd, nal_sockaddr *addr)
 {
-	switch(type) {
-	case NAL_ADDRESS_TYPE_IP:
-		*fd = socket(PF_INET, SOCK_STREAM, 0);
+	int tmp_fd = -1;
+	switch(addr->type) {
+	case nal_sockaddr_type_ip:
+		tmp_fd = socket(PF_INET, SOCK_STREAM, 0);
 		break;
 #ifndef WIN32
-	case NAL_ADDRESS_TYPE_UNIX:
-		*fd = socket(PF_UNIX, SOCK_STREAM, 0);
+	case nal_sockaddr_type_unix:
+		tmp_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 		break;
 #endif
 	default:
 		/* Should never happen */
 		abort();
 	}
-	if(*fd  == -1) {
+	if(tmp_fd < 0) {
 #if SYS_DEBUG_LEVEL > 1
 		SYS_fprintf(SYS_stderr, "Error, can't create socket\n\n");
 #endif
 		return 0;
 	}
+	*fd = tmp_fd;
 	return 1;
 }
 
@@ -212,39 +234,10 @@ int nal_sock_create_unix_pair(int sv[2])
 }
 #endif
 
-int nal_sock_set_reuse(int fd)
-{
-	int reuseVal = 1;
-
-	if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
-			(char *)(&reuseVal), sizeof(reuseVal)) != 0) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, couldn't set SO_REUSEADDR\n\n");
-#endif
-		return 0;
-	}
-	return 1;
-}
-
-int nal_sock_bind(int fd, const nal_sockaddr *addr, int address_type)
-{
-	socklen_t addr_size = int_sockaddr_size(address_type);
-	nal_sockaddr tmp;
-
-	SYS_memcpy(nal_sockaddr, &tmp, addr);
-	if(bind(fd, (struct sockaddr *)&tmp, addr_size) != 0) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, couldn't bind to the IP/Port\n\n");
-#endif
-		return 0;
-	}
-	return 1;
-}
-
-int nal_sock_connect(int fd, const nal_sockaddr *addr, int address_type,
+int nal_sock_connect(int fd, const nal_sockaddr *addr,
 			int *established)
 {
-	socklen_t addr_size = int_sockaddr_size(address_type);
+	socklen_t addr_size = int_sockaddr_size(addr);
 	nal_sockaddr tmp;
 
 	SYS_memcpy(nal_sockaddr, &tmp, addr);
@@ -268,14 +261,12 @@ int nal_sock_connect(int fd, const nal_sockaddr *addr, int address_type,
 	return 1;
 }
 
-int nal_sock_listen(int fd)
+int nal_sock_listen(int fd, const nal_sockaddr *addr)
 {
-	if(listen(fd, NAL_LISTENER_BACKLOG) != 0) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, couldn't listen on that IP/Port\n\n");
-#endif
+	if(!int_sock_set_reuse(fd, addr) || !int_sock_bind(fd, addr))
 		return 0;
-        }
+	if(listen(fd, NAL_LISTENER_BACKLOG) != 0)
+		return 0;
 	return 1;
 }
 
@@ -287,6 +278,19 @@ int nal_sock_accept(int listen_fd, int *conn)
 #endif
 		return 0;
 	}
+	return 1;
+}
+
+int nal_sock_is_connected(int fd)
+{
+	int t;
+	socklen_t t_len = sizeof(t);
+	/* the ugly cast is necessary with my system headers to avoid warnings,
+	 * but there's probably a reason and/or autoconf things to do with
+	 * this. */
+	if((getsockopt(fd, SOL_SOCKET, SO_ERROR, &t,
+			(unsigned int *)&t_len) != 0) || (t != 0))
+		return 0;
 	return 1;
 }
 

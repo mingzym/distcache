@@ -19,6 +19,31 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Modularisation of libnal (sequel to the earlier overhaul)
+     - the major libnal types are now abstract classes implemented via vtables
+       with interfaces defined in nal_internal.h.
+     - the IPv4 and UNIX transports are handled by the same vtable
+       implementation, in proto_std.c, by developing and making more use of the
+       nal_sockaddr wrapper in util_socket.c.
+     - The libnal API functions are implemented independantly of the vtable
+       implementations they defer to, and are separated into the following C
+       files; nal_address.c, nal_buffer.c, nal_connection.c, nal_listener.c, and
+       nal_selector.c. nal_codec.c contains the primitives-serialisation
+       functionality that used to be in bincoding.c.
+
+     This new code seems to break nothing but it may (of course) have introduced
+     bugs. It may also have introduced some slow-downs due to the more
+     abstracted and formal approach - I've deliberately put off a bunch of
+     optimisations until I get this working. I will be committing some libnal
+     testing code shortly.
+
+     The overhauling of the API is not finished yet - some generalisation of
+     NAL_BUFFER is required (it is currently not abstracted like the other
+     types), and once the code settles down again I will look at some header
+     reorganisations so that the necessary "internal" elements of the libnal
+     headers can be exposed to facilitate external plugin implementations.
+     [Geoff Thorpe]
+
   *) Add a "-killable" switch to dc_server so that SIGUSR1 or SIGUSR2 cause a
      clean shutdown, for memory leak checking mainly. However to make this sane
      from a user/admin point of view, we make dc_server *ignore* either signal
