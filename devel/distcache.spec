@@ -155,6 +155,7 @@ rm -rf $RPM_BUILD_ROOT
 #########
 
 %changelog
-* Mon Mar 03 2003 Geoff Thorpe <geoff@geoffthorpe.net> 0.4test-1
+* Sun Mar 09 2003 Geoff Thorpe <geoff@geoffthorpe.net> 0.4pre1
+- split into two RPMs (distcache and distcache-devel)
 - created from Mandrake's excellent HOWTO
 
