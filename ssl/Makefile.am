@@ -1,2 +1,2 @@
-SUBDIRS		= @subdirs@
+SUBDIRS		= @swamp_dir@
 
