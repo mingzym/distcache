@@ -12,9 +12,14 @@
                                                          -- W. Edwards Deming
 
 
-Current version: 0.3
---------------------
+Current version: 0.4-dev
+------------------------
 
+
+Changes between 0.3 and 0.xx
+----------------------------
+
+  *)
 
 Changes between 0.2 and 0.3
 ---------------------------
