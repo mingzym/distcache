@@ -72,6 +72,8 @@ int nal_fd_make_non_blocking(int fd, int non_blocking);
 int nal_fd_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send);
 int nal_fd_buffer_from_fd(NAL_BUFFER *buf, int fd, unsigned int max_read);
 void nal_fd_close(int *fd);
+int nal_fd_fchown(int fd, const char *username, const char *groupname);
+int nal_fd_fchmod(int fd, const char *octal_string);
 
 /***************/
 /* util_socket */
