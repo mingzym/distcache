@@ -1,4 +1,4 @@
-INCLUDES		= -I$(top_srcdir) @OPENSSL_CFLAGS@
+INCLUDES		= -I$(top_srcdir) -I$(top_builddir) @OPENSSL_CFLAGS@
 
 bin_PROGRAMS		= test_session
 test_session_SOURCES	= test_session.c

@@ -1,4 +1,4 @@
-INCLUDES=-I$(top_srcdir)
+INCLUDES=-I$(top_srcdir) -I$(top_builddir)
 
 lib_LTLIBRARIES		= libdistcacheserver.la
 libdistcacheserver_la_SOURCES	= dc_server.c dc_server_default.c
