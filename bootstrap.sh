@@ -25,6 +25,12 @@ rm -rf autom4te*
 
 # Make sure the version in the sub-directory configure.ac files is the same as
 # the top-level one
+cat configure.ac | egrep "^AM_INIT_AUTOMAKE" > .tmp_bootstrap.txt || exit 1
+(cd ssl/ && cat ../.tmp_bootstrap.txt | \
+		sed "s/distcache/distcache-ssl/" > .tmp_bootstrap.ac &&
+	cat configure.ac | egrep -v "^AM_INIT_AUTOMAKE" >> .tmp_bootstrap.ac &&
+	mv -f .tmp_bootstrap.ac configure.ac) || exit 1
+rm -f .tmp_bootstrap.txt
 cat configure.ac | egrep "^AC_INIT" > .tmp_bootstrap.txt || exit 1
 (cd ssl/ && cat ../.tmp_bootstrap.txt | \
 		sed "s/distcache/distcache-ssl/" > .tmp_bootstrap.ac &&
