@@ -24,9 +24,10 @@
 #include <libnal/nal.h>
 #include <libsys/post.h>
 
+#define MAX_PING_SIZE		(32*1024)
 #define DEF_SERVER_ADDRESS	"UNIX:/tmp/foo"
-#define BUFFER_SIZE		1024
-#define MAX_PING_SIZE		1024
+#define BUFFER_SIZE		MAX_PING_SIZE
+#define DEF_PING_SIZE		1024
 #define DEF_PING_NUM		10
 #define DEF_NUM_CONNS		1
 
@@ -36,7 +37,7 @@ static void usage(void)
 	SYS_fprintf(SYS_stderr, "where options include;\n");
 	SYS_fprintf(SYS_stderr, "   -connect <addr>   - default='%s'\n", DEF_SERVER_ADDRESS);
 	SYS_fprintf(SYS_stderr, "   -num <num>        - default=%d\n", DEF_NUM_CONNS);
-	SYS_fprintf(SYS_stderr, "   -size <num>       - default=%d\n", MAX_PING_SIZE);
+	SYS_fprintf(SYS_stderr, "   -size <num>       - default=%d\n", DEF_PING_SIZE);
 	SYS_fprintf(SYS_stderr, "   -repeat <num>     - default=%d\n", DEF_PING_NUM);
 }
 
@@ -166,7 +167,7 @@ int main(int argc, char *argv[])
 	pingctx **ctx;
 	const char *str_addr = DEF_SERVER_ADDRESS;
 	unsigned int num_repeat = DEF_PING_NUM;
-	unsigned int num_size = MAX_PING_SIZE;
+	unsigned int num_size = DEF_PING_SIZE;
 	unsigned int num_conns = DEF_NUM_CONNS;
 	NAL_ADDRESS *addr = NAL_ADDRESS_new();
 	NAL_SELECTOR *sel = NAL_SELECTOR_new();
@@ -188,6 +189,11 @@ int main(int argc, char *argv[])
 			ARG_CHECK("-size");
 			if(!util_parsenum(*argv, &num_size))
 				return 1;
+			if(!num_size || (num_size > MAX_PING_SIZE)) {
+				SYS_fprintf(SYS_stderr, "Error, '%d' is "
+					"out of range\n", num_size);
+				return 1;
+			}
 		} else
 			return err_unknown(*argv);
 		ARG_INC;

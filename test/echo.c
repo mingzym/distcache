@@ -24,8 +24,11 @@
 #include <libnal/nal.h>
 #include <libsys/post.h>
 
+/* To monitor the number of accepted connections, define this */
+#define ECHO_DEBUG_CLIENTS
+
 #define DEF_SERVER_ADDRESS	"UNIX:/tmp/foo"
-#define BUFFER_SIZE		1024
+#define BUFFER_SIZE		(32*1024)
 #define MAX_CONNS		64
 
 static void usage(void)
@@ -113,7 +116,10 @@ reselect:
 		if(!NAL_CONNECTION_add_to_selector(conn[conns_used], sel))
 			abort();
 		conns_used++;
-		SYS_fprintf(SYS_stderr, "Foo: added a conn (now have %d)\n", conns_used);
+#ifdef ECHO_DEBUG_CLIENTS
+		SYS_fprintf(SYS_stderr, "ECHO: added a conn (now have %d)\n",
+			conns_used);
+#endif
 		if(conns_used == num_conns)
 			NAL_LISTENER_del_from_selector(listener);
 	}
@@ -121,7 +127,10 @@ reselect:
 		if(!NAL_CONNECTION_io(conn[loop])) {
 			NAL_CONNECTION_reset(conn[loop]);
 			conns_used--;
-			SYS_fprintf(SYS_stderr, "Foo: removed a conn (now have %d)\n", conns_used);
+#ifdef ECHO_DEBUG_CLIENTS
+			SYS_fprintf(SYS_stderr, "ECHO: removed a conn (now have %d)\n",
+				conns_used);
+#endif
 			if((conns_used + 1) == num_conns)
 				if(!NAL_LISTENER_add_to_selector(listener, sel))
 					abort();
