@@ -73,6 +73,13 @@ AC_HELP_STRING(
 	ossl_found_headers=1
 	ossl_not_found_reason=""
 
+	AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
+	if test "$PKG_CONFIG" != "no" && ${PKG_CONFIG} openssl; then
+		AC_MSG_NOTICE([using OpenSSL location from pkg-config])
+		OPENSSL_CFLAGS="$CPPFLAGS `${PKG_CONFIG} --cflags openssl`"
+		OPENSSL_LIBS="$LDFLAGS `${PKG_CONFIG} --libs openssl`"
+	else
+
 	AC_CHECK_LIB(ssl, SSL_CTX_new, [],
 		[
 			ossl_found_libs=0
@@ -99,6 +106,7 @@ AC_HELP_STRING(
 		AC_DEFINE(HAVE_OPENSSL)
 	else
 		AC_MSG_WARN([Probe for system OpenSSL failed: $ossl_not_found_reason])
+	fi
 	fi
 ])])
 
