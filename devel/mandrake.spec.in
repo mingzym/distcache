@@ -164,7 +164,8 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Sun Mar 16 2003 Geoff Thorpe <geoff@geoffthorpe.net> 0.4pre2-1
 - The destination package group for the two RPMs have been corrected
-- RPM package contents have been updated to 0.4pre2
+- this spec is now generated from mandrake.spec.in for version substitution
+- released with 0.4pre2 version of distcache.
 
 * Sun Mar 09 2003 Geoff Thorpe <geoff@geoffthorpe.net> 0.4pre1-1
 - split into two RPMs (distcache and distcache-devel)
