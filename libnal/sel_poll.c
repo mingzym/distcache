@@ -184,6 +184,7 @@ static void sel_on_destroy(NAL_SELECTOR *);
 static void sel_on_reset(NAL_SELECTOR *);
 static NAL_SELECTOR_TYPE sel_get_type(const NAL_SELECTOR *);
 static int sel_select(NAL_SELECTOR *, unsigned long usec_timeout, int use_timeout);
+static unsigned int sel_num_objects(const NAL_SELECTOR *);
 static NAL_SELECTOR_TOKEN sel_add_listener(NAL_SELECTOR *, NAL_LISTENER *);
 static NAL_SELECTOR_TOKEN sel_add_connection(NAL_SELECTOR *, NAL_CONNECTION *);
 static void sel_del_listener(NAL_SELECTOR *, NAL_LISTENER *, NAL_SELECTOR_TOKEN);
@@ -196,6 +197,7 @@ static const NAL_SELECTOR_vtable sel_fdpoll_vtable = {
 	sel_on_reset,
 	sel_get_type,
 	sel_select,
+	sel_num_objects,
 	sel_add_listener,
 	sel_add_connection,
 	sel_del_listener,
@@ -253,6 +255,12 @@ static int sel_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
 	/* Post-select */
 	if(res > 0) obj_table_post_select(ctx);
 	return res;
+}
+
+static unsigned int sel_num_objects(const NAL_SELECTOR *sel)
+{
+	sel_ctx *ctx = nal_selector_get_vtdata(sel);
+	return ctx->obj_used;
 }
 
 static NAL_SELECTOR_TOKEN sel_add_listener(NAL_SELECTOR *sel,

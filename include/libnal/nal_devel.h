@@ -195,6 +195,7 @@ struct st_NAL_SELECTOR_vtable {
 	/* Handlers for NAL_SELECTOR functionality */
 	NAL_SELECTOR_TYPE (*get_type)(const NAL_SELECTOR *);
 	int (*select)(NAL_SELECTOR *, unsigned long usec_timeout, int use_timeout);
+	unsigned int (*num_objects)(const NAL_SELECTOR *);
 	NAL_SELECTOR_TOKEN (*add_listener)(NAL_SELECTOR *, NAL_LISTENER *);
 	NAL_SELECTOR_TOKEN (*add_connection)(NAL_SELECTOR *, NAL_CONNECTION *);
 	void (*del_listener)(NAL_SELECTOR *, NAL_LISTENER *, NAL_SELECTOR_TOKEN);

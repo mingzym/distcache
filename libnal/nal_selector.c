@@ -142,3 +142,8 @@ int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
 	return sel->vt->select(sel, usec_timeout, use_timeout);
 }
 
+unsigned int NAL_SELECTOR_num_objects(const NAL_SELECTOR *sel)
+{
+	assert(sel->vt);
+	return sel->vt->num_objects(sel);
+}
