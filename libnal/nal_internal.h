@@ -55,7 +55,7 @@ typedef union {
 #ifndef WIN32
 	struct sockaddr_un val_un;
 #endif
-} sockaddr_safe;
+} nal_sockaddr;
 
 /***********/
 /* util_fd */
@@ -71,14 +71,14 @@ void nal_fd_close(int *fd);
 /***************/
 
 int nal_sock_set_nagle(int fd, int use_nagle);
-void nal_sock_sockaddr_from_ipv4(sockaddr_safe *addr, unsigned char *ip,
+void nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr, unsigned char *ip,
 			unsigned short port);
-void nal_sock_sockaddr_from_unix(sockaddr_safe *addr, const char *start_ptr);
+void nal_sock_sockaddr_from_unix(nal_sockaddr *addr, const char *start_ptr);
 int nal_sock_create_socket(int *fd, int type);
 int nal_sock_create_unix_pair(int sv[2]);
 int nal_sock_set_reuse(int fd);
-int nal_sock_bind(int fd, const sockaddr_safe *addr, int address_type);
-int nal_sock_connect(int fd, const sockaddr_safe *addr, int address_type,
+int nal_sock_bind(int fd, const nal_sockaddr *addr, int address_type);
+int nal_sock_connect(int fd, const nal_sockaddr *addr, int address_type,
 			int *established);
 int nal_sock_listen(int fd);
 int nal_sock_accept(int listen_fd, int *conn);
@@ -139,7 +139,7 @@ struct st_NAL_ADDRESS {
 	unsigned int def_buffer_size;
 	/* The actual sockaddr, that should be interpreted as the correct
 	 * sockaddr_something depending on "family". */
-	sockaddr_safe addr;
+	nal_sockaddr addr;
 };
 
 struct st_NAL_LISTENER {

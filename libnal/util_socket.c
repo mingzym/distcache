@@ -83,7 +83,7 @@ int nal_sock_set_nagle(int fd, int use_nagle)
 	return 1;
 }
 
-void nal_sock_sockaddr_from_ipv4(sockaddr_safe *addr, unsigned char *ip,
+void nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr, unsigned char *ip,
 				unsigned short port)
 {
 	struct sockaddr_in in_addr;
@@ -97,12 +97,12 @@ void nal_sock_sockaddr_from_ipv4(sockaddr_safe *addr, unsigned char *ip,
 	in_addr.sin_port = htons(port);
 	/* Now sandblast the sockaddr_in structure onto the sockaddr structure
 	 * (which one hopes is greater than or equal to it in size :-). */
-	SYS_zero(sockaddr_safe, addr);
+	SYS_zero(nal_sockaddr, addr);
 	SYS_memcpy(struct sockaddr_in, &addr->val_in, &in_addr);
 }
 
 #ifndef WIN32
-void nal_sock_sockaddr_from_unix(sockaddr_safe *addr, const char *start_ptr)
+void nal_sock_sockaddr_from_unix(nal_sockaddr *addr, const char *start_ptr)
 {
 	struct sockaddr_un un_addr;
 
@@ -110,7 +110,7 @@ void nal_sock_sockaddr_from_unix(sockaddr_safe *addr, const char *start_ptr)
 	SYS_strncpy(un_addr.sun_path, start_ptr, UNIX_PATH_MAX);
 	/* Now sandblast the sockaddr_un structure onto the sockaddr structure
 	 * (which one hopes is greater than or equal to it in size :-). */
-	SYS_zero(sockaddr_safe, addr);
+	SYS_zero(nal_sockaddr, addr);
 	SYS_memcpy(struct sockaddr_un, &addr->val_un, &un_addr);
 }
 #endif
@@ -166,12 +166,12 @@ int nal_sock_set_reuse(int fd)
 	return 1;
 }
 
-int nal_sock_bind(int fd, const sockaddr_safe *addr, int address_type)
+int nal_sock_bind(int fd, const nal_sockaddr *addr, int address_type)
 {
 	socklen_t addr_size = int_sockaddr_size(address_type);
-	sockaddr_safe tmp;
+	nal_sockaddr tmp;
 
-	SYS_memcpy(sockaddr_safe, &tmp, addr);
+	SYS_memcpy(nal_sockaddr, &tmp, addr);
 	if(bind(fd, (struct sockaddr *)&tmp, addr_size) != 0) {
 #if SYS_DEBUG_LEVEL > 1
 		SYS_fprintf(SYS_stderr, "Error, couldn't bind to the IP/Port\n\n");
@@ -181,13 +181,13 @@ int nal_sock_bind(int fd, const sockaddr_safe *addr, int address_type)
 	return 1;
 }
 
-int nal_sock_connect(int fd, const sockaddr_safe *addr, int address_type,
+int nal_sock_connect(int fd, const nal_sockaddr *addr, int address_type,
 			int *established)
 {
 	socklen_t addr_size = int_sockaddr_size(address_type);
-	sockaddr_safe tmp;
+	nal_sockaddr tmp;
 
-	SYS_memcpy(sockaddr_safe, &tmp, addr);
+	SYS_memcpy(nal_sockaddr, &tmp, addr);
 	if(connect(fd, (struct sockaddr *)&tmp, addr_size) != 0) {
 #ifdef WIN32
 		if(WSAGetLastError() != WSAEWOULDBLOCK)
