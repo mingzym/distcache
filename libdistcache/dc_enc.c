@@ -409,6 +409,7 @@ static int DC_PLUG_IO_read_flush(DC_PLUG_IO *io, int to_server,
 	unsigned int buf_len, tmp;
 	DC_CMD cmd;
 
+start_over:
 	switch(io->state) {
 	case PLUG_FULL:
 	case PLUG_USER:
@@ -474,6 +475,9 @@ static int DC_PLUG_IO_read_flush(DC_PLUG_IO *io, int to_server,
 	if(io->msg.complete)
 		/* Yes */
 		io->state = PLUG_FULL;
+	else
+		/* Keep pulling in case something else is waiting */
+		goto start_over;
 	return 1;
 }
 
@@ -551,6 +555,7 @@ static int DC_PLUG_IO_write_flush(DC_PLUG_IO *io, int to_server,
 		assert(NULL == "shouldn't be here");
 		return 0;
 	}
+start_over:
 	buf_ptr = NAL_BUFFER_write_ptr(buffer);
 	buf_len = NAL_BUFFER_unused(buffer);
 	/* Construct the frame */
@@ -580,7 +585,7 @@ static int DC_PLUG_IO_write_flush(DC_PLUG_IO *io, int to_server,
 		NAL_memmove_n(unsigned char, io->data,
 				io->data + io->msg.data_len,
 				io->data_used);
-		return 1;
+		goto start_over;
 	}
 	/* It's completely done */
 	io->state = PLUG_EMPTY;
