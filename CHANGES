@@ -19,15 +19,15 @@ Current version: x.x
 Changes between 0.4pre2 and x.x
 -------------------------------
 
-  *) I've re-ordered the inclusion of headers so that installed API headers
-     preceed internal headers. This helps ensure that public headers do not
-     depend on anything defined by internal headers (an obvious problem to
-     anyone trying to use our APIs). The exception is dc_server.h, which
-     requires the system type "struct timeval" to be defined in advance. Rather
-     than work around this with predeclarations of that type, we gently violate
-     the aforementioned rule and use our internal sys.h header to define the
-     type (by including the relevant system headers) before including
-     dc_server.h.
+  *) The headers have been re-organised to better guard against the possibility
+     of API headers dependending on internal headers. To this end, the libsys
+     header has been split in two - one header to include system headers based
+     on autoconf findings (pre.h) and one to declare internal functions and
+     macros used in the source code (post.h). API headers can depend on pre.h
+     but not post.h. Likewise, distcache's internal header (dc_enc.h) has been
+     renamed to dc_internal.h. Finally, all the C files have been checked to
+     make sure they include headers in the correct order; (a) pre.h, (b) API
+     headers, (c) miscellaneous internal headers, then (c) post.h.
      [Geoff Thorpe]
 
   *) The non-networking stuff in libnal (the daemon/sigpipe/etc wrappers as

@@ -18,12 +18,12 @@
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <libsys/pre.h>
 #include <libnal/nal.h>
-#include <distcache/dc_enc.h>
-/* We normally want private headers last to verify the API headers aren't
- * system-dependant, however dc_server.h requires "struct timeval". */
-#include <libsys/sys.h>
 #include <distcache/dc_server.h>
+#include <distcache/dc_plug.h>
+#include <distcache/dc_internal.h>
+#include <libsys/post.h>
 
 static const char *def_server = NULL;
 static const unsigned int def_sessions = 512;

@@ -17,11 +17,10 @@
  * along with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-/* We need to define this so that common.h doesn't throw away our ability to use
- * the *real* stdin, stdout, fprintf, etc. */
-#define IN_STREAMS_C
 
-#include <libsys/sys.h>
+#include <libsys/pre.h>
+#define IN_STREAMS_C
+#include <libsys/post.h>
 
 #if SYS_DEBUG_LEVEL > 2
 

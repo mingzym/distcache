@@ -20,8 +20,8 @@
 #ifndef HEADER_PRIVATE_NAL_INTERNAL_H
 #define HEADER_PRIVATE_NAL_INTERNAL_H
 
-#ifndef HEADER_LIBSYS_SYS_H
-	#error "Must include libsys/sys.h prior to libnal/nal.h"
+#ifndef HEADER_LIBSYS_PRE_H
+	#error "Must include libsys/pre.h prior to libnal/nal.h"
 #endif
 
 #ifndef HEADER_LIBNAL_NAL_H
