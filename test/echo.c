@@ -23,6 +23,7 @@
 
 #include <libsys/pre.h>
 #include <libnal/nal.h>
+#include "timing.h"
 #include <libsys/post.h>
 
 /* TODO:
@@ -37,26 +38,13 @@
 /* To monitor the number of accepted connections, define this */
 #define ECHO_DEBUG_CLIENTS
 
-typedef unsigned char UNITS;
-/* The bit mask for bits or bytes */
-#define UNITS_bits	(UNITS)0
-#define UNITS_bytes	(UNITS)4
-/* The bit mask for the scale */
-#define UNITS_kilo	(UNITS)1
-#define UNITS_mega	(UNITS)2
-#define UNITS_giga	(UNITS)3
-#define UNITS_mask	(UNITS)3
-static const char *UNITS_str[] = { "b", "Kb", "Mb", "Gb", "B", "KB", "MB", "GB" };
-#define UNITS2STR(u)		UNITS_str[(u)]
-
 #define DEF_SERVER_ADDRESS	"UNIX:/tmp/foo"
 #define BUFFER_SIZE		(32*1024)
 #define MAX_CONNS		64
 #define DEF_UNITS		UNITS_bits
 
-/* Only support "-update" if we have the goodies */
-#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
-#define SUPPORT_UPDATE
+#ifdef SUPPORT_UPDATE
+IMPLEMENT_UNITS()
 #endif
 
 static void usage(void)
@@ -76,37 +64,6 @@ static void usage(void)
 	SYS_fprintf(SYS_stderr, "'errinject' will insert 0xdeadbeef into output every\n");
 	SYS_fprintf(SYS_stderr, "<num> times the selector logic breaks.\n");
 }
-
-#ifdef SUPPORT_UPDATE
-static int util_parseunits(const char *s, UNITS *u)
-{
-	const char *foo = s;
-	*u = UNITS_bits;
-	switch(strlen(s)) {
-	case 2:
-		switch(*foo) {
-		case 'k': *u |= UNITS_kilo; break;
-		case 'm': *u |= UNITS_mega; break;
-		case 'g': *u |= UNITS_giga; break;
-		default: goto err;
-		}
-		foo++;
-	case 1:
-		switch(*foo) {
-		case 'b': *u |= UNITS_bits; break;
-		case 'B': *u |= UNITS_bytes; break;
-		default: goto err;
-		}
-		break;
-	default:
-		goto err;
-	}
-	return 1;
-err:
-	SYS_fprintf(SYS_stderr, "Error, bad unit '%s'\n", s);
-	return 0;
-}
-#endif
 
 static int util_parsenum(const char *s, unsigned int *num)
 {
@@ -225,8 +182,8 @@ int main(int argc, char *argv[])
 "two-way, identical traffic is passing in both directions so you can consider\n"
 "each direction to be half the advertised throughput value.\n"
 "\n");
-#endif
 	}
+#endif
 reselect:
 	tmp = NAL_SELECTOR_select(sel, 0, 0);
 	if(tmp <= 0) {
@@ -243,16 +200,10 @@ reselect:
 		msecs = SYS_msecs_between(&tv1, &tv2);
 		muser = SYS_msecs_between(&ru1.ru_utime, &ru2.ru_utime);
 		msys = SYS_msecs_between(&ru1.ru_stime, &ru2.ru_stime);
-		rate = 2000.0 * traffic / (double)msecs;
-		if(!(units & UNITS_bytes))
-			rate *= 8;
-		switch(units & UNITS_mask) {
-		case UNITS_giga: rate /= 1024;
-		case UNITS_mega: rate /= 1024;
-		case UNITS_kilo: rate /= 1024;
-		case 0: break;
-		default: abort(); /* bug */
-		}
+		/* Convert bytes to the required double */
+		rate = util_tounits(traffic, units);
+		/* Adjust according to milli-seconds (and duplexity) */
+		rate = 2000.0 * rate / (double)msecs;
 		SYS_fprintf(SYS_stdout, "Update: %ld msecs elapsed, %.2f %s/s, "
 			"%.1f%% user, %.1f%% kernel\n", msecs, rate,
 			UNITS2STR(units), (100.0 * muser)/((float)msecs),

@@ -8,10 +8,10 @@ dc_test_LDADD		= $(top_builddir)/libsys/libsys.la \
 nal_test_SOURCES	= nal_test.c
 nal_test_LDADD		= $(top_builddir)/libsys/libsys.la \
 		  	  $(top_builddir)/libnal/libnal.la
-nal_echo_SOURCES	= echo.c
+nal_echo_SOURCES	= echo.c timing.h
 nal_echo_LDADD		= $(top_builddir)/libsys/libsys.la \
 		  	  $(top_builddir)/libnal/libnal.la
-nal_ping_SOURCES	= ping.c
+nal_ping_SOURCES	= ping.c timing.h
 nal_ping_LDADD		= $(top_builddir)/libsys/libsys.la \
 		  	  $(top_builddir)/libnal/libnal.la
 nal_hose_SOURCES	= hose.c

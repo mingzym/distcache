@@ -23,6 +23,7 @@
 
 #include <libsys/pre.h>
 #include <libnal/nal.h>
+#include "timing.h"
 #include <libsys/post.h>
 
 #define MAX_PING_SIZE		(32*1024)
@@ -31,22 +32,35 @@
 #define DEF_PING_SIZE		1024
 #define DEF_PING_NUM		10
 #define DEF_NUM_CONNS		1
+#define DEF_UNITS		UNITS_bits
+
+#ifdef SUPPORT_UPDATE
+IMPLEMENT_UNITS()
+#endif
 
 static void usage(void)
 {
 	SYS_fprintf(SYS_stderr, "Usage:   nal_ping [options ...]\n");
 	SYS_fprintf(SYS_stderr, "where options include;\n");
-	SYS_fprintf(SYS_stderr, "   -connect <addr>   - default='%s'\n", DEF_SERVER_ADDRESS);
-	SYS_fprintf(SYS_stderr, "   -num <num>        - default=%d\n", DEF_NUM_CONNS);
-	SYS_fprintf(SYS_stderr, "   -size <num>       - default=%d\n", DEF_PING_SIZE);
-	SYS_fprintf(SYS_stderr, "   -repeat <num>     - default=%d\n", DEF_PING_NUM);
-	SYS_fprintf(SYS_stderr, "   -mode <style>     - default='block'\n");
+	SYS_fprintf(SYS_stderr, "   -connect <addr>     - default='%s'\n", DEF_SERVER_ADDRESS);
+	SYS_fprintf(SYS_stderr, "   -num <num>          - default=%d\n", DEF_NUM_CONNS);
+	SYS_fprintf(SYS_stderr, "   -size <num>         - default=%d\n", DEF_PING_SIZE);
+	SYS_fprintf(SYS_stderr, "   -repeat <num>       - default=%d\n", DEF_PING_NUM);
+	SYS_fprintf(SYS_stderr, "   -mode <style>       - default='block'\n");
+#ifdef SUPPORT_UPDATE
+	SYS_fprintf(SYS_stderr, "   -update <secs>      - default=<none>\n");
+	SYS_fprintf(SYS_stderr, "   -units [k|m|g]<b|B> - default='%s'\n", UNITS2STR(DEF_UNITS));
+#endif
 	SYS_fprintf(SYS_stderr, "   -peek\n");
 	SYS_fprintf(SYS_stderr, "   -quiet\n");
 	SYS_fprintf(SYS_stderr, "alternative styles for '-mode' are;\n");
 	SYS_fprintf(SYS_stderr, "   zero    - all packets are zero\n");
 	SYS_fprintf(SYS_stderr, "   block   - each packet set to a different byte\n");
 	SYS_fprintf(SYS_stderr, "   noise   - messy data\n");
+#ifdef SUPPORT_UPDATE
+	SYS_fprintf(SYS_stderr, "'units' displays traffic rates as bits or bytes per second.\n");
+	SYS_fprintf(SYS_stderr, "An optional prefix can scale to kilo, mega, or giga bits/bytes.\n");
+#endif
 }
 
 typedef enum {
@@ -151,7 +165,7 @@ static pingctx *pingctx_new(const NAL_ADDRESS *addr, NAL_SELECTOR *sel, int id,
 	ret->pingmode = pingmode;
 	ret->peek = peek;
 	ret->quiet = quiet;
-	if(!pingctx_io(ret)) goto err;
+	if(pingctx_io(ret) < 0) goto err;
 	return ret;
 err:
 	abort();
@@ -168,20 +182,22 @@ static void pingctx_free(pingctx *ctx)
 	SYS_free(pingctx, ctx);
 }
 
+/* returns -1 for error, or the amount of data consumed (read) */
 static int pingctx_io(pingctx *ctx)
 {
-	if(ctx->done) return 1;
+	int ret = 0;
+	if(ctx->done) return 0;
 	if(!NAL_CONNECTION_io(ctx->conn)) {
 		if(!ctx->connected)
 			SYS_fprintf(SYS_stderr, "(%d) Connection failed\n", ctx->id);
 		else
 			SYS_fprintf(SYS_stderr, "(%d) Disconnection\n", ctx->id);
-		return 0;
+		return -1;
 	}
 	if(!ctx->connected) {
 		if(!NAL_CONNECTION_is_established(ctx->conn))
 			/* Still connecting */
-			return 1;
+			return 0;
 		ctx->connected = 1;
 		ctx->inread = 0;
 	}
@@ -190,12 +206,12 @@ static int pingctx_io(pingctx *ctx)
 		/* reading */
 		if(NAL_BUFFER_used(NAL_CONNECTION_get_read(ctx->conn)) <
 					ctx->num_size)
-			return 1;
+			return ret;
 		if(NAL_BUFFER_read(NAL_CONNECTION_get_read(ctx->conn),
 				ctx->response, ctx->num_size) != ctx->num_size) {
 			SYS_fprintf(SYS_stderr, "(%d) Read error: bad length\n",
 				ctx->id);
-			return 0;
+			return -1;
 		}
 		if(ctx->peek)
 			SYS_fprintf(SYS_stdout,
@@ -216,23 +232,24 @@ static int pingctx_io(pingctx *ctx)
 				SYS_fprintf(SYS_stdout, "response packet was;\n");
 				bindump(ctx->response, ctx->num_size);
 			}
-			return 0;
+			return -1;
 		}
 		ctx->loop++;
 		if(!ctx->quiet)
 			SYS_fprintf(SYS_stdout, "(%d) Packet %d ok\n", ctx->id,
 				ctx->loop);
+		ret += ctx->num_size;
 		ctx->inread = 0;
 	case 0:
 		/* writing */
 		if(ctx->loop == ctx->num_repeat) {
 			ctx->done = 1;
 			NAL_CONNECTION_reset(ctx->conn);
-			return 1;
+			return ret;
 		}
 		if(NAL_BUFFER_unused(NAL_CONNECTION_get_send(ctx->conn)) <
 						ctx->num_size)
-			return 1;
+			return ret;
 		switch(ctx->pingmode) {
 		case pingmode_zero:
 			SYS_zero_n(unsigned char, ctx->packet, ctx->num_size);
@@ -274,7 +291,7 @@ static int pingctx_io(pingctx *ctx)
 		if(NAL_BUFFER_write(NAL_CONNECTION_get_send(ctx->conn),
 				ctx->packet, ctx->num_size) != ctx->num_size) {
 			SYS_fprintf(SYS_stderr, "(%d) Write error\n", ctx->id);
-			return 0;
+			return -1;
 		}
 		if(ctx->peek)
 			SYS_fprintf(SYS_stdout,
@@ -301,9 +318,18 @@ int main(int argc, char *argv[])
 	unsigned int num_conns = DEF_NUM_CONNS;
 	pingmode_t pingmode = pingmode_block;
 	int peek = 0, quiet = 0;
-	NAL_ADDRESS *addr = NAL_ADDRESS_new();
-	NAL_SELECTOR *sel = NAL_SELECTOR_new();
-	if(!addr || !sel) abort();
+	NAL_ADDRESS *addr;
+	NAL_SELECTOR *sel;
+#ifdef SUPPORT_UPDATE
+	unsigned int update = 0;
+	UNITS units = DEF_UNITS;
+	/* Timing variables for '-update' */
+	time_t tt1, tt2;
+	struct timeval tv1, tv2;
+	struct rusage ru1, ru2;
+	unsigned int traffic = 0;
+#endif
+
 	ARG_INC;
 	while(argc) {
 		if(strcmp(*argv, "-connect") == 0) {
@@ -330,6 +356,16 @@ int main(int argc, char *argv[])
 			ARG_CHECK("-mode");
 			if(!util_parsemode(*argv, &pingmode))
 				return 1;
+#ifdef SUPPORT_UPDATE
+		} else if(strcmp(*argv, "-update") == 0) {
+			ARG_CHECK("-update");
+			if(!util_parsenum(*argv, &update))
+				return 1;
+		} else if(strcmp(*argv, "-units") == 0) {
+			ARG_CHECK("-units");
+			if(!util_parseunits(*argv, &units))
+				return 1;
+#endif
 		} else if(strcmp(*argv, "-peek") == 0)
 			peek = 1;
 		else if(strcmp(*argv, "-quiet") == 0) {
@@ -338,12 +374,32 @@ int main(int argc, char *argv[])
 			return err_unknown(*argv);
 		ARG_INC;
 	}
+	SYS_sigpipe_ignore();
 	if((ctx = SYS_malloc(pingctx*, num_conns)) == NULL) abort();
+	addr = NAL_ADDRESS_new();
+	sel = NAL_SELECTOR_new();
+	if(!addr || !sel) abort();
 	if(!NAL_ADDRESS_create(addr, str_addr, BUFFER_SIZE)) abort();
 	for(loop = 0; loop < num_conns; loop++)
 		if((ctx[loop] = pingctx_new(addr, sel, loop, num_repeat,
 				num_size, pingmode, peek, quiet)) == NULL)
 			abort();
+#ifdef SUPPORT_UPDATE
+	if(update) {
+		tt1 = time(NULL);
+		SYS_gettime(&tv1);
+		getrusage(RUSAGE_SELF, &ru1);
+		SYS_fprintf(SYS_stderr,
+"\n"
+"Note, '-update' statistics have accurate timing but the traffic measurements\n"
+"are based on transfers between user-space fifo buffers. As such, they should\n"
+"only be considered accurate \"on average\". Also, the traffic measured is\n"
+"two-way, identical traffic is passing in both directions so you can consider\n"
+"each direction to be half the advertised throughput value. (We measure receive\n"
+"data and double it.)\n"
+"\n");
+	}
+#endif
 	do {
 		/* Select */
 		if((tmp = NAL_SELECTOR_select(sel, 0, 0)) <= 0) {
@@ -354,11 +410,36 @@ int main(int argc, char *argv[])
 		/* Post-process */
 		done = 0;
 		for(loop = 0; loop < num_conns; loop++) {
-			if(!pingctx_io(ctx[loop]))
-				goto err;
+			int res = pingctx_io(ctx[loop]);
+			if(res < 0) goto err;
+			traffic += res;
 			if(ctx[loop]->done)
 				done++;
 		}
+#ifdef SUPPORT_UPDATE
+		/* Check if an update is required */
+		if(update && ((tt2 = time(NULL)) >= (time_t)(tt1 + update))) {
+			unsigned long msecs, muser, msys;
+			double rate;
+			SYS_gettime(&tv2);
+			getrusage(RUSAGE_SELF, &ru2);
+			msecs = SYS_msecs_between(&tv1, &tv2);
+			muser = SYS_msecs_between(&ru1.ru_utime, &ru2.ru_utime);
+			msys = SYS_msecs_between(&ru1.ru_stime, &ru2.ru_stime);
+			/* Convert bytes to the required double */
+			rate = util_tounits(traffic, units);
+			/* Adjust according to milli-seconds (and duplexity) */
+			rate = 2000.0 * rate / (double)msecs;
+			SYS_fprintf(SYS_stdout, "Update: %ld msecs elapsed, %.2f %s/s, "
+				"%.1f%% user, %.1f%% kernel\n", msecs, rate,
+				UNITS2STR(units), (100.0 * muser)/((float)msecs),
+				(100.0 * msys)/((float)msecs));
+			tt1 = tt2;
+			SYS_timecpy(&tv1, &tv2);
+			SYS_memcpy(struct rusage, &ru1, &ru2);
+			traffic = 0;
+		}
+#endif
 	/* keep looping until the connections are done and the selector is
 	 * empty. This allows non-blocking closes to complete for libnal
 	 * implementations that support it. */

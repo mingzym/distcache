@@ -19,6 +19,10 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Factor out nal_echo's timing code into a header, timing.h, and add the
+     same support to the nal_ping client.
+     [Geoff Thorpe]
+
   *) Fix up nal_echo's timing mechanisms and command-line processing for
      "-units". It can now report (kilo/mega/giga) bits or bytes per second.
      [Geoff Thorpe]
