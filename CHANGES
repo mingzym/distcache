@@ -30,6 +30,7 @@ Changes between 0.4 and x.x
        they need to be, simple to add debugging information that would never be
        used by people who aren't capable of building programs themselves. Disk
        space and RAM are resources, and should not be abused.
+     - Include instructions for building redistributable RPMs for various CPUs.
      [Geoff Thorpe]
 
   *) Change the top-level configuration such that the ssl/ tree is configured

@@ -13,8 +13,8 @@
 # You need to create the following directories;
 #   mkdir -p ~/rpm/{BUILD,RPMS/noarch,SOURCES,SRPMS,SPECS,tmp}
 #
-# On x86 machines, you also need;
-#   mkdir -p ~/rpm/RPMS/i586
+# On x86 machines, you should also add;
+#   mkdir -p ~/rpm/RPMS/{i386,i486,i586,i686,athlon,k6}
 #
 # You then need two config files setup in your account (ignore the asterisk and
 # space at the beginning of each line, and replace "$HOME" with your home
@@ -61,7 +61,16 @@
 #         rpm -ba distcache-X.X/devel/mandrake.spec
 #
 # If all goes well, the last line of output should mention "exit 0" and there
-# should be new RPMs living in ~/rpm/RPMS/i586 and ~/rpm/SRPMS.
+# should be new RPMs living in ~/rpm/RPMS/[xxx] and ~/rpm/SRPMS, where [xxx]
+# is the architecture of your build system. To build redistributable RPMs, you
+# can build for various architectures as follows;
+#
+#   rpm -ba --target i386-unknown-linux distcache-X.X/devel/mandrake.spec
+#   rpm -ba --target i486-unknown-linux distcache-X.X/devel/mandrake.spec
+#   rpm -ba --target i586-unknown-linux distcache-X.X/devel/mandrake.spec
+#   rpm -ba --target i686-unknown-linux distcache-X.X/devel/mandrake.spec
+#   rpm -ba --target athlon-unknown-linux distcache-X.X/devel/mandrake.spec
+#   rpm -ba --target k6-unknown-linux distcache-X.X/devel/mandrake.spec
 #
 
 
