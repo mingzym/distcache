@@ -461,7 +461,7 @@ int main(int argc, char *argv[])
 			/* Convert bytes to the required double */
 			rate = util_tounits(traffic, units);
 			/* Adjust according to milli-seconds (and duplexity) */
-			rate = 2000.0 * rate / (double)msecs;
+			rate = 1000.0 * rate / (double)msecs;
 			SYS_fprintf(SYS_stdout, "Update: %ld msecs elapsed, %.2f %s/s, "
 				"%.1f%% user, %.1f%% kernel\n", msecs, rate,
 				UNITS2STR(units), (100.0 * muser)/((float)msecs),
