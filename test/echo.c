@@ -123,7 +123,10 @@ int main(int argc, char *argv[])
 	if(!NAL_LISTENER_add_to_selector(listener, sel)) abort();
 reselect:
 	tmp = NAL_SELECTOR_select(sel, 0, 0);
-	if(tmp <= 0) goto reselect;
+	if(tmp <= 0) {
+		SYS_fprintf(SYS_stderr, "Error, NAL_SELECTOR_select() returned 0\n");
+		return 1;
+	}
 	while((conns_used < num_conns) && NAL_CONNECTION_accept(conn[conns_used],
 						listener)) {
 		if(!NAL_CONNECTION_add_to_selector(conn[conns_used], sel))

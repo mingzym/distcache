@@ -325,8 +325,11 @@ int main(int argc, char *argv[])
 			abort();
 	do {
 		/* Select */
-		while((tmp = NAL_SELECTOR_select(sel, 0, 0)) <= 0)
-			;
+		if((tmp = NAL_SELECTOR_select(sel, 0, 0)) <= 0) {
+			SYS_fprintf(SYS_stderr, "Error, NAL_SELECTOR_select() "
+				"returned <= 0\n");
+			goto err;
+		}
 		/* Post-process */
 		done = 0;
 		for(loop = 0; loop < num_conns; loop++) {
