@@ -29,3 +29,16 @@ void *nal_realloc_int(void *ptr, size_t size)
 
 void nal_free_int(void *ptr)
 { free(ptr); }
+
+#if NAL_DEBUG_LEVEL > 2
+
+void *NAL_MEMSET(void *s, int c, size_t n)
+{ return memset(s, c, n); }
+
+void *NAL_MEMCPY(void *dest, const void *src, size_t n)
+{ return memcpy(dest, src, n); }
+
+void *NAL_MEMMOVE(void *dest, const void *src, size_t n)
+{ return memmove(dest, src, n); }
+
+#endif

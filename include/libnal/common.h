@@ -234,65 +234,87 @@ void nal_free_int(void *ptr);
 /* TYPESAFE WRAPPERS */
 /*********************/
 
-/* One of the most common problems, and recenty a source of some massively silly
- * bug-hunt of mine, is crappy "initialisation" ... eg. I recently had problems
- * because I was doing memset(&buf, 0, BUFFER_SIZE) rather than memset(&buf, 0,
- * sizeof(buffer)) (BUFFER_SIZE was the size of the char-array inside a "buffer"
- * structure, not the size of the structure itself). These macros provide a
- * cute way to cover a structure using type-safety to ensure it doesn't get
- * botched. Eg. I'd call NAL_zero(buffer, &buf) and it would first check that
- * "&buf" is of type "buffer *". I've also started adding type-safe
- * gotcha-catchers for memcpy etc. With a debugging level higher than 2, the
- * type-safe forms are compiled, otherwise these are folded back to direct calls
- * by the precompiler. Ie. debugging levels greater than 2 help find source
- * bugs, but release builds are still optimised. */
+/* We always (for now) use type-safe macro wrappers for memset, memcpy, and
+ * memmove. However to verify that the original versions aren't being used as
+ * well, define NAL_DEBUG_LEVEL to something greater than 2; */
+
 #if NAL_DEBUG_LEVEL > 2
-#define NAL_cover(c,t,p)	do { \
-				t *temp_NAL_cover_ptr = (p); \
-				memset(temp_NAL_cover_ptr, (c), \
-						sizeof(t)); \
-				} while(0)
-#define NAL_cover_n(c,t,p,n)	do { \
-				t *temp_NAL_cover_n_ptr = (p); \
-				memset(temp_NAL_cover_n_ptr, (c), \
-						(n) * sizeof(t)); \
-				} while(0)
-#define NAL_memcpy(t,d,s)	do { \
-				t *temp_NAL_memcpy_ptr1 = (d); \
-				const t *temp_NAL_memcpy_ptr2 = (s); \
-				memcpy(temp_NAL_memcpy_ptr1, \
-					temp_NAL_memcpy_ptr2, \
-					sizeof(t)); \
-				} while(0)
-#define NAL_memcpy_n(t,d,s,n)	do { \
-				t *temp_NAL_memcpy_ptr1 = (d); \
-				const t *temp_NAL_memcpy_ptr2 = (s); \
-				memcpy(temp_NAL_memcpy_ptr1, \
-					temp_NAL_memcpy_ptr2, \
-					(n) * sizeof(t)); \
-				} while(0)
-#define NAL_memmove(t,d,s)	do { \
-				t *temp_NAL_memmove_ptr1 = (d); \
-				const t *temp_NAL_memmove_ptr2 = (s); \
-				memmove(temp_NAL_memmove_ptr1, \
-					temp_NAL_memmove_ptr2, \
-					sizeof(t)); \
-				} while(0)
-#define NAL_memmove_n(t,d,s,n)	do { \
-				t *temp_NAL_memmove_ptr1 = (d); \
-				const t *temp_NAL_memmove_ptr2 = (s); \
-				memmove(temp_NAL_memmove_ptr1, \
-					temp_NAL_memmove_ptr2, \
-					(n) * sizeof(t)); \
-				} while(0)
+
+/* Declare replacement functions for those we will #undef. */
+void *NAL_MEMSET(void *s, int c, size_t n);
+void *NAL_MEMCPY(void *dest, const void *src, size_t n);
+void *NAL_MEMMOVE(void *dest, const void *src, size_t n);
+#ifndef IN_MEM_C /* and #undef the versions we want * code to avoid. */
+#undef memset
+#undef memcpy
+#undef memmove
+#define memset dont_use_memset
+#define memcpy dont_use_memcpy
+#define memmove dont_use_memmove
+#endif
+
 #else
+
+/* We use the system functions directly from our macros */
+#define NAL_MEMSET	memset
+#define NAL_MEMCPY	memcpy
+#define NAL_MEMMOVE	memmove
+
+#endif
+
+/* We use our type-safe macro wrappers always for now, but if we notice any
+ * speed differences we can put these back. Note, a decent compiler should boil
+ * the type-safe wrappers down to these forms anyway after type-checking. */
+#if 0
 #define NAL_cover(c,t,p)	memset((p), (c), sizeof(t))
 #define NAL_cover_n(c,t,p,n)	memset((p), (c), (n) * sizeof(t))
 #define NAL_memcpy(t,d,s)	memcpy((d), (s), sizeof(t))
 #define NAL_memcpy_n(t,d,s,n)	memcpy((d), (s), (n) * sizeof(t))
 #define NAL_memmove(t,d,s)	memmove((d), (s), sizeof(t))
 #define NAL_memmove_n(t,d,s,n)	memmove((d), (s), (n) * sizeof(t))
+#else
+
+/* Type-safe macro wrappers */
+#define NAL_cover(c,t,p)	do { \
+				t *temp_NAL_cover_ptr = (p); \
+				NAL_MEMSET(temp_NAL_cover_ptr, (c), \
+						sizeof(t)); \
+				} while(0)
+#define NAL_cover_n(c,t,p,n)	do { \
+				t *temp_NAL_cover_n_ptr = (p); \
+				NAL_MEMSET(temp_NAL_cover_n_ptr, (c), \
+						(n) * sizeof(t)); \
+				} while(0)
+#define NAL_memcpy(t,d,s)	do { \
+				t *temp_NAL_memcpy_ptr1 = (d); \
+				const t *temp_NAL_memcpy_ptr2 = (s); \
+				NAL_MEMCPY(temp_NAL_memcpy_ptr1, \
+					temp_NAL_memcpy_ptr2, \
+					sizeof(t)); \
+				} while(0)
+#define NAL_memcpy_n(t,d,s,n)	do { \
+				t *temp_NAL_memcpy_ptr1 = (d); \
+				const t *temp_NAL_memcpy_ptr2 = (s); \
+				NAL_MEMCPY(temp_NAL_memcpy_ptr1, \
+					temp_NAL_memcpy_ptr2, \
+					(n) * sizeof(t)); \
+				} while(0)
+#define NAL_memmove(t,d,s)	do { \
+				t *temp_NAL_memmove_ptr1 = (d); \
+				const t *temp_NAL_memmove_ptr2 = (s); \
+				NAL_MEMMOVE(temp_NAL_memmove_ptr1, \
+					temp_NAL_memmove_ptr2, \
+					sizeof(t)); \
+				} while(0)
+#define NAL_memmove_n(t,d,s,n)	do { \
+				t *temp_NAL_memmove_ptr1 = (d); \
+				const t *temp_NAL_memmove_ptr2 = (s); \
+				NAL_MEMMOVE(temp_NAL_memmove_ptr1, \
+					temp_NAL_memmove_ptr2, \
+					(n) * sizeof(t)); \
+				} while(0)
 #endif
+
 #define NAL_zero(t,p)		NAL_cover(0,t,(p))
 #define NAL_zero_n(t,p,n)	NAL_cover_n(0,t,(p),(n))
 
