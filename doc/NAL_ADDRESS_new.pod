@@ -1,0 +1,135 @@
+=pod
+
+=head1 NAME
+
+NAL_ADDRESS_new, NAL_ADDRESS_free, NAL_ADDRESS_create, NAL_ADDRESS_set_def_buffer_size, NAL_ADDRESS_can_connect, NAL_ADDRESS_can_listen, NAL_ADDRESS_source_string - libnal addressing functions
+
+=head1 SYNOPSIS
+
+ #include <libnal/nal.h>
+
+ NAL_ADDRESS *NAL_ADDRESS_new(void);
+ void NAL_ADDRESS_free(NAL_ADDRESS *a);
+ int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
+                        unsigned int def_buffer_size);
+ int NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
+                                     unsigned int def_buffer_size);
+ int NAL_ADDRESS_can_connect(NAL_ADDRESS *addr);
+ int NAL_ADDRESS_can_listen(NAL_ADDRESS *addr);
+ const char *NAL_ADDRESS_source_string(NAL_ADDRESS *addr);
+
+=head1 DESCRIPTION
+
+NAL_ADDRESS_new() allocates and initialises a new B<NAL_ADDRESS> object.
+
+NAL_ADDRESS_free() destroys a B<NAL_ADDRESS> object.
+
+NAL_ADDRESS_create() will attempt to parse a network address from the string
+constant provided in B<addr_string>. If this succeeds, then B<addr> will
+represent the given network address for use in other libnal functions. The
+significance of B<def_buffer_size> is that any B<NAL_CONNECTION> object created
+with B<addr> will inherent B<def_buffer_size> as the default size for its read
+and write buffers (see NAL_CONNECTION_set_size(2)). If B<addr> is used to
+create a B<NAL_LISTENER> object, then any B<NAL_CONNECTION> objects that are
+assigned connections from the listener will likewise have the given default
+size for its buffers. See the L<NOTES> section for information on the syntax of
+B<addr>.
+
+NAL_ADDRESS_set_def_buffer_size() sets B<def_buffer_size> as the default buffer
+size in B<addr>. This operation is built into NAL_ADDRESS_create() already.
+
+NAL_ADDRESS_can_connect() will indicate whether the address represented by
+B<addr> is of an appropriate form for creating a B<NAL_CONNECTION> object.
+NAL_ADDRESS_can_listen() likewise indicates if B<addr> is appopriate for
+creating a B<NAL_LISTENER> object. In other words, these functions determine
+whether the address can be ``connected to'' or ``listened on''. Depending on
+the type of transport and the string from which B<addr> was parsed, some
+addresses are only good for connecting or listening whereas others can be good
+for both. See L<NOTES>.
+
+NAL_ADDRESS_source_string() will return B<addr>'s internal copy of the string
+passed to it during a NAL_ADDRESS_create() call. This string is only valid
+while B<addr> is valid and is not changed.
+
+=head1 RETURN VALUES
+
+NAL_ADDRESS_new() returns a valid B<NAL_ADDRESS> object on success, NULL
+otherwise.
+
+NAL_ADDRESS_free() has no return value.
+
+NAL_ADDRESS_source_string() returns B<addr>'s internal string data if B<addr>
+is valid, NULL otherwise.
+
+All other B<NAL_ADDRESS> functions return zero for failure or false, and
+non-zero for success or true.
+
+=head1 NOTES
+
+The string syntax implemented by I<libnal> is used by all the I<distcache>
+libraries and tools. At the time of writing, only TCP/IPv4 and unix domain
+sockets were supported as underlying transports and so likewise the implemented
+syntax handling only supported these two forms.
+
+=over 4
+
+=item TCP/IPv4 addresses
+
+The syntax for TCP/IPv4 addresses has two forms, depending on whether you
+specify a hostname (or alternatively a dotted-numeric IP address) with the port
+number or just the port number on its own. Eg. to represent port 9001, one uses;
+
+    IP:9001
+
+whereas to specify a hostname or IP address with it, the syntax is;
+
+    IP:machinename.domain:9001
+    IP:192.168.0.1:9001
+
+Either form of TCP/IPv4 address is generally valid for creating a
+B<NAL_LISTENER> object, although it will depend at run-time on the situation in
+the system - ie. whether privileges exist to listen on the port, whether the
+port is already in use, whether the specified hostname or IP address is bound
+to a running network interface that can be listened on, etc. For creating a
+B<NAL_CONNECTION> object, an address must be specified.  This is why the
+NAL_CONNECTION_can_connect() and NAL_CONNECTION_can_listen() helper functions
+exist - to detect whether the syntax used is logical for the intended use.
+Failures to set up network resources afterwards will in turn say whether the
+given address data is possible within the host system.
+
+=item unix domain addresses
+
+There is only one syntax for unix domain addresses, and so any correctly parsed
+address string is in theory valid for connecting to or listening on. The form is;
+
+    UNIX:/path/to/socket
+
+This represents the path to the socket in the file system.
+
+=back
+
+=head1 SEE ALSO
+
+L<NAL_CONNECTION_new(2)> - Functions for the NAL_CONNECTION type.
+
+L<NAL_LISTENER_new(2)> - Functions for the NAL_LISTENER type.
+
+L<NAL_SELECTOR_new(2)> - Functions for the NAL_SELECTOR type.
+
+L<NAL_BUFFER_new(2)> - Functions for the NAL_BUFFER type.
+
+L<distcache(8)> - Overview of the distcache architecture.
+
+F<http://www.distcache.org/> - Distcache home page.
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
+
+Home Page: F<http://www.distcache.org>
+

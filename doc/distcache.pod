@@ -77,7 +77,8 @@ libnal defines various object types;
 =item NAL_ADDRESS
 
 The addressing abstraction converts to and from text representations, indicates
-whether given addresses are valid for listening on, connecting to, or both.
+whether given addresses are valid for listening on, connecting to, or both. See
+NAL_ADDRESS_new(2).
 
 =item NAL_CONNECTION
 
