@@ -212,6 +212,10 @@ int main(int argc, char *argv[])
 	if(ops > MAX_OPS)
 		/* "-ops" wasn't specified, guess a suitable value */
 		ops = sessions * sessions * 10;
+
+	/* Since we're using rand() in places, the generator needs seeding */
+	srand(time(NULL));
+
 	return do_client(client, sessions, withcert, timeout, timevar,
 			ops, progress, persistent);
 }
