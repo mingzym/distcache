@@ -46,6 +46,7 @@ AC_CONFIG_FILES([Makefile
 		 libnal/Makefile
 		 sessclient/Makefile
 		 sessserver/Makefile
+		 snoop/Makefile
 		 test/Makefile])
 AC_OUTPUT
 
