@@ -19,6 +19,17 @@ Current version: 0.4-dev
 Changes between 0.3 and 0.xx
 ----------------------------
 
+  *) Start adding API section 2 man pages, currently documenting the
+     libdistcache APIs;
+     - DC_CTX_new.pod (all DC_CTX functions)
+     - DC_PLUG_new.pod (DC_PLUG_[new|free|to_select|io] functions)
+     - DC_PLUG_read.pod (all other DC_PLUG functions)
+     [Geoff Thorpe]
+
+  *) Fix the libdistcache Makefile to not list a header as a source file and
+     to also install dc_enc.h as an exported API header.
+     [Geoff Thorpe]
+
   *) Commit an initial version of a ".spec" file for building distcache RPMs.
      [Geoff Thorpe]
 
