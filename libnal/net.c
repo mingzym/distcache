@@ -527,7 +527,7 @@ do_ipv4:
 	tmp_ptr = NAL_malloc(char, (int)(fini_ptr - start_ptr) + 1);
 	if(!tmp_ptr)
 		goto err;
-	NAL_memcpy_n(unsigned char, tmp_ptr, start_ptr,
+	NAL_memcpy_n(char, tmp_ptr, start_ptr,
 		(int)(fini_ptr - start_ptr));
 	tmp_ptr[(int)(fini_ptr - start_ptr)] = '\0';
 	ip_lookup = gethostbyname(tmp_ptr);
@@ -535,8 +535,8 @@ do_ipv4:
 	if(!ip_lookup)
 		/* Host not understood or recognised */
 		goto err;
-	/* Grab the IP address and move on */
-	NAL_memcpy_n(unsigned char, in_ip, ip_lookup->h_addr_list[0], 4);
+	/* Grab the IP address and move on (h_addr_list[0] is signed char?!) */
+	NAL_memcpy_n(char, (char *)in_ip, ip_lookup->h_addr_list[0], 4);
 	/* Align start_ptr to the start of the "port" number. */
 	start_ptr = fini_ptr + 1;
 	/* Ok, this is an address that could be used for connecting */
