@@ -137,10 +137,13 @@ static int pingctx_io(pingctx *ctx)
 	/* reading */
 	if(NAL_BUFFER_used(NAL_CONNECTION_get_read(ctx->conn)) < ctx->num_size)
 		return 1;
-	if((NAL_BUFFER_read(NAL_CONNECTION_get_read(ctx->conn), ctx->response,
-					ctx->num_size) != ctx->num_size) ||
-			(memcmp(ctx->packet, ctx->response, ctx->num_size) != 0)) {
-		SYS_fprintf(SYS_stderr, "(%d) Read error\n", ctx->id);
+	if(NAL_BUFFER_read(NAL_CONNECTION_get_read(ctx->conn), ctx->response,
+					ctx->num_size) != ctx->num_size) {
+		SYS_fprintf(SYS_stderr, "(%d) Read error: bad length\n", ctx->id);
+		return 0;
+	}
+	if(memcmp(ctx->packet, ctx->response, ctx->num_size) != 0) {
+		SYS_fprintf(SYS_stderr, "(%d) Read error: bad match\n", ctx->id);
 		return 0;
 	}
 	SYS_fprintf(SYS_stderr, "(%d) Packet %d ok\n", ctx->id, ++ctx->loop);
