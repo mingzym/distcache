@@ -106,7 +106,8 @@ struct st_NAL_CONNECTION_vtable {
 	int (*is_established)(const NAL_CONNECTION *conn);
 	int (*do_io)(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 			unsigned int max_read, unsigned int max_send);
-	void (*selector_add)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
+	void (*selector_add)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel,
+			unsigned int flags);
 	void (*selector_del)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
 };
 int nal_connection_set_vtable(NAL_CONNECTION *conn, const NAL_CONNECTION_vtable *vtable);

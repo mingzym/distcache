@@ -30,7 +30,7 @@ typedef struct st_NAL_CONNECTION NAL_CONNECTION;
 typedef struct st_NAL_SELECTOR NAL_SELECTOR;
 typedef struct st_NAL_BUFFER NAL_BUFFER;
 
-/* Flags passed to NAL_SELECTOR_add_conn_ex() */
+/* Flags passed to NAL_CONNECTION_add_to_selector_ex() */
 #define NAL_SELECT_FLAG_READ	(unsigned int)0x0001
 #define NAL_SELECT_FLAG_SEND	(unsigned int)0x0002
 #define NAL_SELECT_FLAG_RW	(NAL_SELECT_FLAG_READ | NAL_SELECT_FLAG_SEND)
@@ -105,6 +105,8 @@ int		NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 int		NAL_CONNECTION_is_established(const NAL_CONNECTION *conn);
 void		NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
 				NAL_SELECTOR *sel);
+void		NAL_CONNECTION_add_to_selector_ex(const NAL_CONNECTION *conn,
+				NAL_SELECTOR *sel, unsigned int flags);
 void		NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,
 				NAL_SELECTOR *sel);
 

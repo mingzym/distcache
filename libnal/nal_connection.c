@@ -202,7 +202,13 @@ int NAL_CONNECTION_is_established(const NAL_CONNECTION *conn)
 void NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
 				NAL_SELECTOR *sel)
 {
-	if(conn->vt) conn->vt->selector_add(conn, sel);
+	if(conn->vt) conn->vt->selector_add(conn, sel, NAL_SELECT_FLAG_RW);
+}
+
+void NAL_CONNECTION_add_to_selector_ex(const NAL_CONNECTION *conn,
+				NAL_SELECTOR *sel, unsigned int flags)
+{
+	if(conn->vt) conn->vt->selector_add(conn, sel, flags);
 }
 
 void NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,

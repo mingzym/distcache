@@ -98,7 +98,8 @@ static NAL_BUFFER *conn_get_send(const NAL_CONNECTION *conn);
 static int conn_is_established(const NAL_CONNECTION *conn);
 static int conn_do_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 		unsigned int max_read, unsigned int max_send);
-static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
+static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel,
+		unsigned int flags);
 static void conn_selector_del(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
 /* This is the type we attach to our connections */
 typedef struct st_conn_ctx {
@@ -385,13 +386,14 @@ static int conn_do_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 	return 1;
 }
 
-static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel)
+static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel,
+			unsigned int flags)
 {
 	conn_ctx *ctx = nal_connection_get_vtdata(conn);
-	unsigned char toread = (NAL_BUFFER_notfull(ctx->b_read) ?
-					SELECTOR_FLAG_READ : 0);
-	unsigned char tosend = (NAL_BUFFER_notempty(ctx->b_send) ?
-					SELECTOR_FLAG_SEND : 0);
+	unsigned char toread = (((flags & NAL_SELECT_FLAG_READ) &&
+			NAL_BUFFER_notfull(ctx->b_read)) ?  SELECTOR_FLAG_READ : 0);
+	unsigned char tosend = (((flags & NAL_SELECT_FLAG_SEND) &&
+			NAL_BUFFER_notempty(ctx->b_send)) ?  SELECTOR_FLAG_SEND : 0);
 	if(ctx->fd_read == ctx->fd_send) {
 		if(ctx->fd_read != -1)
 			nal_selector_fd_set(sel, ctx->fd_read, toread | tosend |

@@ -19,7 +19,16 @@ Current version: x.x
 Changes between 1.4.2 and x.x
 -----------------------------
 
-  *) 
+  *) In the last release, certain functions operating on selectors and
+     connections or listeners were changed from being NAL_SELECTOR_***
+     functions to NAL_[CONNECTION|LISTENER]_*** equivalents. Unfortunately,
+     this change lost the ability to add connections to listeners with a
+     bitwise flag allowing the caller to stipulate which events (s)he wants
+     selected (or more accurately, which events (s)he does *not* want
+     selected). This has been reinserted in the underlying libnal vtable
+     layouts, and the new API function NAL_CONNECTION_add_to_selector_ex()
+     exposes this extension.
+     [Geoff Thorpe]
 
 Changes between 1.4.1 and 1.4.2
 -------------------------------
