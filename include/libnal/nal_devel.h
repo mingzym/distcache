@@ -30,6 +30,14 @@ typedef struct st_NAL_LISTENER_vtable NAL_LISTENER_vtable;
 typedef struct st_NAL_CONNECTION_vtable NAL_CONNECTION_vtable;
 typedef struct st_NAL_SELECTOR_vtable NAL_SELECTOR_vtable;
 
+/* selectors implement their own storage of the listener and connection
+ * registries. To allow them to avoid doing searches on every loop operation,
+ * we let them tag connections/listeners with an opaque 'token' value when
+ * adding objects. This makes it easier for these objects to interact without
+ * lookups. (NB, the struct is just to improve type-safety.) */
+typedef struct { int foo; } *NAL_SELECTOR_TOKEN;
+#define NAL_SELECTOR_TOKEN_NULL	(NAL_SELECTOR_TOKEN)NULL
+
 /***************/
 /* NAL_ADDRESS */
 /***************/
@@ -68,26 +76,30 @@ struct st_NAL_LISTENER_vtable {
 	/* The size of "vtdata" the NAL_LISTENER should provide */
 	size_t vtdata_size;
 	/* (De)Initialisations */
-	int (*on_create)(NAL_LISTENER *l);
-	void (*on_destroy)(NAL_LISTENER *l);
-	void (*on_reset)(NAL_LISTENER *l);
+	int (*on_create)(NAL_LISTENER *);
+	void (*on_destroy)(NAL_LISTENER *);
+	void (*on_reset)(NAL_LISTENER *);
 	/* Handlers for NAL_LISTENER functionality */
-	int (*listen)(NAL_LISTENER *l, const NAL_ADDRESS *addr);
-	const NAL_CONNECTION_vtable *(*pre_accept)(NAL_LISTENER *l,
-						NAL_SELECTOR *sel);
-	void (*selector_add)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
-	void (*selector_del)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
-	int (*finished)(const NAL_LISTENER *l);
+	int (*listen)(NAL_LISTENER *, const NAL_ADDRESS *);
+	const NAL_CONNECTION_vtable *(*pre_accept)(NAL_LISTENER *);
+	int (*finished)(const NAL_LISTENER *);
+	/* Called prior to (un)binding (from/)to a selector */
+	int (*pre_selector_add)(const NAL_LISTENER *, const NAL_SELECTOR *);
+	void (*pre_selector_del)(const NAL_LISTENER *);
+	/* Called before/after a select */
+	void (*pre_select)(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
+	void (*post_select)(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
 	/* Extensions that may not be meaningful, case-by-case */
-	int (*set_fs_owner)(NAL_LISTENER *l, const char *ownername,
+	int (*set_fs_owner)(NAL_LISTENER *, const char *ownername,
 				const char *groupname);
-	int (*set_fs_perms)(NAL_LISTENER *l, const char *octal_string);
+	int (*set_fs_perms)(NAL_LISTENER *, const char *octal_string);
 };
-int nal_listener_set_vtable(NAL_LISTENER *l, const NAL_LISTENER_vtable *vtable);
-const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *l);
-void *nal_listener_get_vtdata(const NAL_LISTENER *l);
-const NAL_CONNECTION_vtable *nal_listener_pre_accept(NAL_LISTENER *l,
-						NAL_SELECTOR *sel);
+int nal_listener_set_vtable(NAL_LISTENER *, const NAL_LISTENER_vtable *);
+const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *);
+void *nal_listener_get_vtdata(const NAL_LISTENER *);
+const NAL_CONNECTION_vtable *nal_listener_pre_accept(NAL_LISTENER *);
+void nal_listener_pre_select(NAL_LISTENER *);
+void nal_listener_post_select(NAL_LISTENER *);
 
 /******************/
 /* NAL_CONNECTION */
@@ -97,27 +109,40 @@ struct st_NAL_CONNECTION_vtable {
 	/* The size of "vtdata" the NAL_CONNECTION should provide */
 	size_t vtdata_size;
 	/* (De)Initialisations */
-	int (*on_create)(NAL_CONNECTION *conn);
-	void (*on_destroy)(NAL_CONNECTION *conn);
-	void (*on_reset)(NAL_CONNECTION *conn);
+	int (*on_create)(NAL_CONNECTION *);
+	void (*on_destroy)(NAL_CONNECTION *);
+	void (*on_reset)(NAL_CONNECTION *);
 	/* after NAL_ADDRESS_vtable->create_connection() */
-	int (*connect)(NAL_CONNECTION *conn, const NAL_ADDRESS *addr);
+	int (*connect)(NAL_CONNECTION *, const NAL_ADDRESS *);
 	/* after NAL_LISTENER_vtable->pre_accept() */
-	int (*accept)(NAL_CONNECTION *conn, const NAL_LISTENER *l);
+	int (*accept)(NAL_CONNECTION *, const NAL_LISTENER *);
 	/* Handlers for NAL_CONNECTION functionality */
-	int (*set_size)(NAL_CONNECTION *conn, unsigned int size);
-	NAL_BUFFER *(*get_read)(const NAL_CONNECTION *conn);
-	NAL_BUFFER *(*get_send)(const NAL_CONNECTION *conn);
-	int (*is_established)(const NAL_CONNECTION *conn);
-	int (*do_io)(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-			unsigned int max_read, unsigned int max_send);
-	void (*selector_add)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-			unsigned int flags);
-	void (*selector_del)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
+	int (*set_size)(NAL_CONNECTION *, unsigned int);
+	NAL_BUFFER *(*get_read)(const NAL_CONNECTION *);
+	NAL_BUFFER *(*get_send)(const NAL_CONNECTION *);
+	int (*is_established)(const NAL_CONNECTION *);
+	/* Called prior to (un)binding (from/)to a selector */
+	int (*pre_selector_add)(const NAL_CONNECTION *, const NAL_SELECTOR *);
+	void (*pre_selector_del)(const NAL_CONNECTION *);
+	/* Called before/after a 'select', depending on the selector model.
+	 * 'pre_select' allows the connection to register specific events if
+	 * appropriate (eg. this would apply for a select/poll-style selector
+	 * but (perhaps) not for a win32 messagepump mode). 'post_select' can
+	 * be called 0, 1, or many times to allow the connection to
+	 * collect/send data. */
+	void (*pre_select)(NAL_CONNECTION *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
+	void (*post_select)(NAL_CONNECTION *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
+	/* Expose results of 'post_select' I/O and/or do post-processing. This
+	 * is the hook from the caller's NAL_CONNECTION_io() API, whereas the
+	 * 'pre_select' and 'post_select' handlers are internal to the blocking
+	 * NAL_SELECTOR_select() logic. */
+	int (*do_io)(NAL_CONNECTION *);
 };
-int nal_connection_set_vtable(NAL_CONNECTION *conn, const NAL_CONNECTION_vtable *vtable);
-const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *conn);
-void *nal_connection_get_vtdata(const NAL_CONNECTION *conn);
+int nal_connection_set_vtable(NAL_CONNECTION *, const NAL_CONNECTION_vtable *);
+const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *);
+void *nal_connection_get_vtdata(const NAL_CONNECTION *);
+void nal_connection_pre_select(NAL_CONNECTION *);
+void nal_connection_post_select(NAL_CONNECTION *);
 
 /***************************/
 /* Builtin address vtables */
@@ -141,6 +166,8 @@ typedef enum {
 	NAL_SELECTOR_TYPE_ERROR = 0,
 	/* Standard BSD(4.4) select */
 	NAL_SELECTOR_TYPE_FDSELECT,
+	/* poll(2) */
+	NAL_SELECTOR_TYPE_FDPOLL,
 	/* Custom implementation types start here */
 	NAL_SELECTOR_TYPE_CUSTOM = 100
 } NAL_SELECTOR_TYPE;
@@ -149,26 +176,27 @@ struct st_NAL_SELECTOR_vtable {
 	/* The size of "vtdata" the NAL_SELECTOR should provide */
 	size_t vtdata_size;
 	/* (De)Initialisations */
-	int (*on_create)(NAL_SELECTOR *sel);
-	void (*on_destroy)(NAL_SELECTOR *sel);
-	void (*on_reset)(NAL_SELECTOR *sel);
+	int (*on_create)(NAL_SELECTOR *);
+	void (*on_destroy)(NAL_SELECTOR *);
+	void (*on_reset)(NAL_SELECTOR *);
 	/* Handlers for NAL_SELECTOR functionality */
-	NAL_SELECTOR_TYPE (*get_type)(const NAL_SELECTOR *sel);
-	void (*fd_set)(NAL_SELECTOR *sel, int fd, unsigned char flags);
-	void (*fd_unset)(NAL_SELECTOR *sel, int fd);
-	unsigned char (*fd_test)(const NAL_SELECTOR *sel, int fd);
-	void (*fd_clear)(NAL_SELECTOR *sel, int fd);
-	int (*select)(NAL_SELECTOR *sel, unsigned long usec_timeout, int use_timeout);
+	NAL_SELECTOR_TYPE (*get_type)(const NAL_SELECTOR *);
+	int (*select)(NAL_SELECTOR *, unsigned long usec_timeout, int use_timeout);
+	NAL_SELECTOR_TOKEN (*add_listener)(NAL_SELECTOR *, NAL_LISTENER *);
+	NAL_SELECTOR_TOKEN (*add_connection)(NAL_SELECTOR *, NAL_CONNECTION *);
+	void (*del_listener)(NAL_SELECTOR *, NAL_LISTENER *, NAL_SELECTOR_TOKEN);
+	void (*del_connection)(NAL_SELECTOR *, NAL_CONNECTION *, NAL_SELECTOR_TOKEN);
+	/* Extensions that may not be meaningful, case-by-case */
+	void (*fd_set)(NAL_SELECTOR *, NAL_SELECTOR_TOKEN, int fd, unsigned char flags);
+	unsigned char (*fd_test)(const NAL_SELECTOR *, NAL_SELECTOR_TOKEN, int fd);
 };
 /* used from NAL_SELECTOR API */
-int nal_selector_set_vtable(NAL_SELECTOR *sel, const NAL_SELECTOR_vtable *vtable);
-const NAL_SELECTOR_vtable *nal_selector_get_vtable(const NAL_SELECTOR *sel);
-void *nal_selector_get_vtdata(const NAL_SELECTOR *sel);
+NAL_SELECTOR *nal_selector_new(const NAL_SELECTOR_vtable *);
+const NAL_SELECTOR_vtable *nal_selector_get_vtable(const NAL_SELECTOR *);
+void *nal_selector_get_vtdata(const NAL_SELECTOR *);
 /* used from inside NAL_CONNECTION/NAL_LISTENER implementations */
-NAL_SELECTOR_TYPE nal_selector_get_type(const NAL_SELECTOR *sel);
-void nal_selector_fd_set(NAL_SELECTOR *sel, int fd, unsigned char flags);
-void nal_selector_fd_unset(NAL_SELECTOR *sel, int fd);
-unsigned char nal_selector_fd_test(const NAL_SELECTOR *sel, int fd);
-void nal_selector_fd_clear(NAL_SELECTOR *sel, int fd);
+NAL_SELECTOR_TYPE nal_selector_get_type(const NAL_SELECTOR *);
+void nal_selector_fd_set(NAL_SELECTOR *, NAL_SELECTOR_TOKEN, int fd, unsigned char flags);
+unsigned char nal_selector_fd_test(const NAL_SELECTOR *, NAL_SELECTOR_TOKEN, int fd);
 
 #endif /* !defined(HEADER_LIBNAL_NAL_DEVEL_H) */
