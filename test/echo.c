@@ -40,7 +40,7 @@
 
 #define DEF_SERVER_ADDRESS	"UNIX:/tmp/foo"
 #define BUFFER_SIZE		(32*1024)
-#define MAX_CONNS		64
+#define MAX_CONNS		512
 #define DEF_UNITS		UNITS_bits
 
 #ifdef SUPPORT_UPDATE
