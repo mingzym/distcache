@@ -19,6 +19,11 @@ Current version: x.x
 Changes between 1.4.2 and x.x
 -----------------------------
 
+  *) Add setuid support to libsys, (testing for it in configure.ac,) and
+     add a corresponding "-user <user>" command-line switch to dc_server and
+     dc_client.
+     [Joe Orton <jorton@redhat.com>]
+
   *) In the last release, certain functions operating on selectors and
      connections or listeners were changed from being NAL_SELECTOR_***
      functions to NAL_[CONNECTION|LISTENER]_*** equivalents. Unfortunately,

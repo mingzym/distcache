@@ -101,6 +101,23 @@ int SYS_daemon(int nochdir)
 #endif
 }
 
+int SYS_setuid(const char *username)
+{
+#if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
+	struct passwd *p = getpwnam(username);
+	
+	if(p == NULL)
+		return 0;
+	
+	if(setuid(p->pw_uid))
+		return 0;
+
+	return 1;
+#else
+	return 0;
+#endif
+}
+
 /*******************************/
 /* SIGNAL related utility code */
 /*******************************/

@@ -32,6 +32,7 @@ static const unsigned int def_sessions = 512;
 static const unsigned long def_progress = 0;
 #ifndef WIN32
 static const char *def_pidfile = NULL;
+static const char *def_user = NULL;
 #endif
 
 /* Avoid the dreaded "greater than the length `509' ISO C89 compilers are
@@ -41,6 +42,7 @@ static const char *usage_msg[] = {
 "Usage: dc_server [options]     where 'options' are from;",
 #ifndef WIN32
 "  -daemon          (detach and run in the background)",
+"  -user <user>     (run daemon as given user)",
 #endif
 "  -listen <addr>   (act as a server listening on address 'addr')",
 "  -sessions <num>  (make the cache hold a maximum of 'num' sessions)",
@@ -63,7 +65,7 @@ static const char *usage_msg[] = {
 /* Prototypes used by main() */
 static int do_server(const char *address, unsigned int max_sessions,
 			unsigned long progress, int daemon_mode,
-			const char *pidfile, int killable);
+			const char *pidfile, int killable, const char *user);
 
 static int usage(void)
 {
@@ -79,6 +81,7 @@ static const char *CMD_HELP2 = "-help";
 static const char *CMD_HELP3 = "-?";
 #ifndef WIN32
 static const char *CMD_DAEMON = "-daemon";
+static const char *CMD_USER = "-user";
 static const char *CMD_PIDFILE = "-pidfile";
 static const char *CMD_KILLABLE = "-killable";
 #endif
@@ -129,6 +132,7 @@ int main(int argc, char *argv[])
 	int daemon_mode = 0;
 	int killable = 0;
 	const char *pidfile = def_pidfile;
+	const char *user = def_user;
 #endif
 
 	ARG_INC;
@@ -145,6 +149,9 @@ int main(int argc, char *argv[])
 		} else if(strcmp(*argv, CMD_PIDFILE) == 0) {
 			ARG_CHECK(CMD_PIDFILE);
 			pidfile = *argv;
+		} else if(strcmp(*argv, CMD_USER) == 0) {
+			ARG_CHECK(CMD_USER);
+			user = *argv;
 		} else
 #endif
 		if(strcmp(*argv, CMD_SERVER) == 0) {
@@ -185,12 +192,12 @@ int main(int argc, char *argv[])
 #endif
 		return 1;
 	}
-	return do_server(server, sessions, progress, daemon_mode, pidfile, killable);
+	return do_server(server, sessions, progress, daemon_mode, pidfile, killable, user);
 }
 
 static int do_server(const char *address, unsigned int max_sessions,
 			unsigned long progress, int daemon_mode,
-			const char *pidfile, int killable)
+			const char *pidfile, int killable, const char *user)
 {
 	int res, ret = 1;
 	struct timeval now, last_now;
@@ -235,6 +242,13 @@ static int do_server(const char *address, unsigned int max_sessions,
 		}
 		SYS_fprintf(fp, "%lu", (unsigned long)SYS_getpid());
 		fclose(fp);
+	}
+	if(user) {
+		if(!SYS_setuid(user)) {
+			SYS_fprintf(SYS_stderr, "Error, couldn't become user "
+				    "'%s'.\n", user);
+			return 1;
+		}
 	}
 #endif
 	/* Set "last_now" to the current-time */

@@ -130,6 +130,10 @@
 #if defined(HAVE_SYS_WAIT_H)
 #include <sys/wait.h>
 #endif
+#ifdef HAVE_GETPWNAM
+#include <pwd.h>
+#endif
+
 
 #endif
 

@@ -293,6 +293,7 @@ int SYS_sockets_init(void);
 int SYS_sigpipe_ignore(void);
 int SYS_sigusr_interrupt(int *ptr);
 int SYS_daemon(int nochdir);
+int SYS_setuid(const char *username);
 #endif
 void SYS_timesub(struct timeval *res, const struct timeval *I,
 		unsigned long msecs);

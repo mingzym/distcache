@@ -42,7 +42,7 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gettimeofday memmove memset select socket strstr \
-		strtoul daemon getrusage])
+		strtoul daemon getrusage setuid getpwnam])
 
 # This makes sure "@VERSION@" can be used in Makefile.am's for things like
 # pod2man. I've noticed that some versions of autoconf (or automake?) don't

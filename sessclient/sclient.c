@@ -40,6 +40,7 @@ static const unsigned long def_retry_period = 5000;
 static const unsigned long def_idle_timeout = 0;
 #ifndef WIN32
 static const char *def_pidfile = NULL;
+static const char *def_user = NULL;
 #endif
 
 /* Avoid the dreaded "greater than the length `509' ISO C89 compilers are
@@ -49,6 +50,7 @@ static const char *usage_msg[] = {
 "Usage: dc_client [options]      where 'options' are from;",
 #ifndef WIN32
 "  -daemon           (detach and run in the background)",
+"  -user <user>      (run daemon as given user)",
 #endif
 "  -listen <addr>    (listen on address 'addr', def: UNIX:/tmp/scache)",
 "  -server <addr>    (connects to a cache server at 'addr')",
@@ -71,6 +73,7 @@ static const char *CMD_HELP2 = "-help";
 static const char *CMD_HELP3 = "-?";
 #ifndef WIN32
 static const char *CMD_DAEMON = "-daemon";
+static const char *CMD_USER = "-user";
 static const char *CMD_PIDFILE = "-pidfile";
 static const char *CMD_KILLABLE = "-killable";
 #endif
@@ -134,6 +137,7 @@ int main(int argc, char *argv[])
 	int daemon_mode = 0;
 	const char *pidfile = def_pidfile;
 	int killable = 0;
+	const char *user = def_user;
 #endif
 	const char *listen_addr = def_listen_addr;
 	unsigned long retry_period = def_retry_period;
@@ -151,6 +155,14 @@ int main(int argc, char *argv[])
 		if(strcmp(*argv, CMD_DAEMON) == 0)
 			daemon_mode = 1;
 		/* Check options with an argument */
+		else if(strcmp(*argv, CMD_PIDFILE) == 0) {
+			ARG_CHECK(*argv);
+			pidfile = *argv;
+		} else if(strcmp(*argv, CMD_USER) == 0) {
+			ARG_CHECK(CMD_USER);
+			user = *argv;
+		} else if(strcmp(*argv, CMD_KILLABLE) == 0)
+			killable = 1;
 		else
 #endif
 		if(strcmp(*argv, CMD_LISTEN) == 0) {
@@ -181,13 +193,6 @@ int main(int argc, char *argv[])
 					(idle_timeout > MAX_IDLE_PERIOD)) {
 				return err_badarg(*(argv - 1));
 			}
-#ifndef WIN32
-		} else if(strcmp(*argv, CMD_PIDFILE) == 0) {
-			ARG_CHECK(*argv);
-			pidfile = *argv;
-		} else if(strcmp(*argv, CMD_KILLABLE) == 0) {
-			killable = 1;
-#endif
 		} else
 			return err_badswitch(*argv);
 		ARG_INC;
@@ -262,6 +267,13 @@ int main(int argc, char *argv[])
 		}
 		SYS_fprintf(fp, "%lu", (unsigned long)SYS_getpid());
 		fclose(fp);
+	}
+	if(user) {
+		if(!SYS_setuid(user)) {
+			SYS_fprintf(SYS_stderr, "Error, couldn't become user "
+				    "'%s'.\n", user);
+			return 1;
+		}
 	}
 #endif
 
