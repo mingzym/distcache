@@ -41,6 +41,11 @@
 # The resulting distcache-X.X.tar.bz2 tarball should be in the top-level
 # directory.
 #
+# Redhat, Suse, etc: If you are building for a target system whose RPM layout
+# is not like that of Mandrake, consider replacing the group directive;
+#             Group: Networking/Other
+# to match an appropriate group for the target distribution.
+#
 # Now you have a 'bz2' tarball, the steps to building the RPMs are relatively
 # straightforward;
 #
@@ -59,12 +64,8 @@
 #############
 
 %define name distcache
-%define version 0.4pre1
+%define version 0.4pre2
 %define release 1
-# Uncomment one of these lines according to the destination distribution
-# (Mandrake) %define targetgroup Networking/Other
-# (Redhat) %define targetgroup Applications/System
-%define targetgroup Networking/Other
 
 # RPM information
 Name: %{name}
@@ -73,16 +74,18 @@ Version: %{version}
 Release: %{release}
 Source: http://download.sourceforge.net/distcache/%{name}-%{version}.tar.bz2
 URL: http://www.distcache.org/
-Group: ${targetgroup}
+Group: Networking/Other
 Buildroot: %{_tmppath}/%{name}-buildroot
 License: LGPL
 Packager: Distcache project
-# No requirments yet (Requires:)
+# No requirments yet
+#Requires:
 
 # RPM information: "devel"
 %package devel
 Summary: Libraries and header files for building distcache-compatible software
-Group: Networking/Other
+# Change this if the devel package should go in a different group
+#Group: Networking/Other
 
 # RPM description
 %description
@@ -155,7 +158,11 @@ rm -rf $RPM_BUILD_ROOT
 #########
 
 %changelog
-* Sun Mar 09 2003 Geoff Thorpe <geoff@geoffthorpe.net> 0.4pre1
+* Sun Mar 16 2003 Geoff Thorpe <geoff@geoffthorpe.net> 0.4pre2-1
+- The destination package group for the two RPMs have been corrected
+- RPM package contents have been updated to 0.4pre2
+
+* Sun Mar 09 2003 Geoff Thorpe <geoff@geoffthorpe.net> 0.4pre1-1
 - split into two RPMs (distcache and distcache-devel)
 - created from Mandrake's excellent HOWTO
 

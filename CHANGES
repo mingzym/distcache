@@ -19,6 +19,11 @@ Current version: x.x
 Changes between 0.4pre1 and x.x
 -------------------------------
 
+  *) The "targetgroup" replacement trick in the RPM spec was broken, so it has
+     been ironed out and header comments have been expanded to note how to
+     customise this for non-Mandrake RPM systems.
+     [Geoff Thorpe]
+
   *) Produce conventional static-libraries directly rather than libtool
      archives. This is the easiest way to prevent the installation of "*.la"
      files and as we're already disabling building of shared-libraries
