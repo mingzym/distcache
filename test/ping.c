@@ -99,13 +99,16 @@ static int err_unknown(const char *s)
 static void bindump(const unsigned char *data, unsigned int len)
 {
 #define LINEWIDTH 16
-	unsigned int pos = 0;
+	unsigned int tot = 0, pos = 0;
 	while(len--) {
+		if(!pos)
+			SYS_fprintf(SYS_stdout, "%04d: ", tot);
 		SYS_fprintf(SYS_stdout, "0x%02x ", *(data++));
-		if(pos++ == LINEWIDTH) {
+		if(++pos == LINEWIDTH) {
 			SYS_fprintf(SYS_stdout, "\n");
 			pos = 0;
 		}
+		tot++;
 	}
 	if(pos)
 		SYS_fprintf(SYS_stdout, "\n");
@@ -195,7 +198,11 @@ static int pingctx_io(pingctx *ctx)
 		ctx->response[0], ctx->response[1], ctx->response[2], ctx->response[3],
 		ctx->response[4], ctx->response[5], ctx->response[6], ctx->response[7]);
 	if(memcmp(ctx->packet, ctx->response, ctx->num_size) != 0) {
-		SYS_fprintf(SYS_stderr, "(%d) Read error: bad match\n", ctx->id);
+		unsigned int loop = 0;
+		while(ctx->packet[loop] == ctx->response[loop])
+			loop++;
+		SYS_fprintf(SYS_stderr, "(%d) Read error: bad match at offset %d\n",
+			ctx->id, loop);
 		if(!ctx->quiet) {
 			SYS_fprintf(SYS_stdout, "output packet was;\n");
 			bindump(ctx->packet, ctx->num_size);
