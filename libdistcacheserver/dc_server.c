@@ -139,7 +139,7 @@ static int int_do_op_get(DC_CLIENT *clnt, const struct timeval *now)
 	len = clnt->server->vt->cache_get(clnt->server->cache, now,
 			clnt->read_data, clnt->read_data_len, NULL, 0);
 	if(!len) {
-		int_response_1byte(clnt, DC_GET_ERR_NO_SUCH_SESSION);
+		int_response_1byte(clnt, DC_ERR_NOTOK);
 		return 1;
 	}
 	/* Make sure we have enough allocated room for the response */
@@ -165,7 +165,7 @@ static int int_do_op_remove(DC_CLIENT *clnt, const struct timeval *now)
 				clnt->read_data, clnt->read_data_len))
 		int_response_1byte(clnt, DC_ERR_OK);
 	else
-		int_response_1byte(clnt, DC_REMOVE_ERR_NO_SUCH_SESSION);
+		int_response_1byte(clnt, DC_ERR_NOTOK);
 	return 1;
 
 }
@@ -174,9 +174,9 @@ static int int_do_op_have(DC_CLIENT *clnt, const struct timeval *now)
 {
 	if(clnt->server->vt->cache_have(clnt->server->cache, now,
 				clnt->read_data, clnt->read_data_len))
-		int_response_1byte(clnt, DC_HAVE_RES_YES);
+		int_response_1byte(clnt, DC_ERR_OK);
 	else
-		int_response_1byte(clnt, DC_HAVE_RES_NO);
+		int_response_1byte(clnt, DC_ERR_NOTOK);
 	return 1;
 
 }
