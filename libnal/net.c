@@ -130,19 +130,19 @@ static int int_set_nagle(int fd)
 	return 1;
 }
 
-/* These two functions are static, so we shouldn't have flow errors - so we only
- * check in debugging mode, and in those cases abort(). */
 static int int_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send)
 {
 	ssize_t ret;
+	unsigned int buf_used = NAL_BUFFER_used(buf);
 
-#if NAL_DEBUG_LEVEL > 3
-	if(NAL_BUFFER_empty(buf))
-		abort();
-#endif
 	/* Decide the maximum we should send */
-	if((max_send == 0) || (max_send > NAL_BUFFER_used(buf)))
-		max_send = NAL_BUFFER_used(buf);
+	if((max_send == 0) || (max_send > buf_used))
+		max_send = buf_used;
+	/* If there's nothing to send, don't waste a system call. This catches
+	 * the case of a non-blocking connect that completed, without adding
+	 * NAL_BUFFER_*** calls one level up. */
+	if(!max_send)
+		return 0;
 #ifdef WIN32
 	ret = send(fd, NAL_BUFFER_data(buf), max_send, 0);
 #elif !defined(MSG_DONTWAIT) || !defined(MSG_NOSIGNAL)
@@ -177,14 +177,14 @@ static int int_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send)
 static int int_buffer_from_fd(NAL_BUFFER *buf, int fd, unsigned int max_read)
 {
 	ssize_t ret;
+	unsigned int buf_avail = NAL_BUFFER_unused(buf);
 
-#if NAL_DEBUG_LEVEL > 3
-	if(NAL_BUFFER_full(buf))
-		abort();
-#endif
 	/* Decide the maximum we should read */
-	if((max_read == 0) || (max_read > NAL_BUFFER_unused(buf)))
-		max_read = NAL_BUFFER_unused(buf);
+	if((max_read == 0) || (max_read > buf_avail))
+		max_read = buf_avail;
+	/* If there's no room for reading, don't waste a system call */
+	if(!max_read)
+		return 0;
 #ifdef WIN32
 	ret = recv(fd, NAL_BUFFER_write_ptr(buf), max_read, 0);
 #elif !defined(MSG_NOSIGNAL)
@@ -895,7 +895,7 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 			unsigned int max_read, unsigned int max_send)
 {
 	unsigned char flags;
-	int io_ret;
+	int io_ret, nb = 0;
 
 	if((conn == NULL) || (sel == NULL))
 		return 0;
@@ -909,35 +909,67 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 #endif
 		goto closing;
 	}
-	/* Now logically, anything we've selected on should be something we
-	 * want to do - eg. if we're selected for sending, it hardly makes
-	 * sense that our output buffer should be empty? So, at a certain
-	 * debugging level, we perform checks. WARNING: Beware of accidently
-	 * building heisenburgs.... */
 #if NAL_DEBUG_LEVEL > 1
+	/* We shouldn't have selected on readability if there's no space to
+	 * read into. */
 	if((flags & SELECTOR_FLAG_READ) && NAL_BUFFER_full(&conn->read))
 		abort();
-	if((flags & SELECTOR_FLAG_SEND) && NAL_BUFFER_empty(&conn->send))
-		abort();
+#endif
+	/* If we're waiting on a non-blocking connect, hook the test here */
+	if(!conn->established) {
+		int t;
+		socklen_t t_len = sizeof(t);
+		/* We wait until we're sendable when in a non-blocking connect */
+		if(!(flags & SELECTOR_FLAG_SEND))
+			goto ok;
+		/* Check getsockopt() to check whether the connect succeeded.
+		 * Note, the ugly cast is necessary with my system headers to
+		 * avoid warnings, but there's probably a reason and/or
+		 * autoconf things to do with this. */
+		if(getsockopt(conn->fd, SOL_SOCKET, SO_ERROR, &t,
+					(unsigned int *)&t_len) != 0)
+			/* This should only happen if our code (or the calling
+			 * application) is buggy. Any network error should pop
+			 * out of the following (t!=0) check. */
+			goto closing;
+		if(t != 0)
+			/* The non-blocking connected failed. Note, if we ever
+			 * want to know about what kind of errors there are -
+			 * 't' will equal the same value that errno would
+			 * normally be set to if connect() failed immediately
+			 * for the same reason. */
+			goto closing;
+		conn->established = 1;
+		/* This allows the send logic further down to handle the fact
+		 * we're sendable yet have nothing to send. This only happens
+		 * in the nb-connect case because sendability is used to
+		 * indicated connectedness. */
+		nb = 1;
+	}
+#if NAL_DEBUG_LEVEL > 1
+	else {
+		/* If we weren't waiting a non-blocking connect, then
+		 * sendability should only happen when there's data to send. */
+		if((flags & SELECTOR_FLAG_SEND) && NAL_BUFFER_empty(&conn->send))
+			abort();
+	}
 #endif
 	if(flags & SELECTOR_FLAG_READ) {
 		io_ret = int_buffer_from_fd(&conn->read, conn->fd, max_read);
 		if(io_ret <= 0)
 			/* (<0) --> error, (==0) --> clean disconnect */
 			goto closing;
-		/* This ensures that a successful read from the socket will
-		 * mark the connection as established if it isn't already. */
-		conn->established = 1;
 	}
 	if(flags & SELECTOR_FLAG_SEND) {
 		io_ret = int_buffer_to_fd(&conn->send, conn->fd, max_send);
-		if(io_ret <= 0)
-			/* (<0) --> error, (==0) --> clean disconnect */
+		if(io_ret < 0)
+			/* error */
 			goto closing;
-		/* This ensures that a successful read from the socket will
-		 * mark the connection as established if it isn't already. */
-		conn->established = 1;
+		if(!io_ret && !nb)
+			/*  clean disconnect */
+			goto closing;
 	}
+ok:
 	/* Remove this connection from the select sets so a redundant call does
 	 * nothing. */
 	int_selector_conn_done(sel, conn);
@@ -1016,11 +1048,14 @@ void NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
 	if(conn->fd == -2)
 		return;
 	/* We always select for excepts, but reads and sends depend on the
-	 * buffers and the flags. */
+	 * buffers and the flags. Oh yes, we select on write even if we have an
+	 * empty buffer if we happen to be waiting for a non-blocking connect
+	 * to complete. */
 	FD_SET2(conn->fd, &sel->to_select.excepts);
 	if(NAL_BUFFER_notfull(&conn->read) && (flags & NAL_SELECT_FLAG_READ))
 		FD_SET2(conn->fd, &sel->to_select.reads);
-	if(NAL_BUFFER_notempty(&conn->send) && (flags & NAL_SELECT_FLAG_SEND))
+	if((NAL_BUFFER_notempty(&conn->send) && (flags & NAL_SELECT_FLAG_SEND)) ||
+				!conn->established)
 		FD_SET2(conn->fd, &sel->to_select.sends);
 	/* We need to adjust the max for the select() call */
 	sel->to_select.max = ((sel->to_select.max <= (conn->fd + 1)) ?

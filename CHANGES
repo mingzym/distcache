@@ -19,6 +19,12 @@ Current version: x.x
 Changes between 0.4pre2 and x.x
 -------------------------------
 
+  *) Fixed the NAL_CONNECTION_is_established() logic. Non-blocking connects are
+     now handled and their eventual completion (or failure) will now break
+     NAL_SELECTOR_select() operations. NAL_CONNECTION_is_established() and
+     NAL_CONNECTION_io() now generate logical results for this scenario.
+     [Geoff Thorpe]
+
   *) Re-organised the "devel/test.sh" script. Output is now cleaner and the
      script is easier to modify for customised mid-hacking tests.
      [Geoff Thorpe]
