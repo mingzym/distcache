@@ -13,17 +13,17 @@
                                                        -- George Orwell
 
 
-distcache release: 0.4pre1
+distcache release: 0.4pre2
 --------------------------
 
-We are pleased to announce the release of version 0.4pre1 of the distcache
+We are pleased to announce the release of version 0.4pre2 of the distcache
 package. For more information on what distcache is and how to use it, please
 see the README as it provides a good introduction and a guide to the other
 documents in this package.
 
-The main changes in version 0.4pre1 from version 0.3 are packaging and
+The main changes in version 0.4pre2 from version 0.4pre1 are packaging and
 documention related. The functionality of the tools and libraries have not
-changed in any consequential way. The release of 0.4pre1 is an attempt to drive
+changed in any consequential way. The release of 0.4pre2 is an attempt to drive
 towards a stable 0.4 release. The arrangement of the source code has been
 organised quite a bit, many improvements have been made to the installation and
 packaging support, and documentation is well underway and requires only a few
