@@ -31,3 +31,20 @@ autoconf
 # packaging - if the host system really has auto<whatever> and it wants to
 # regenerate stuff, it can recreate the cache directory itself.
 rm -rf autom4te*
+
+# Even more finally, if building on my desktop, run my own "configure" with
+# various gcc switches to improve compiler sanity-checking.
+if [ "`hostname`" = "grumpy.geoffnet" ]; then
+	echo "running Geoff's own configure line"
+	# NB: "-Wconversion" can't be used because it will warn any time you
+	# call a function with a smaller-than-32-bit parameter, even when the
+	# parameter is properly typed. <grumble> gcc maintainers seem to think
+	# this is OK?!
+	# NB: "-Wtraditional" can't be used because it doesn't like "#elif" and
+	# I do.
+	CFLAGS="-Wall -pedantic -Wundef -Wshadow -Wpointer-arith \
+		-Wbad-function-cast -Wcast-qual -Wcast-align \
+		-Wsign-compare -Wstrict-prototypes -Wmissing-prototypes \
+		-Wmissing-declarations -Wredundant-decls \
+		-Wunreachable-code" CC=gcc-2.96 ./configure
+fi
