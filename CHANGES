@@ -19,7 +19,9 @@ Current version: x.x
 Changes between 0.4pre2 and x.x
 -------------------------------
 
-  *)
+  *) Re-organised the "devel/test.sh" script. Output is now cleaner and the
+     script is easier to modify for customised mid-hacking tests.
+     [Geoff Thorpe]
 
 Changes between 0.4pre1 and 0.4pre2
 -----------------------------------

@@ -9,8 +9,8 @@ DC_SERVER_PID="$THISDIR/pid.dc_server"
 DC_CLIENT_PROG="$THISDIR/sessclient/dc_client"
 DC_CLIENT_UNIX="$THISDIR/unix.dc_client"
 DC_CLIENT_PID="$THISDIR/pid.dc_client"
-TESTSESS="$THISDIR/test/dc_test -timeout 30 -timevar 10 -ops 2000"
-TESTSESSP="$TESTSESS -persistent"
+NUM_OPS=4000
+DC_TEST="$THISDIR/test/dc_test -timeout 30 -timevar 10"
 
 DC_SERVER="$DC_SERVER_PROG -listen UNIX:$DC_SERVER_UNIX -pidfile $DC_SERVER_PID -daemon"
 DC_CLIENT="$DC_CLIENT_PROG -listen UNIX:$DC_CLIENT_UNIX -pidfile $DC_CLIENT_PID -daemon -server UNIX:$DC_SERVER_UNIX"
@@ -32,21 +32,27 @@ bang() {
 	exit 1
 }
 
-start_daemon() {
-	cmd=$1
-	cute=$2
-	# TODO: Should we check the service is started?
-	$cmd 1> /dev/null 2> /dev/null && echo "... SUCCESS" && return 0
-	BAILREASON=" failure starting '$cute'"
-	bang
-	return 1
-}
-
+# run_test $1 $2 $3
+# $1: number of operations
+# $2: "server" or "client" (target address)
+# $3: "temporary" or "persistent"  (whether to use -persistent)
 run_test() {
-	cmd=$1
-	cute=$2
-	$cmd 1> /dev/null 2> /dev/null && echo "... SUCCESS" && return 0
-	echo "... FAILED running '$cute'"
+	text="$1 random operations"
+	cmd="$DC_TEST -ops $1 -connect UNIX:"
+	if [ "$2" = "server" ]; then
+		text="$text direct to"
+		cmd="$cmd$DC_SERVER_UNIX"
+	else
+		text="$text through"
+		cmd="$cmd$DC_CLIENT_UNIX"
+	fi
+	text="$text dc_$2 ($3 connections) ... "
+	if [ "$3" = "persistent" ]; then
+		cmd="$cmd -persistent"
+	fi
+	printf "%s" "$text"
+	$cmd 1> /dev/null 2> /dev/null && echo "SUCCESS" && return 0
+	echo "FAILED"
 	return 1
 }
 
@@ -73,24 +79,22 @@ if [ "x$BAILOUT" != "xno" ]; then
 	bang
 fi
 
-echo "Starting dc_server daemon on $DC_SERVER_UNIX ..."
-start_daemon "$DC_SERVER" "dc_server" || exit 1
-echo "Starting dc_client daemon on $DC_CLIENT_UNIX ..."
-start_daemon "$DC_CLIENT" "dc_client" || exit 1
+printf "Starting dc_server daemon on %s ... " "$DC_SERVER_UNIX"
+$DC_SERVER 1> /dev/null 2> /dev/null || (echo "FAILED" && exit 1) || exit 1
+echo "SUCCESS"
+printf "Starting dc_client daemon on %s ... " "$DC_CLIENT_UNIX"
+$DC_CLIENT 1> /dev/null 2> /dev/null || (echo "FAILED" && exit 1) || exit 1
+echo "SUCCESS"
 
 echo ""
 
 sleep 1
 
-echo "Testing direct to dc_server, using temporary connections ..."
-run_test "$TESTSESS -connect UNIX:$DC_SERVER_UNIX" "dc_test" || echo "continuing anyway"
-echo "Testing direct to dc_server, using persistent connections ..."
-run_test "$TESTSESSP -connect UNIX:$DC_SERVER_UNIX" "dc_test" || echo "continuing anyway"
+run_test 8000 server temporary
+run_test 8000 server persistent
 
-echo "Testing through dc_client, using temporary connections ..."
-run_test "$TESTSESS -connect UNIX:$DC_CLIENT_UNIX" "dc_test" || echo "continuing anyway"
-echo "Testing through dc_client, using persistent connections ..."
-run_test "$TESTSESSP -connect UNIX:$DC_CLIENT_UNIX" "dc_test" || echo "continuing anyway"
+run_test 8000 client temporary
+run_test 8000 client persistent
 
 cleanup
 
