@@ -19,7 +19,8 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
-  *)
+  *) Fix sslswamp to work with the new libnal model.
+     [Geoff Thorpe, Joe Orton]
 
 Changes between 1.4.4 and 1.5.0
 -------------------------------

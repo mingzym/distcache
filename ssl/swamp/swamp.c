@@ -43,7 +43,7 @@ static void ossl_do_good_seeding(void);
 static SSL_CTX *ossl_setup_ssl_ctx(const swamp_config *config);
 static void ossl_close_ssl_ctx(SSL_CTX *ctx);
 /* Static functions - swamp_item functions */
-static int swamp_item_init(swamp_item *item);
+static int swamp_item_init(swamp_item *item, swamp_thread_ctx *ctx);
 static void swamp_item_finish(swamp_item *item);
 static void swamp_item_dirty_loop(swamp_item *item);
 /* Static functions - swamp_thread_ctx functions */
@@ -325,14 +325,15 @@ static void swamp_item_dirty_loop(swamp_item *item)
 		SSL_do_handshake(item->ssl);
 }
 
-static int swamp_item_init(swamp_item *item)
+static int swamp_item_init(swamp_item *item, swamp_thread_ctx *ctx)
 {
 	const swamp_config *config;
 	config = item->parent->config;
 
 	if(((item->conn = NAL_CONNECTION_new()) == NULL) ||
 			!NAL_CONNECTION_create(item->conn, server_iterator_next(
-				item->server_iterator))) {
+				item->server_iterator)) ||
+			!NAL_CONNECTION_add_to_selector(item->conn, ctx->sel)) {
 		SYS_fprintf(SYS_stderr, "connect failed\n");
 		if(item->conn)
 			NAL_CONNECTION_free(item->conn);
@@ -407,7 +408,7 @@ static int swamp_thread_ctx_loop(swamp_thread_ctx *ctx)
 		 * gears ... */
 possible_reconnect:
 		/* Case 1: it's not connected. */
-		if(!item->conn && !swamp_item_init(item))
+		if(!item->conn && !swamp_item_init(item, ctx))
 			return 0;
 		/* Do a "dirty" loop in case reads become possible that weren't,
 		 * and likewise for writes */
@@ -497,15 +498,9 @@ possible_reconnect:
 				goto possible_reconnect;
 			}
 		}
-		/* To finish ... we do any more "dirty" processing possible as a
-		 * result of the above and then adjust the next select for
-		 * whatever is required. But only if we have a connection of
-		 * course! */
-		if(item->conn) {
+		/* To finish ... we as much "dirty" processing as possible */
+		if(item->conn)
 			swamp_item_dirty_loop(item);
-			if(!NAL_CONNECTION_add_to_selector(item->conn, ctx->sel))
-				return 0;
-		}
 		ctx->total_completed += item->total_completed;
 		ctx->total_failed += item->total_failed;
 		ctx->resumes_hit += item->resumes_hit;
