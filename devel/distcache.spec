@@ -148,6 +148,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libnal.*
 %{_libdir}/libdistcache.*
 %{_libdir}/libdistcacheserver.*
+%{_mandir}/man2/*.2*
 
 #########
 # Changes
