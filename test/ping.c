@@ -232,7 +232,10 @@ write_ping:
 	{
 		unsigned int loop = ctx->num_size;
 		unsigned char *p = ctx->packet;
-		unsigned int base, mult, duration = 0;
+		/* nb: base and mult are initialised to avoid gcc warnings,
+		 * it's not smart enough to realise the (!duration) branch
+		 * executes immediately. */
+		unsigned int base = 0, mult = 0, duration = 0;
 		srand(ctx->counter + time(NULL));
 		do {
 			if(!duration) {
