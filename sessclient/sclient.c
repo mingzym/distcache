@@ -221,16 +221,6 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	/* Define a "now" value that can be used during initialisation and
-	 * during the first (pre-select) main loop */
-	SYS_gettime(&now);
-	/* Prepare the structures */
-	if(((server = server_new(server_address, retry_period, &now)) == NULL) ||
-			((clients = clients_new()) == NULL) ||
-			((multiplexer = multiplexer_new()) == NULL)) {
-		SYS_fprintf(SYS_stderr, "Error, internal initialisation problems\n");
-		return 1;
-	}
 	/* Prepare our networking bits */
 	if(((addr = NAL_ADDRESS_new()) == NULL) ||
 			!NAL_ADDRESS_create(addr, listen_addr,
@@ -246,6 +236,31 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	NAL_ADDRESS_free(addr);
+
+#ifndef WIN32
+	if(user) {
+		if(!SYS_setuid(user)) {
+			SYS_fprintf(SYS_stderr, "Error, couldn't become user "
+				    "'%s'.\n", user);
+			return 1;
+		}
+	}
+#endif
+
+	/* Define a "now" value that can be used during initialisation and
+	 * during the first (pre-select) main loop */
+	SYS_gettime(&now);
+	/* Prepare the data structures and (probably) connect to the servers.
+	 * Note, we do this now because we've already changed permissions (if
+	 * we were going to), so our ability to connect will be consistent now
+	 * with later retries. Also, we do this prior to going into daemon mode
+	 * to improve the chances failures would go noticed. */
+	if(((server = server_new(server_address, retry_period, &now)) == NULL) ||
+			((clients = clients_new()) == NULL) ||
+			((multiplexer = multiplexer_new()) == NULL)) {
+		SYS_fprintf(SYS_stderr, "Error, internal initialisation problems\n");
+		return 1;
+	}
 
 #ifndef WIN32
 	/* If we're going daemon() mode, do it now */
@@ -267,13 +282,6 @@ int main(int argc, char *argv[])
 		}
 		SYS_fprintf(fp, "%lu", (unsigned long)SYS_getpid());
 		fclose(fp);
-	}
-	if(user) {
-		if(!SYS_setuid(user)) {
-			SYS_fprintf(SYS_stderr, "Error, couldn't become user "
-				    "'%s'.\n", user);
-			return 1;
-		}
 	}
 #endif
 
