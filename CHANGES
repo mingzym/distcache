@@ -19,6 +19,11 @@ Current version: 0.4-dev
 Changes between 0.3 and 0.xx
 ----------------------------
 
+  *) Remove mention of README.API and README.TOOLS from the README, because
+     they are not bundled into source distributions. Instead mention the
+     documents contained in the doc/ directory.
+     [Geoff Thorpe]
+
   *) More fixes to improve the usefulness of "make dist[-bzip2]";
      - a Makefile for ./devel/ to install useful files,
      - pod files in ./doc/ should be installed too,

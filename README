@@ -59,12 +59,14 @@ you're looking for;
      Explains how to compile and install elements of the 'distcache' package.
  o LICENSE:
      The text of the LGPL ("Lesser GNU Public License").
- o README.API
-     Basic information about programming with the 'distcache' libraries until
-     such time as there are better docs available (ie. man pages).
- o README.TOOLS
-     Basic usage information about the executable programs built in the
-     'distcache' package.
+ o documentation:
+     The files contained in the doc/ sub-directory provide documentation for
+     the distcache architecture itself, the utilities, and the APIs provided
+     for developers. The original "pod" documents are used to generate the man
+     pages and html files, the latter should be installed automatically during
+     "make install". To read the man pages directly from the source tree,
+     provide the path to the man page to the 'man' utility, eg;
+        # man ./doc/distcache.8
 
 For information about ongoing development, up-to-date source code, etc, please
 go the home page(s);
