@@ -251,9 +251,9 @@ static int do_server(const char *address, unsigned int max_sessions,
 	if((sockowner || sockgroup) && !NAL_LISTENER_set_fs_owner(listener,
 						sockowner, sockgroup))
 		SYS_fprintf(SYS_stderr, "Warning, can't set socket ownership "
-				"to uid='%s'/gid='%s', continuing anyway\n",
-				sockowner ? sockowner : "(null)",
-				sockgroup ? sockgroup : "(null)");
+			"to user '%s' and group '%s', continuing anyway\n",
+			sockowner ? sockowner : "(null)",
+			sockgroup ? sockgroup : "(null)");
 	if(sockperms && !NAL_LISTENER_set_fs_perms(listener, sockperms))
 		SYS_fprintf(SYS_stderr, "Warning, can't set socket permissions "
 				"to '%s', continuing anyway\n", sockperms);
