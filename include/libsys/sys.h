@@ -17,8 +17,8 @@
  * along with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#ifndef HEADER_LIBNAL_COMMON_H
-#define HEADER_LIBNAL_COMMON_H
+#ifndef HEADER_LIBSYS_SYS_H
+#define HEADER_LIBSYS_SYS_H
 
 #ifdef WIN32
 
@@ -363,5 +363,5 @@ int SYS_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
 		const struct timeval *timenow);
 unsigned long SYS_msecs_between(const struct timeval *a, const struct timeval *b);
 
-#endif /* !defined(HEADER_LIBNAL_COMMON_H) */
+#endif /* !defined(HEADER_LIBSYS_SYS_H) */
 

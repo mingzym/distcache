@@ -21,7 +21,7 @@
  * the *real* stdin, stdout, fprintf, etc. */
 #define IN_STREAMS_C
 
-#include <libnal/common.h>
+#include <libsys/sys.h>
 
 #if SYS_DEBUG_LEVEL > 2
 

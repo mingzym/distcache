@@ -19,7 +19,7 @@
  */
 #define IN_SYS_C
 
-#include <libnal/common.h>
+#include <libsys/sys.h>
 
 #ifdef WIN32
 

@@ -19,7 +19,7 @@
  */
 #define IN_MEM_C
 
-#include <libnal/common.h>
+#include <libsys/sys.h>
 
 #if SYS_DEBUG_LEVEL > 2
 

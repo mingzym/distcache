@@ -24,6 +24,9 @@ Changes between 0.4pre2 and x.x
      new library, libsys.a, that is not installed but is linked into the
      distcache executables. The names for these macros and functions have also
      been renamed from "nal" or "NAL" prefixes to "sys" and "SYS" respectively.
+     Similarly, the source code has been moved out of the libnal/ directory
+     into a new directory, libsys/, and the libnal/common.h header has been
+     moved to libsys/sys.h.
      [Geoff Thorpe]
 
   *) Remove unnused stream-hacking functions from libnal, this should have been

@@ -52,6 +52,7 @@ AC_CONFIG_FILES([Makefile
 		 libdistcache/Makefile
 		 libdistcacheserver/Makefile
 		 libnal/Makefile
+		 libsys/Makefile
 		 sessclient/Makefile
 		 sessserver/Makefile
 		 snoop/Makefile
@@ -60,6 +61,7 @@ AC_CONFIG_FILES([Makefile
 		 include/Makefile
 		 include/distcache/Makefile
 		 include/libnal/Makefile
+		 include/libsys/Makefile
 		 devel/Makefile
 		 devel/mandrake.spec])
 AC_OUTPUT

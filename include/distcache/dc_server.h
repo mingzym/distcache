@@ -20,8 +20,8 @@
 #ifndef HEADER_DISTCACHE_DC_SERVER_H
 #define HEADER_DISTCACHE_DC_SERVER_H
 
-#ifndef HEADER_LIBNAL_COMMON_H
-#error "Must include 'libnal/common.h' prior to 'distcache/dc_server.h'"
+#ifndef HEADER_LIBSYS_SYS_H
+#error "Must include 'libsys/sys.h' prior to 'distcache/dc_server.h'"
 #endif
 
 /* Boundaries on input. Function callers should observe these limits as the

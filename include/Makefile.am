@@ -1,3 +1,3 @@
 EXTRA_DIST	= README.includes
 
-SUBDIRS		= libnal distcache
+SUBDIRS		= libsys libnal distcache
