@@ -8,24 +8,9 @@
 
 #set -x
 
-# Due to breakage in "make dist" for some versions of automake/autoconf, we now
-# put all the autoconf sludge in the top-level directory.
-#if [ ! -d config ]; then
-#	mkdir config
-#fi
-
 aclocal
 autoheader
-
-# Work around for a bug in libtoolize versions up to and including 1.4.2.
-# libtoolize will look for 'AC_CONFIG_AUX_DIR' in configure.in, even though
-# it's aware that configure.ac exists. NOTE: COMMENTED-OUT, see above point
-# about "make dist"
-#echo > 'configure.in' `grep '^AC_CONFIG_AUX_DIR' configure.ac`
 libtoolize --copy --automake
-# Remove the temporary file.
-#rm -f 'configure.in'
-
 automake --foreign --add-missing --copy
 autoconf
 

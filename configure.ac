@@ -39,9 +39,6 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gettimeofday memmove memset select socket strstr strtoul])
 AC_CHECK_FUNCS([daemon])
 
-# Find out where OpenSSL is
-#DISTCACHE_WITH_SSL
-
 # This makes sure "@VERSION@" can be used in Makefile.am's for things like
 # pod2man. I've noticed that some versions of autoconf (or automake?) don't
 # define this, the following trick seems to fix that.

@@ -24,11 +24,6 @@ rm -f depcomp
 rm -f install-sh ltmain.sh missing mkinstalldirs
 rm -f stamp-h.in
 
-# If the config/ directory exists, blow it away
-#if [ -d config ]; then
-#	rm -rf config/
-#fi
-
 # Residual backup files and what-not
 find . -type f -name "*~" | xargs rm -f
 find . -type f -name "*.bak" | xargs rm -f
