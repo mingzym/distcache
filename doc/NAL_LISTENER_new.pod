@@ -1,0 +1,175 @@
+=pod
+
+=head1 NAME
+
+NAL_LISTENER_new, NAL_LISTENER_free, NAL_LISTENER_create, NAL_LISTENER_accept_block, NAL_LISTENER_accept, NAL_LISTENER_address - libnal listener functions
+
+=head1 SYNOPSIS
+
+ #include <libnal/nal.h>
+
+ NAL_LISTENER *	NAL_LISTENER_new(void);
+ void NAL_LISTENER_free(NAL_LISTENER *a);
+ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr);
+ int NAL_LISTENER_accept_block(const NAL_LISTENER *list, NAL_CONNECTION *conn);
+ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
+                         NAL_CONNECTION *conn);
+ const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list);
+
+=head1 DESCRIPTION
+
+NAL_LISTENER_new() allocates and initialises a new B<NAL_LISTENER> object.
+
+NAL_LISTENER_free() destroys a B<NAL_LISTENER> object.
+
+NAL_LISTENER_create() will attempt to create and bind a listener to the address
+represented by B<addr>. Semantics of how this binding works with respect to
+exclusion of other listeners depends on the transport and host system.
+Generally, libnal should follow the standard behaviour of the underlying
+system.
+
+NAL_LISTENER_accept_block() will wait until an incoming connection request
+arrives on the listener B<list> and B<conn> will represent the accepted
+connection. See L</NOTES>.
+
+NAL_LISTENER_accept() will not block waiting for incoming connection requests,
+but will accept any pending connection request that had already been identified by
+a previous call to NAL_SELECTOR_select(2) on B<sel>. See L</NOTES>.
+
+NAL_LISTENER_address() returns a pointer to B<list>'s internal copy of the
+B<NAL_ADDRESS> object that it was created from.
+
+=head1 RETURN VALUES
+
+NAL_LISTENER_new() returns a valid B<NAL_LISTENER> object on success, NULL
+otherwise.
+
+NAL_LISTENER_free() has no return value.
+
+NAL_LISTENER_address() returns a pointer to B<conn>'s internal copy of the
+B<NAL_ADDRESS> object that it was created from (which should not be manipulated
+or destroyed by the caller), or NULL for failure.
+
+All other B<NAL_LISTENER> functions return zero for failure, and non-zero for
+success. In the case of NAL_LISTENER_accept(), `failure' can also means that no
+incoming connection was available to be accepted.
+
+=head1 NOTES
+
+The B<conn> object provided to NAL_LISTENER_accept() and
+NAL_LISTENER_accept_block() should be unused otherwise the function will fail.
+
+Even with NAL_LISTENER_accept_block(), the function can fail indicating that no
+connection was accepted. This could happen, for example, if the blocking
+function is interrupted by a signal before the arrival of any connection, or if
+there were any other kinds of networking/system errors.
+
+NAL_LISTENER_accept() will return immediately, and will only succeed if B<list>
+had already been added to the selector B<sel>, B<sel> had already been selected
+using NAL_SELECTOR_select(2), and there is already an incoming connection
+request waiting on B<list>. In non-blocking applications, this function is
+recommended over NAL_LISTENER_accept_block().
+
+=head1 EXAMPLES
+
+A typical state-machine implementation that processes up to 10 connections at a
+time from a listener is illustrated here (without error-checking);
+
+    NAL_CONNECTION *conn[10];
+    int loop, conns_used = 0;
+    NAL_SELECTOR *sel = NAL_SELECTOR_new();
+    NAL_LISTENER *list = NAL_LISTENER_new();
+    NAL_ADDRESS *addr = retrieve_the_desired_address();
+
+    /* Setup */
+    list = NAL_LISTENER_create(list, addr);
+    conn[0] = NAL_CONNECTION_new();
+    ...
+    conn[9] = NAL_CONNECTION_new();
+
+ loop:
+    /* select for active connections and 'list' if we aren't full */
+    if(conns_used < 10) NAL_SELECTOR_add_listener(sel, list);
+    for(loop = 0; loop < conns_used; loop++)
+        NAL_SELECTOR_add_conn(sel, conn[loop]);
+    /* block on (relevant) network events */
+    NAL_SELECTOR_select(sel);
+    /* process active connections */
+    for(loop = 0; loop < conns_used; loop++) {
+        if(!NAL_CONNECTION_io(conn[loop], sel)) {
+ user_disconnect:
+            /* connection broken */
+            NAL_CONNECTION_free(conn[loop]);
+            /* shift the array left (if necessary) */
+            if(loop < --conns_used)
+                memmove(conn + loop, conn + (loop + 1),
+                    (conns_used - loop) * sizeof(NAL_CONNECTION *));
+            /* Recreate the empty connection slot */
+            conn[conns_used] = NAL_CONNECTION_new();
+            /* loop shouldn't be incremented in this case */
+            loop--;
+        } else {
+            /* Do any logic required here using the connection's buffers and
+             * disconnect if desired. */
+            if(!do_user_logic(conn[loop]))
+                goto user_disconnect;
+        }
+    }
+    /* process incoming connections */
+    if(NAL_LISTENER_accept(list, sel, conn[conns_used]))
+        conns_used++;
+    /* End of loop */
+    goto loop;
+
+The complication in the above example is mostly associated with maintaining the
+array of allocated B<NAL_CONNECTION> objects, and keeping the active ones
+left-aligned in the array. A simpler example follows where it is assumed
+do_connection() is some function that will take a B<NAL_CONNECTION> object,
+start a new thread for processing it, and clean up the connection object when
+finishing;
+
+    NAL_CONNECTION *conn = NULL;
+    NAL_SELECTOR *sel = NAL_SELECTOR_new();
+    NAL_LISTENER *list = NAL_LISTENER_new();
+    NAL_ADDRESS *addr = retrieve_the_desired_address();
+
+    /* Setup */
+    list = NAL_LISTENER_create(list, addr);
+
+    while(1) {
+        if(!conn) conn = NAL_CONNECTION_new();
+        NAL_SELECTOR_add_listener(sel, list);
+        NAL_SELECTOR_select(sel);
+        if(NAL_LISTENER_accept(list, sel, conn)) {
+            /* start worker thread for 'conn' */
+            do_connection(conn);
+            /* 'conn' is used, ensure a new one is created */
+            conn = NULL;
+        }
+    }
+
+=head1 SEE ALSO
+
+L<NAL_ADDRESS_new(2)> - Functions for the NAL_ADDRESS type.
+
+L<NAL_CONNECTION_new(2)> - Functions for the NAL_CONNECTION type.
+
+L<NAL_SELECTOR_new(2)> - Functions for the NAL_SELECTOR type.
+
+L<NAL_BUFFER_new(2)> - Functions for the NAL_BUFFER type.
+
+L<distcache(8)> - Overview of the distcache architecture.
+
+F<http://www.distcache.org/> - Distcache home page.
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
+
+Home Page: F<http://www.distcache.org>
+

@@ -1,0 +1,122 @@
+=pod
+
+=head1 NAME
+
+NAL_SELECTOR_new, NAL_SELECTOR_free, NAL_SELECTOR_add_conn, NAL_SELECTOR_del_conn, NAL_SELECTOR_add_conn_ex, NAL_SELECTOR_add_listener, NAL_SELECTOR_del_listener, NAL_SELECTOR_select - libnal selector functions
+
+=head1 SYNOPSIS
+
+ #include <libnal/nal.h>
+
+ NAL_SELECTOR *NAL_SELECTOR_new(void);
+ void NAL_SELECTOR_free(NAL_SELECTOR *a);
+ int NAL_SELECTOR_add_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn);
+ int NAL_SELECTOR_del_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn);
+ int NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
+                              unsigned int flags);
+ int NAL_SELECTOR_add_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list);
+ int NAL_SELECTOR_del_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list);
+ int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
+                         int use_timeout);
+
+=head1 DESCRIPTION
+
+NAL_SELECTOR_new() allocates and initialises a new B<NAL_SELECTOR> object.
+
+NAL_SELECTOR_free() destroys a B<NAL_SELECTOR> object.
+
+NAL_SELECTOR_add_conn(), NAL_SELECTOR_del_conn() and NAL_SELECTOR_add_conn_ex()
+handle adding B<conn> to (or removing it from) the selector B<sel>. See
+L</NOTES>.
+
+NAL_SELECTOR_add_listener() and NAL_SELECTOR_del_listener() add or remove the
+listener B<list> to/from the selector B<sel>. See L</NOTES>.
+
+NAL_SELECTOR_select() blocks until the selector B<sel> receives notification of
+network events for which it has registered interest. This function blocks
+indefinitely until receipt of a network event, interruption by the system, or
+if B<use_timeout> is non-zero, then the function will break if more than
+B<usec_timeout> microseconds have passed. See L</NOTES>.
+
+=head1 RETURN VALUES
+
+NAL_SELECTOR_new() returns a valid B<NAL_SELECTOR> object on success, NULL
+otherwise.
+
+NAL_SELECTOR_free() has no return value.
+
+NAL_SELECTOR_select() returns negative for an error, otherwise it returns the
+number of connections and/or listeners that the selector has detected have
+network events waiting (which can be zero).
+
+All other B<NAL_SELECTOR> functions should only return non-zero values as
+failure is only possible if a parameter is NULL (this behaviour will also be
+removed in a future release - so functions are always assumed to succeed).
+
+=head1 NOTES
+
+The interaction of selectors and connections is as follows. When a connection
+is added to selector with NAL_SELECTOR_add_conn() the selector will; (a) always
+register the connection for I<exception> events, (b) register the connection
+for I<readability> events only if the connection's read buffer is not full, and
+(c) register the connection for I<sendability> events only if the connection's
+send buffer is not empty. NAL_SELECTOR_del_conn() unregisters a connection from
+any events it had already been registered. NAL_SELECTOR_add_conn_ex() allows
+the caller to restrict the behaviour of NAL_SELECTOR_add_conn() according to
+the following arguments for the B<flags> argument;
+
+ #define NAL_SELECT_FLAG_READ (unsigned int)0x0001
+ #define NAL_SELECT_FLAG_SEND (unsigned int)0x0002
+ #define NAL_SELECT_FLAG_RW   (NAL_SELECT_FLAG_READ | NAL_SELECT_FLAG_SEND)
+
+NAL_SELECTOR_add_conn() is equivalent to NAL_SELECTOR_add_conn_ex() with
+B<flags> set to B<NAL_SELECT_FLAG_RW>.
+
+The interaction of selectors and listeners is easier still. When a listener is
+added to a selector with NAL_SELECTOR_add_listener() the selector will register
+the listener for I<exception> and I<readability> events. A I<readability> event
+on a listener indicates a connection request. NAL_SELECTOR_del_listener()
+equally unregisters the listener from any events it had already been
+registered.
+
+The behaviour of NAL_SELECTOR_select() is what one would normally expect from a
+system select(2) function. On error, the return value is negative. Otherwise
+the return value is the number of connection and/or listener objects that have
+network events waiting for them. A return value of zero is possible if the
+function breaks before any network events have arrived, eg. if B<use_timeout>
+was specified, or if a non-blocked signal arrived. In such cases, subsequent
+calls to NAL_CONNECTION_io() and NAL_LISTENER_accept() will trivially return
+without performing any actions as the selector has no events registered for
+processing.  As such, if NAL_SELECTOR_select() returns zero, it is generally
+advised to add the connections and listeners back to the selector object and
+call NAL_SELECTOR_select() again.
+
+As with other libnal functions, `errno' is not touched so that any errors in
+the system's underlying implementations can be investigated directly by the
+calling application.
+
+=head1 SEE ALSO
+
+L<NAL_ADDRESS_new(2)> - Functions for the NAL_ADDRESS type.
+
+L<NAL_CONNECTION_new(2)> - Functions for the NAL_CONNECTION type.
+
+L<NAL_LISTENER_new(2)> - Functions for the NAL_LISTENER type.
+
+L<NAL_BUFFER_new(2)> - Functions for the NAL_BUFFER type.
+
+L<distcache(8)> - Overview of the distcache architecture.
+
+F<http://www.distcache.org/> - Distcache home page.
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
+
+Home Page: F<http://www.distcache.org>
+

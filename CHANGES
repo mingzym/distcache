@@ -19,7 +19,10 @@ Current version: x.x
 Changes between 0.4pre1 and x.x
 -------------------------------
 
-  *)
+  *) Add more API documents;
+    - NAL_LISTENER_new.pod (all NAL_LISTENER functions)
+    - NAL_SELECTOR_new.pod (all NAL_SELECTOR functions)
+    [Geoff Thorpe]
 
 Changes between 0.3 and 0.4pre1
 -------------------------------
