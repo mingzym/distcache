@@ -2,7 +2,7 @@ INCLUDES		= -I$(top_srcdir)/../include -I$(top_builddir)
 
 bin_PROGRAMS		= sslswamp
 sslswamp_SOURCES	= swamp.c text_msg.c utils.c swamp_conf.c \
-		 	  dist_pattern.c serv_iterator.c
+		 	  dist_pattern.c serv_iterator.c swamp.h
 sslswamp_LDADD		= $(top_builddir)/../libsys/libsys.a \
 			  $(top_builddir)/../libnal/libnal.a
 
