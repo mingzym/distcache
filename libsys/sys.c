@@ -105,16 +105,44 @@ int SYS_daemon(int nochdir)
 /* SIGNAL related utility code */
 /*******************************/
 
-int SYS_sigpipe_ignore(void)
+/* If SYS_sigusr_interrupt() provides a pointer, we store it here. */
+static int *gb_ptr = NULL;
+
+static void empty_handler(int foo)
+{
+	if(gb_ptr) *gb_ptr = 1;
+}
+
+static int int_sig_set(int signum, void (*handler)(int))
 {
 	struct sigaction sig;
 
-	sig.sa_handler = SIG_IGN;
+	sig.sa_handler = handler;
 	sigemptyset(&sig.sa_mask);
 	sig.sa_flags = 0;
-	if(sigaction(SIGPIPE, &sig, NULL) != 0) {
+	if(sigaction(signum, &sig, NULL) != 0)
+		return 0;
+	return 1;
+}
+
+int SYS_sigpipe_ignore(void)
+{
+	if(!int_sig_set(SIGPIPE, SIG_IGN)) {
 #if SYS_DEBUG_LEVEL > 0
 		SYS_fprintf(SYS_stderr, "Error, couldn't ignore SIGPIPE\n\n");
+#endif
+		return 0;
+	}
+	return 1;
+}
+
+int SYS_sigusr_interrupt(int *ptr)
+{
+	gb_ptr = ptr;
+	if(!int_sig_set(SIGUSR1, empty_handler) ||
+			!int_sig_set(SIGUSR2, empty_handler)) {
+#if SYS_DEBUG_LEVEL > 0
+		SYS_fprintf(SYS_stderr, "Error, couldn't ignore SIGUSR1 or SIGUSR2\n\n");
 #endif
 		return 0;
 	}

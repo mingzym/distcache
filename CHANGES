@@ -19,6 +19,17 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Added a SYS_sigusr_interrupt() function to the libsys API for use by
+     executables (can't be added to libraries). The normal response to a
+     SIGUSR1 or SIGUSR2 signal is to kill the process immediately, but by
+     handling this signal with a callback the effect is that any
+     NAL_SELECTOR_select() operation is interrupted with a negative return
+     value. NB: If the signals are SIG_IGN'd instead, the select doesn't break
+     (on linux at least), so a handler callback is required. To handle the case
+     that the signal arrives while we're not sleeping, a pointer (int *) is
+     passed that will be set to non-zero from the signal handler.
+     [Geoff Thorpe]
+
   *) Improved cleanup code in dc_test (for memory leaks).
      [Geoff Thorpe]
 

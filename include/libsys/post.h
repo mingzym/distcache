@@ -291,18 +291,8 @@ do { \
 int SYS_sockets_init(void);
 #else
 int SYS_sigpipe_ignore(void);
-#if 0	/* Redeclared as a macro for use in library code */
-pid_t SYS_getpid(void);
-#endif
+int SYS_sigusr_interrupt(int *ptr);
 int SYS_daemon(int nochdir);
-#endif
-#if 0	/* Redeclared as macros */
-void SYS_gettime(struct timeval *tv);
-int SYS_timecmp(const struct timeval *a, const struct timeval *b);
-void SYS_timecpy(struct timeval *dest, const struct timeval *src);
-/* Arithmetic on timevals. 'res' can be the same as 'I' if desired. */
-void SYS_timeadd(struct timeval *res, const struct timeval *I,
-		unsigned long msecs);
 #endif
 void SYS_timesub(struct timeval *res, const struct timeval *I,
 		unsigned long msecs);
@@ -310,6 +300,16 @@ int SYS_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
 		const struct timeval *timenow);
 unsigned long SYS_msecs_between(const struct timeval *a, const struct timeval *b);
 
+/* Redeclared as macros (for use in library code) */
+#if 0
+pid_t SYS_getpid(void);
+void SYS_gettime(struct timeval *tv);
+int SYS_timecmp(const struct timeval *a, const struct timeval *b);
+void SYS_timecpy(struct timeval *dest, const struct timeval *src);
+/* Arithmetic on timevals. 'res' can be the same as 'I' if desired. */
+void SYS_timeadd(struct timeval *res, const struct timeval *I,
+		unsigned long msecs);
+#endif
 
 #endif /* defined(SYS_GENERATING_EXE) || defined(SYS_LOCAL) */
 
