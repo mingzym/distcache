@@ -1,6 +1,6 @@
 INCLUDES		= -I$(top_srcdir)/include -I$(top_builddir)
 
-bin_PROGRAMS		= nal_echo nal_ping nal_hose nal_pong dc_test nal_test
+bin_PROGRAMS		= nal_echo nal_ping nal_hose nal_pong dc_test nal_test nal_proxy
 dc_test_SOURCES		= dc_test.c
 dc_test_LDADD		= $(top_builddir)/libsys/libsys.la \
 			  $(top_builddir)/libdistcache/libdistcache.la \
@@ -19,5 +19,8 @@ nal_hose_LDADD		= $(top_builddir)/libsys/libsys.la \
 		  	  $(top_builddir)/libnal/libnal.la
 nal_pong_SOURCES	= pong.c
 nal_pong_LDADD		= $(top_builddir)/libsys/libsys.la \
+		  	  $(top_builddir)/libnal/libnal.la
+nal_proxy_SOURCES	= proxy.c
+nal_proxy_LDADD		= $(top_builddir)/libsys/libsys.la \
 		  	  $(top_builddir)/libnal/libnal.la
 

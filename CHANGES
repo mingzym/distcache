@@ -19,6 +19,12 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Add a new 'nal_proxy' application. This configures various address pairs
+     from the command-line and will then accept connections on all the ingress
+     addresses and make outbound connections on the egress addresses. Traffic
+     is forwarded until either side disconnects.
+     [Geoff Thorpe]
+
   *) Add another libnal test, nal_pong, that plays request/response
      transactions with configurable sizes. It doesn't check payloads, and
      requires clients and servers to be set up with matching parameters, but
