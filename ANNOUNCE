@@ -13,28 +13,10 @@
                                                        -- George Orwell
 
 
-distcache release: 0.2
-----------------------
+distcache release: xx.xx
+------------------------
 
-We are pleased to announce the release of version 0.2 of the distcache package.
-For more information on what distcache is and how to use it, please see the
-README as it provides a good introduction and a guide to the other documents in
-this package.
-
-This release introduces GNU autotools into distcache's build system, namely
-autoconf, automake, and libtool. This should make building and package
-maintenance of distcache more familiar to users of other GNU-style packages.
-However, a few critical parts of distcache do not yet adequately use autoconf
-support to aid portability, so some feedback is encouraged if you have a system
-environment we can better support than we do right now.
-
-Version 0.2 is the first release made since the initial seed code (with only
-minor tidy-ups) was released as version "0.1-seed", so this represents the first
-release with active development from the distcache project itself. A basic
-version control mechanism has been introduced into distcache's binary protocol,
-and the aforementioned GNU autotools support has replaced the build system.
-Apart from that, most change since 0.1-seed consists of bug-fixes and code
-re-organisation. Please check the CHANGES file for more detail.
+[Fill in with release notes]
 
 ----------------------------------------------------------------------------
 
