@@ -55,7 +55,7 @@ AC_HELP_STRING(
 		AC_MSG_RESULT([yes])
 	else
 		AC_MSG_RESULT([no])
-		AC_MSG_ERROR([Giving up probing for OpenSSL: $ossl_not_found_reason])
+		AC_MSG_WARN([Giving up probing for OpenSSL: $ossl_not_found_reason])
 	fi
 ],
 [
@@ -90,7 +90,7 @@ AC_HELP_STRING(
 		AC_SUBST(OPENSSL_CFLAGS)
 		AC_DEFINE(HAVE_OPENSSL)
 	else
-		AC_MSG_ERROR([Probe for system OpenSSL failed: $ossl_not_found_reason])
+		AC_MSG_WARN([Probe for system OpenSSL failed: $ossl_not_found_reason])
 	fi
 ])])
 

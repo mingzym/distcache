@@ -43,7 +43,8 @@ static const unsigned long def_progress = 0;
 /* When contructing sessions with peer-certificates, we use this cert */
 #define CERT_PATH		"KEYS/A-client-nokey.pem"
 
-/* Prototypes used by main() */
+/* Prototypes */
+static void generate_random_bytes(unsigned char *buf, unsigned int num);
 static int do_client(const char *address, unsigned int num_sessions,
 			unsigned int withcert, unsigned int timeout,
 			unsigned int timevar, unsigned int tests,
@@ -215,6 +216,20 @@ int main(int argc, char *argv[])
 			ops, progress, persistent);
 }
 
+/* Generate 'num' pseudo-random bytes of a specified length, placing them in
+ * 'buf'.  If available, OpenSSL's random number generator is used. */
+static void generate_random_bytes(unsigned char *buf, unsigned int num)
+{
+#ifdef HAVE_OPENSSL
+	RAND_pseudo_bytes(buf, num);
+#else
+	int i;
+	for (i = 0; i < num; i++) {
+		buf[i] = (unsigned char)(255.0 * rand() / (RAND_MAX + 1.0));
+	}
+#endif
+}
+
 #ifdef HAVE_OPENSSL
 /* Prototype some ugliness we want to leave at the end */
 static SSL_SESSION *int_new_ssl_session(int withcert);
@@ -222,11 +237,9 @@ static SSL_SESSION *int_new_ssl_session(int withcert);
 /* Define a function to produce binary noise in place of SSL_SESSION */
 static unsigned char *int_new_noise(unsigned int len)
 {
-	unsigned int idx = 0;
 	unsigned char *ptr = NAL_malloc(unsigned char, len);
 	if(!ptr) return ptr;
-	while(idx < len)
-		ptr[idx++] = (unsigned char)(255 * rand() / (RAND_MAX + 1.0));
+	generate_random_bytes(ptr, len);
 	return ptr;
 }
 #endif
@@ -313,7 +326,7 @@ static int do_client(const char *address, unsigned int num_sessions,
 		unsigned long t;
 		unsigned int c[3];
 		/* Pick a random session and a random add/remove/get */
-		RAND_pseudo_bytes((unsigned char *)c, sizeof(unsigned int) * 3);
+		generate_random_bytes((unsigned char *)c, sizeof(c));
 		s = c[0] % num_sessions;
 		op = c[1] % 4;
 		switch(op) {
