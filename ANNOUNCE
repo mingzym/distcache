@@ -13,26 +13,10 @@
                                                        -- George Orwell
 
 
-distcache release: 0.1-seed
----------------------------
+distcache release: xx.xx
+------------------------
 
-The seed code to distcache was derived from commercial code belonging to
-Cryptographic Appliances who gave permission for it to be open-sourced under an
-LGPL license. This 0.1-seed release is to allow this initial code to be reviewed
-and tested by those who have an interest in distributed session caching, eg. for
-SSL/TLS.
-
-More information can be found from the README (and the other files that the
-README document refers to), but one important note needs to be made about this
-release - there should be no expectation, implied or construed, that the
-protocol implemented in this release will interoperate with any future distcache
-release. Version checking and other handshaking measures are currently being
-reviewed to ensure that successive versions can properly interoperate with one
-another (or gracefully refuse with version-related diagnositcs) - but simply the
-introduction of such measures will break interoperability with the protocol
-implemented in this 0.1-seed release.
-
-In short, this is a proof-of-concept release.
+[fill in with release-specific information]
 
 Please bookmark the distcache home page and check back from time to time, and/or
 subscribe to one or more of the email lists mentioned on the site;
