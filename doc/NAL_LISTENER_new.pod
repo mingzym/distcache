@@ -17,6 +17,12 @@ NAL_LISTENER_new, NAL_LISTENER_free, NAL_LISTENER_create - libnal listener funct
  void NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
                                      NAL_SELECTOR *sel);
 
+ int NAL_LISTENER_set_fs_owner(NAL_LISTENER *list,
+                               const char *ownername,
+                               const char *groupname);
+ int NAL_LISTENER_set_fs_perms(NAL_LISTENER *list,
+                               const char *octal_string);
+
 =head1 DESCRIPTION
 
 NAL_LISTENER_new() allocates and initialises a new B<NAL_LISTENER> object.
@@ -39,6 +45,15 @@ system.
 NAL_LISTENER_add_to_selector() registers B<list> with the selector B<sel> for
 any events relevant to it. NAL_LISTENER_del_from_selector() can be used to
 reverse this if called before any subsequent call to NAL_SELECTOR_select().
+
+NAL_LISTENER_set_fs_owner() and NAL_LISTENER_set_fs_perms() will only have
+meaning to listener objects created for address types that use the file-system
+(unix domain sockets). If B<ownername> is non-NULL, the owner of the socket
+file is changed to the supplied user name. If B<groupname> is non-NULL, the
+group of the socket file is changed to the supplied group name, and otherwise
+the group may be changed to the default group of the user B<ownername>.
+B<octal_string> is a base-8 number in string form specifying the permission
+flags to apply to the socket file, such as "660" for example.
 
 =head1 RETURN VALUES
 

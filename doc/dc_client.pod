@@ -39,6 +39,17 @@ standard file-descriptors, etc. If this flag is not set, B<dc_client> will run i
 the foreground. It is recommended to use this flag in combination with the
 I<pidfile> flag to simplify stopping and restarting services.
 
+=item B<-user> user
+
+This switch will attempt to change user privileges of B<dc_client> to the given
+user ID after initialising its listening socket. On most systems, this can only
+work if B<dc_client> is started as the I<root> user. It is important to note
+that the change of user ID occurs after the listening socket is created but
+before any attempts are made to connect to distcache servers. This ensures that
+the listening socket is created with the most restrictive permissions, and that
+the ability to connect to servers at run-time corresponds to the given user
+(rather than having unusual root permissions on startup).
+
 =item B<-listen> address
 
 Configures the address on which B<dc_client> should listen for incoming
