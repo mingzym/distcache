@@ -19,6 +19,10 @@ Current version: xx.xx
 Changes between 0.2 and xx.xx
 -----------------------------
 
+  *) Rename "test_session" to "dc_test" to keep with the naming convention
+     for all utilities.
+     [Geoff Thorpe]
+
   *) Tidy up the "bootstrap.sh" script and add support for two built-in gcc
      configurations. If the PRECONF environment variable is set, then the
      bootstrap script will automatically invoke "./configure" with preset
