@@ -715,12 +715,19 @@ void NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
 NAL_CONNECTION *NAL_CONNECTION_new(void)
 {
 	NAL_CONNECTION *conn = SYS_malloc(NAL_CONNECTION, 1);
+	if(!conn) return NULL;
+	conn->read = NAL_BUFFER_new();
+	conn->send = NAL_BUFFER_new();
+	if(!conn->read || !conn->send) {
+		if(conn->read) NAL_BUFFER_free(conn->read);
+		if(conn->send) NAL_BUFFER_free(conn->send);
+		SYS_free(NAL_CONNECTION, conn);
+		return NULL;
+	}
 	if(conn) {
 		nal_address_init(&conn->addr);
 		conn->fd = -1;
 		conn->established = 0;
-		nal_buffer_init(&conn->read);
-		nal_buffer_init(&conn->send);
 	}
 	return conn;
 }
@@ -728,11 +735,10 @@ NAL_CONNECTION *NAL_CONNECTION_new(void)
 void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 {
 	int_close(&conn->fd);
-	/* clear the buffers */
-	if(!NAL_CONNECTION_set_size(conn, 0)) {
-		assert(NULL == "NAL_CONNECTION_set_size(,0) failed during cleanup\n");
-	}
-	/* good aggregation programming practice. :-) */
+	/* destroy the buffers */
+	NAL_BUFFER_free(conn->read);
+	NAL_BUFFER_free(conn->send);
+	/* good (unnecessary) aggregation programming practice. :-) */
 	nal_address_close(&conn->addr);
 	SYS_free(NAL_CONNECTION, conn);
 }
@@ -822,7 +828,7 @@ int NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
 		return 0;
 	/* We only use one buffer, so only expand one */
-	if(!NAL_BUFFER_set_size(&conn->read, def_buffer_size))
+	if(!NAL_BUFFER_set_size(conn->read, def_buffer_size))
 		return 0;
 	/* Mark ourselves with that *special something* that is a dummy
 	 * connection. Basically, you read and write into the same buffer, there
@@ -838,8 +844,9 @@ int NAL_CONNECTION_set_size(NAL_CONNECTION *conn, unsigned int size)
 {
 	if(!int_check_buffer_size(size))
 		return 0;
-	if(!NAL_BUFFER_set_size(&conn->read, size) ||
-			!NAL_BUFFER_set_size(&conn->send, size)) {
+	if(!NAL_BUFFER_set_size(conn->read, size) ||
+			((conn->addr.family != NAL_ADDRESS_TYPE_DUMMY) &&
+				!NAL_BUFFER_set_size(conn->send, size))) {
 #if SYS_DEBUG_LEVEL > 1
 		SYS_fprintf(SYS_stderr, "Error, couldn't set buffer sizes\n");
 #endif
@@ -850,7 +857,7 @@ int NAL_CONNECTION_set_size(NAL_CONNECTION *conn, unsigned int size)
 
 NAL_BUFFER *NAL_CONNECTION_get_read(NAL_CONNECTION *conn)
 {
-	return &conn->read;
+	return conn->read;
 }
 
 NAL_BUFFER *NAL_CONNECTION_get_send(NAL_CONNECTION *conn)
@@ -858,14 +865,14 @@ NAL_BUFFER *NAL_CONNECTION_get_send(NAL_CONNECTION *conn)
 	/* A "dummy" connection reads and writes into the same buffer, so handle
 	 * this special case. */
 	if(conn->fd == -2)
-		return &conn->read;
-	return &conn->send;
+		return conn->read;
+	return conn->send;
 }
 
 /* "const" versions of the above */
 const NAL_BUFFER *NAL_CONNECTION_get_read_c(const NAL_CONNECTION *conn)
 {
-	return &conn->read;
+	return conn->read;
 }
 
 const NAL_BUFFER *NAL_CONNECTION_get_send_c(const NAL_CONNECTION *conn)
@@ -873,8 +880,8 @@ const NAL_BUFFER *NAL_CONNECTION_get_send_c(const NAL_CONNECTION *conn)
 	/* A "dummy" connection reads and writes into the same buffer, so handle
 	 * this special case. */
 	if(conn->fd == -2)
-		return &conn->read;
-	return &conn->send;
+		return conn->read;
+	return conn->send;
 }
 
 /* If this function returns zero (failure), then it is a bad thing and means
@@ -900,7 +907,7 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 #if SYS_DEBUG_LEVEL > 1
 	/* We shouldn't have selected on readability if there's no space to
 	 * read into. */
-	if((flags & SELECTOR_FLAG_READ) && NAL_BUFFER_full(&conn->read))
+	if((flags & SELECTOR_FLAG_READ) && NAL_BUFFER_full(conn->read))
 		abort();
 #endif
 	/* If we're waiting on a non-blocking connect, hook the test here */
@@ -938,18 +945,18 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 	else {
 		/* If we weren't waiting a non-blocking connect, then
 		 * sendability should only happen when there's data to send. */
-		if((flags & SELECTOR_FLAG_SEND) && NAL_BUFFER_empty(&conn->send))
+		if((flags & SELECTOR_FLAG_SEND) && NAL_BUFFER_empty(conn->send))
 			abort();
 	}
 #endif
 	if(flags & SELECTOR_FLAG_READ) {
-		io_ret = int_buffer_from_fd(&conn->read, conn->fd, max_read);
+		io_ret = int_buffer_from_fd(conn->read, conn->fd, max_read);
 		if(io_ret <= 0)
 			/* (<0) --> error, (==0) --> clean disconnect */
 			goto closing;
 	}
 	if(flags & SELECTOR_FLAG_SEND) {
-		io_ret = int_buffer_to_fd(&conn->send, conn->fd, max_send);
+		io_ret = int_buffer_to_fd(conn->send, conn->fd, max_send);
 		if(io_ret < 0)
 			/* error */
 			goto closing;
@@ -965,9 +972,9 @@ ok:
 	return 1;
 closing:
 #if SYS_DEBUG_LEVEL > 2
-	if(NAL_BUFFER_notempty(&conn->send))
+	if(NAL_BUFFER_notempty(conn->send))
 		SYS_fprintf(SYS_stderr, "Warn, connection closing with unsent data\n");
-	else if(NAL_BUFFER_notempty(&conn->read))
+	else if(NAL_BUFFER_notempty(conn->read))
 		SYS_fprintf(SYS_stderr, "Warn, connection closing with received data\n");
 	else
 		SYS_fprintf(SYS_stderr, "Info, connection with empty buffers will close\n");
@@ -995,8 +1002,8 @@ void NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
 {
 	if(conn->fd < 0) return;
 	nal_selector_fd_set(sel, conn->fd,
-		(NAL_BUFFER_notfull(&conn->read) ? SELECTOR_FLAG_READ : 0) |
-		(NAL_BUFFER_notempty(&conn->send) ? SELECTOR_FLAG_SEND : 0) |
+		(NAL_BUFFER_notfull(conn->read) ? SELECTOR_FLAG_READ : 0) |
+		(NAL_BUFFER_notempty(conn->send) ? SELECTOR_FLAG_SEND : 0) |
 		SELECTOR_FLAG_EXCEPT);
 }
 

@@ -25,16 +25,23 @@
 #include "nal_internal.h"
 #include <libsys/post.h>
 
-/********************/
-/* BUFFER FUNCTIONS */
-/********************/
+/* Define the NAL_BUFFER structure */
 
-void nal_buffer_init(NAL_BUFFER *buf)
+struct st_NAL_BUFFER {
+	unsigned char *data;
+	unsigned int used, size;
+};
+
+/**********************/
+/* internal functions */
+/**********************/
+
+static void nal_buffer_init(NAL_BUFFER *buf)
 {
 	SYS_zero(NAL_BUFFER, buf);
 }
 
-int nal_buffer_close(NAL_BUFFER *buf)
+static int nal_buffer_close(NAL_BUFFER *buf)
 {
 	if(buf == NULL)
 		return 0;
@@ -43,6 +50,10 @@ int nal_buffer_close(NAL_BUFFER *buf)
 	nal_buffer_init(buf);
 	return 1;
 }
+
+/********************/
+/* BUFFER FUNCTIONS */
+/********************/
 
 NAL_BUFFER *NAL_BUFFER_new(void)
 {

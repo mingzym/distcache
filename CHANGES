@@ -33,7 +33,8 @@ Changes between 1.4.1 and x.x
        functions - unecessary complexity.
      - updated documentation for the above changes and tried to improve
        clarity in the process.
-     - minor tidy-ups
+     - NAL_CONNECTION now dynamically allocates its NAL_BUFFER buffers.
+     - minor tidy-ups and bug-fixes
      [Geoff Thorpe]
 
   *) Put libtool in charge of compilation and linking again and, by default,

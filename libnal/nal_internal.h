@@ -51,16 +51,6 @@
 #define NAL_BUFFER_MAX_SIZE  32768
 #define int_check_buffer_size(sz) (((sz) > NAL_BUFFER_MAX_SIZE) ? 0 : 1)
 
-struct st_NAL_BUFFER {
-	unsigned char *data;
-	unsigned int used, size;
-};
-/* These functions used to be exposed but for encapsulation reasons have been
- * made private. Pre-declaring them here makes the order of function
- * implementations less restrictive. */
-void nal_buffer_init(NAL_BUFFER *list);
-int nal_buffer_close(NAL_BUFFER *list);
-
 /* Builtin transport types */
 typedef enum {
 	NAL_ADDRESS_TYPE_NULL = 0,/* invalid */
@@ -136,8 +126,8 @@ struct st_NAL_CONNECTION {
 	 * the "NAL_CONNECTION_is_established()" function and should bear this
 	 * quirk in mind. */
 	int established;
-	/* Read and send buffers */
-	NAL_BUFFER read, send;
+	/* Read and send buffers. */
+	NAL_BUFFER *read, *send;
 };
 
 /********************************************/
