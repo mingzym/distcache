@@ -19,6 +19,11 @@ Current version: x.x
 Changes between 0.4 and x.x
 ---------------------------
 
+  *) Bundle CA.pem and A-client.pem into the sslswamp directory (and RPM). These
+     are also installed in the appropriate location and the sslswamp executable
+     is compiled to find CA.pem automatically.
+     [Geoff Thorpe, with some Makefile.am hints from Steve Robb]
+
   *) Modifications to the RPM spec file;
      - Build sslswamp and package it in its own RPM file (distcache-sslswamp).
      - Use the "%configure" RPM macro rather than calling "./configure"

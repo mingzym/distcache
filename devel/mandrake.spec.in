@@ -184,6 +184,7 @@ rm -rf $RPM_BUILD_ROOT
 %files sslswamp
 %{_mandir}/man1/s*.1*
 %{_bindir}/s*
+%{_datadir}/swamp/*.pem
 
 #########
 # Changes
