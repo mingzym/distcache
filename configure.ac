@@ -30,6 +30,7 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gettimeofday memmove memset select socket strstr strtoul])
+AC_CHECK_FUNCS([daemon])
 
 AC_CHECK_LIB(dl, dlopen)
 AC_CHECK_LIB(nsl, gethostent)

@@ -51,7 +51,7 @@ pid_t NAL_getpid(void)
 
 int NAL_daemon(int nochdir)
 {
-#ifdef NO_DAEMON_FN
+#ifndef HAVE_DAEMON
 	NAL_fprintf(NAL_stderr(), "Error, this platform doesn't have daemon()\n");
 	return 0;
 #else
