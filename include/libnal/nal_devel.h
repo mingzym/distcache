@@ -77,6 +77,10 @@ struct st_NAL_LISTENER_vtable {
 	void (*selector_add)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
 	void (*selector_del)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
 	int (*finished)(const NAL_LISTENER *l);
+	/* Extensions that may not be meaningful, case-by-case */
+	int (*set_fs_owner)(NAL_LISTENER *l, const char *ownername,
+				const char *groupname);
+	int (*set_fs_perms)(NAL_LISTENER *l, const char *octal_string);
 };
 int nal_listener_set_vtable(NAL_LISTENER *l, const NAL_LISTENER_vtable *vtable);
 const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *l);

@@ -176,3 +176,23 @@ int NAL_LISTENER_finished(const NAL_LISTENER *list)
 	if(list->vt) return list->vt->finished(list);
 	return 0;
 }
+
+/* Specialised functions - these should verify that the vtable has a non-NULL
+ * handler, as not all vtable's support these. */
+
+int NAL_LISTENER_set_fs_owner(NAL_LISTENER *list,
+				const char *ownername,
+				const char *groupname)
+{
+	if(list->vt && list->vt->set_fs_owner)
+		return list->vt->set_fs_owner(list, ownername, groupname);
+	return 0;
+}
+
+int NAL_LISTENER_set_fs_perms(NAL_LISTENER *list,
+				const char *octal_string)
+{
+	if(list->vt && list->vt->set_fs_perms)
+		return list->vt->set_fs_perms(list, octal_string);
+	return 0;
+}

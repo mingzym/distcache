@@ -64,6 +64,9 @@ static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l,
 static void list_selector_add(const NAL_LISTENER *l, NAL_SELECTOR *sel);
 static void list_selector_del(const NAL_LISTENER *l, NAL_SELECTOR *sel);
 static int list_finished(const NAL_LISTENER *l);
+static int list_set_fs_owner(NAL_LISTENER *l, const char *ownername,
+				const char *groupname);
+static int list_set_fs_perms(NAL_LISTENER *l, const char *octal_string);
 /* This is the type we attach to our listeners */
 typedef struct st_list_ctx {
 	int fd;
@@ -78,7 +81,9 @@ static const NAL_LISTENER_vtable list_vtable = {
 	list_pre_accept,
 	list_selector_add,
 	list_selector_del,
-	list_finished
+	list_finished,
+	list_set_fs_owner,
+	list_set_fs_perms
 };
 
 /* Predeclare the connection functions */
@@ -291,12 +296,26 @@ static int list_finished(const NAL_LISTENER *l)
 	return 0;
 }
 
+static int list_set_fs_owner(NAL_LISTENER *l, const char *ownername,
+				const char *groupname)
+{
+	list_ctx *ctx = nal_listener_get_vtdata(l);
+	return nal_fd_fchown(ctx->fd, ownername, groupname);
+}
+
+static int list_set_fs_perms(NAL_LISTENER *l, const char *octal_string)
+{
+	list_ctx *ctx = nal_listener_get_vtdata(l);
+	return nal_fd_fchmod(ctx->fd, octal_string);
+}
+
 /******************************************/
 /* Implementation of conn_vtable handlers */
 /******************************************/
 
 /* internal function shared by conn_connect and conn_accept */
-static int conn_ctx_setup(conn_ctx *ctx_conn, int fd, int established, unsigned int buf_size)
+static int conn_ctx_setup(conn_ctx *ctx_conn, int fd, int established,
+				unsigned int buf_size)
 {
 	if(!NAL_BUFFER_set_size(ctx_conn->b_read, buf_size) ||
 			!NAL_BUFFER_set_size(ctx_conn->b_send, buf_size))

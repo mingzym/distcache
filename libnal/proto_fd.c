@@ -78,12 +78,14 @@ static const NAL_LISTENER_vtable list_vtable = {
 	sizeof(list_ctx),
 	list_on_create,
 	list_on_destroy,
-	list_on_destroy, /* destroy==reset */
+	list_on_destroy, /* reset==destroy */
 	list_listen,
 	list_pre_accept,
 	list_selector_add,
 	list_selector_del,
-	list_finished
+	list_finished,
+	NULL, /* set_fs_owner */
+	NULL  /* set_fs_perms */
 };
 
 /* Predeclare the connection functions */

@@ -66,9 +66,9 @@ int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
 				unsigned long usec_timeout,
 				int use_timeout);
 
-/**********************/
-/* Listener functions */
-/**********************/
+/********************************/
+/* Listener functions (general) */
+/********************************/
 
 NAL_LISTENER *	NAL_LISTENER_new(void);
 void		NAL_LISTENER_free(NAL_LISTENER *list);
@@ -80,6 +80,16 @@ void		NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
 void		NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel);
 int		NAL_LISTENER_finished(const NAL_LISTENER *list);
+
+/************************************/
+/* Listener functions (specialised) */
+/************************************/
+
+int		NAL_LISTENER_set_fs_owner(NAL_LISTENER *list,
+				const char *ownername,
+				const char *groupname);
+int		NAL_LISTENER_set_fs_perms(NAL_LISTENER *list,
+				const char *octal_string);
 
 /**********************************/
 /* Connection functions (general) */
