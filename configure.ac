@@ -27,6 +27,7 @@ AC_HEADER_TIME
 
 # Checks for system libraries
 AC_CHECK_LIB(dl, dlopen)
+AC_CHECK_LIB(dld, shl_load)
 AC_CHECK_LIB(nsl, gethostent)
 AC_CHECK_LIB(socket, socket)
 
