@@ -27,7 +27,13 @@ As for installation, that's also rather easy.
 
 There is currently experimental support for producing source and binary RPM
 packages. The ".spec" file for doing this is in the ./devel/ directory and
-contains comments that can be read to get help with building RPMs.
+contains comments that can be read to get help with building RPMs. Note, this
+has been obsoleted and will be removed in a future version. Already Redhat and
+Mandrake have RPM packaging for distcache available (though whether these are
+in all variations or not is unknown), and one should look to such vendors and
+others for properly integrated packaging. In other cases, the "./configure &&
+make install" route is advised as it will typically install in /usr/local/ to
+avoid smashing package-based tools.
 
 Something more useful
 ---------------------
