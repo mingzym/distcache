@@ -271,14 +271,19 @@ int main(int argc, char *argv[])
 		timeout = 20000;
 
 main_loop:
-	/* If our "conn" is NULL, malloc it (an accepted connection gets
-	 * consumed by the resulting "plug" so we need to alloc it again each
-	 * time). */
-	if(!conn && ((conn = NAL_CONNECTION_new()) == NULL)) {
-		SYS_fprintf(SYS_stderr, "Error, connection couldn't be created!!\n");
-		goto err;
+	if(NAL_LISTENER_finished(listener)) {
+		if(clients_empty(clients))
+			goto end;
+	} else {
+		/* If our "conn" is NULL, malloc it (an accepted connection gets
+		 * consumed by the resulting "plug" so we need to alloc it again each
+		 * time). */
+		if(!conn && ((conn = NAL_CONNECTION_new()) == NULL)) {
+			SYS_fprintf(SYS_stderr, "Error, connection couldn't be created!!\n");
+			goto err;
+		}
+		if(conn) NAL_LISTENER_add_to_selector(listener, sel);
 	}
-	if(conn) NAL_LISTENER_add_to_selector(listener, sel);
 	clients_to_selector(clients, sel);
 	server_to_selector(server, sel, multiplexer, clients, &now);
 	if(!killable || !got_signal)
@@ -303,7 +308,8 @@ main_loop:
 	/* Set a "now" value that can be used throughout this post-select loop
 	 * (saving on redundant calls to gettimeofday()). */
 	SYS_gettime(&now);
-	if(conn && NAL_CONNECTION_accept(conn, listener, sel)) {
+	if(!NAL_LISTENER_finished(listener) && conn && NAL_CONNECTION_accept(
+						conn, listener, sel)) {
 		if(!clients_new_client(clients, conn, &now)) {
 			SYS_fprintf(SYS_stderr, "Error, couldn't add in new "
 				"client connection - dropping it.\n");

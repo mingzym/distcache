@@ -424,3 +424,8 @@ int DC_SERVER_clients_io(DC_SERVER *ctx, NAL_SELECTOR *sel,
 	}
 	return 1;
 }
+
+int DC_SERVER_clients_empty(const DC_SERVER *ctx)
+{
+	return !ctx->clients_used;
+}

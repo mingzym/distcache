@@ -219,7 +219,7 @@ static int do_server(const char *address, unsigned int max_sessions,
 	/* If we're going daemon() mode, do it now */
 	if(daemon_mode) {
 		/* working directory becomes "/" */
-		/* stdin/stdout/stdout -> /dev/null */
+		/* stdin/stdout/stderr -> /dev/null */
 		if(!SYS_daemon(0)) {
 			SYS_fprintf(SYS_stderr, "Error, couldn't detach!\n");
 			return 1;
@@ -240,12 +240,20 @@ static int do_server(const char *address, unsigned int max_sessions,
 	/* Set "last_now" to the current-time */
 	SYS_gettime(&last_now);
 network_loop:
-	if(!conn) {
-		conn = NAL_CONNECTION_new();
-		if(!conn)
+	if(NAL_LISTENER_finished(listener)) {
+		if(DC_SERVER_clients_empty(server)) {
+			/* Clean shutdown */
+			ret = 0;
 			goto err;
+		}
+	} else {
+		if(!conn) {
+			conn = NAL_CONNECTION_new();
+			if(!conn)
+				goto err;
+		}
+		NAL_LISTENER_add_to_selector(listener, sel);
 	}
-	NAL_LISTENER_add_to_selector(listener, sel);
 	if(!DC_SERVER_clients_to_sel(server, sel)) {
 		SYS_fprintf(SYS_stderr, "Error, selector error\n");
 		goto err;
@@ -306,7 +314,7 @@ network_loop:
 	/* Either we tripped the specified "-progress" counter, or it has been
 	 * at least 1 second since we last printed something and the number of
 	 * cached sessions or number of cache operations has changed. */
-	SYS_fprintf(SYS_stdout, "Info, total operations = %7lu  (+ %5lu), "
+	SYS_fprintf(SYS_stderr, "Info, total operations = %7lu  (+ %5lu), "
 		"total sessions = %5u  (%c%3u)\n", tmp_ops, tmp_ops - ops,
 		tmp_total, (tmp_total > total ? '+' :
 			(tmp_total == total ? '=' : '-')),
@@ -322,7 +330,8 @@ skip_totals:
 		goto err;
 	}
 	/* Now handle new connections */
-	if(NAL_CONNECTION_accept(conn, listener, sel)) {
+	if(!NAL_LISTENER_finished(listener) && NAL_CONNECTION_accept(conn,
+							listener, sel)) {
 		/* New client! */
 		if(!DC_SERVER_new_client(server, conn,
 					DC_CLIENT_FLAG_IN_SERVER))

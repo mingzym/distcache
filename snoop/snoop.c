@@ -105,8 +105,8 @@ static const char *usage_msg[] = {
 "", NULL};
 
 /* Prototypes */
-static int do_snoop(const char *addr_server, const char *addr_listen,
-			unsigned int flags);
+static void do_snoop(const char *addr_server, const char *addr_listen,
+			unsigned int flags, int *finished);
 
 static int usage(void)
 {
@@ -157,6 +157,7 @@ static int err_badswitch(const char *arg)
 
 int main(int argc, char *argv[])
 {
+	int finished = 0;
 	/* Overridables */
 	const char *addr_listen = def_listen;
 	const char *addr_server = def_server;
@@ -195,7 +196,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	return do_snoop(addr_server, addr_listen, flags);
+	do_snoop(addr_server, addr_listen, flags, &finished);
+	if(!finished)
+		/* Unclean end to proceedings, return an error status */
+		return 1;
+	/* Clean shutdown */
+	return 0;
 }
 
 /************************/
@@ -329,7 +335,7 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 			return SNOOP_PARSE_INCOMPLETE;
 		/* YES, a message! */
 #ifdef SNOOP_DBG_MSG
-		SYS_fprintf(SYS_stdout, "SNOOP_DBG_MSG: connection %d, %s, "
+		SYS_fprintf(SYS_stderr, "SNOOP_DBG_MSG: connection %d, %s, "
 			"message completed (request_uid = %lu), total_len=%d\n",
 			item->uid, SNOOP_C2S(client_to_server), m_request_uid,
 			moved);
@@ -428,17 +434,18 @@ static void snoop_ctx_to_sel(snoop_ctx *ctx)
 {
 	unsigned int loop = 0;
 	snoop_item *i = ctx->items;
-	if(ctx->items_used < SNOOP_MAX_ITEMS)
+	if(!NAL_LISTENER_finished(ctx->list) && (ctx->items_used < SNOOP_MAX_ITEMS))
 		NAL_LISTENER_add_to_selector(ctx->list, ctx->sel);
 	while(loop++ < ctx->items_used)
 		snoop_item_to_sel(i++, ctx->sel);
 }
 
-static int snoop_ctx_io(snoop_ctx *ctx)
+static int snoop_ctx_io(snoop_ctx *ctx, int *finished)
 {
 	unsigned int loop = 0;
 	snoop_item *i = ctx->items;
-	if(NAL_CONNECTION_accept(ctx->newclient, ctx->list, ctx->sel)) {
+	if(!NAL_LISTENER_finished(ctx->list) && NAL_CONNECTION_accept(
+				ctx->newclient, ctx->list, ctx->sel)) {
 		/* This assert is justified by the fact we don't add the
 		 * listener to the selector unless this is already true. */
 		assert(ctx->items_used < SNOOP_MAX_ITEMS);
@@ -449,13 +456,13 @@ static int snoop_ctx_io(snoop_ctx *ctx)
 			 * "can't-help-you-right-now" connection and hope for
 			 * better luck next time. */
 #ifdef SNOOP_DBG_CONNS
-			SYS_fprintf(SYS_stdout, "SNOOP_DBG_CONNS: failed "
+			SYS_fprintf(SYS_stderr, "SNOOP_DBG_CONNS: failed "
 					"incoming connection\n");
 #endif
 			NAL_CONNECTION_free(ctx->newclient);
 		} else {
 #ifdef SNOOP_DBG_CONNS
-			SYS_fprintf(SYS_stdout, "SNOOP_DBG_CONNS: connection "
+			SYS_fprintf(SYS_stderr, "SNOOP_DBG_CONNS: connection "
 				"%d accepted\n", ctx->items[ctx->items_used].uid);
 #endif
 			ctx->items_used++;
@@ -472,7 +479,7 @@ static int snoop_ctx_io(snoop_ctx *ctx)
 	while(loop < ctx->items_used) {
 		if(!snoop_item_io(i, ctx->sel)) {
 #ifdef SNOOP_DBG_CONNS
-			SYS_fprintf(SYS_stdout, "SNOOP_DBG_CONNS: connection "
+			SYS_fprintf(SYS_stderr, "SNOOP_DBG_CONNS: connection "
 					"%d dropped\n", i->uid);
 #endif
 			snoop_item_finish(i);
@@ -485,20 +492,22 @@ static int snoop_ctx_io(snoop_ctx *ctx)
 			i++;
 		}
 	}
+	if(!ctx->items_used && NAL_LISTENER_finished(ctx->list))
+		*finished = 1;
 	return 1;
 }
 
-static int snoop_ctx_loop(snoop_ctx *ctx)
+static int snoop_ctx_loop(snoop_ctx *ctx, int *finished)
 {
 	int sel_res;
 	snoop_ctx_to_sel(ctx);
 #ifdef SNOOP_DBG_SELECT
-	SYS_fprintf(SYS_stdout, "SNOOP_DBG_SELECT: selecting ...");
-	fflush(SYS_stdout);
+	SYS_fprintf(SYS_stderr, "SNOOP_DBG_SELECT: selecting ...");
+	fflush(SYS_stderr);
 #endif
 	sel_res = NAL_SELECTOR_select(ctx->sel, 0, 0);
 #ifdef SNOOP_DBG_SELECT
-	SYS_fprintf(SYS_stdout, "returned %d\n", sel_res);
+	SYS_fprintf(SYS_stderr, "returned %d\n", sel_res);
 #endif
 	if(sel_res < 0) {
 		switch(errno) {
@@ -521,22 +530,21 @@ static int snoop_ctx_loop(snoop_ctx *ctx)
 		SYS_fprintf(SYS_stderr, "Error, select() returned zero?\n");
 		return 0;
 	}
-	return snoop_ctx_io(ctx);
+	return snoop_ctx_io(ctx, finished);
 }
 
 /************/
 /* do_snoop */
 /************/
 
-static int do_snoop(const char *addr_server, const char *addr_listen,
-			unsigned int flags)
+static void do_snoop(const char *addr_server, const char *addr_listen,
+			unsigned int flags, int *finished)
 {
 	snoop_ctx ctx;
-	if(!snoop_ctx_init(&ctx, addr_listen, addr_server, flags))
-		return 0;
-	while(snoop_ctx_loop(&ctx))
-		;
-	snoop_ctx_finish(&ctx);
-	return 1;
+	if(snoop_ctx_init(&ctx, addr_listen, addr_server, flags)) {
+		while(snoop_ctx_loop(&ctx, finished) && !(*finished))
+			;
+		snoop_ctx_finish(&ctx);
+	}
 }
 

@@ -79,6 +79,7 @@ void		NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel);
 void		NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel);
+int		NAL_LISTENER_finished(const NAL_LISTENER *list);
 
 /**********************************/
 /* Connection functions (general) */
@@ -156,6 +157,8 @@ unsigned int 	NAL_BUFFER_write(NAL_BUFFER *buf,
 unsigned int 	NAL_BUFFER_read(NAL_BUFFER *buf,
 				unsigned char *ptr,
 				unsigned int size);
+void		NAL_BUFFER_transfer(NAL_BUFFER *dest, NAL_BUFFER *src,
+				unsigned int max);
 
 /***************** WARNING START ********************/
 /* These functions manipulate internal data directly and are to be used with

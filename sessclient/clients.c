@@ -267,12 +267,17 @@ void clients_free(clients_t *c)
 	SYS_free(clients_t, c);
 }
 
+int clients_empty(const clients_t *c)
+{
+	return !c->used;
+}
+
 static void clients_delete(clients_t *c, unsigned int idx, multiplexer_t *m)
 {
 	client_ctx **ctx = c->items + idx;
 
 #ifdef CLIENTS_PRINT_CONNECTS
-	SYS_fprintf(SYS_stdout, "Info: dead client connection (%u)\n", idx);
+	SYS_fprintf(SYS_stderr, "Info: dead client connection (%u)\n", idx);
 #endif
 	/* Notify the multiplexer */
 	multiplexer_mark_dead_client(m, (*ctx)->uid);
@@ -336,7 +341,7 @@ int clients_new_client(clients_t *c, NAL_CONNECTION *conn,
 	c->priorities[c->used] = c->used;
 	c->used++;
 #ifdef CLIENTS_PRINT_CONNECTS
-	SYS_fprintf(SYS_stdout, "Info: new client connection (%u)\n", c->used);
+	SYS_fprintf(SYS_stderr, "Info: new client connection (%u)\n", c->used);
 #endif
 	return 1;
 }

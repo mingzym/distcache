@@ -152,6 +152,16 @@ unsigned int NAL_BUFFER_read(NAL_BUFFER *buf, unsigned char *ptr,
 	return toread;
 }
 
+void NAL_BUFFER_transfer(NAL_BUFFER *dest, NAL_BUFFER *src,
+				unsigned int max)
+{
+	unsigned int tmp = NAL_BUFFER_unused(dest);
+	if(!max || (max > tmp)) max = tmp;
+	if(!max) return;
+	tmp = NAL_BUFFER_read(src, NAL_BUFFER_write_ptr(dest), max);
+	NAL_BUFFER_wrote(dest, tmp);
+}
+
 unsigned char *NAL_BUFFER_write_ptr(NAL_BUFFER *buf)
 {
 	return (buf->data + buf->used);

@@ -45,6 +45,7 @@ typedef struct st_multiplexer_t	multiplexer_t;
 /* client functions */
 clients_t *clients_new(void);
 void clients_free(clients_t *c);
+int clients_empty(const clients_t *c);
 void clients_to_selector(clients_t *c, NAL_SELECTOR *sel);
 int clients_io(clients_t *c, NAL_SELECTOR *sel, multiplexer_t *m,
 			const struct timeval *now,

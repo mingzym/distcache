@@ -130,5 +130,6 @@ int DC_SERVER_process_client(DC_CLIENT *clnt,
 int DC_SERVER_clients_to_sel(DC_SERVER *ctx, NAL_SELECTOR *sel);
 int DC_SERVER_clients_io(DC_SERVER *ctx, NAL_SELECTOR *sel,
 				const struct timeval *now);
+int DC_SERVER_clients_empty(const DC_SERVER *ctx);
 
 #endif /* !defined(HEADER_DISTCACHE_DC_SERVER_H) */

@@ -37,9 +37,9 @@ static int addr_can_connect(const NAL_ADDRESS *addr);
 static int addr_can_listen(const NAL_ADDRESS *addr);
 static const NAL_LISTENER_vtable *addr_create_listener(const NAL_ADDRESS *addr);
 static const NAL_CONNECTION_vtable *addr_create_connection(const NAL_ADDRESS *addr);
-const char *addr_prefixes[] = {"IP:", "IPv4:", "UNIX:", NULL};
-extern NAL_ADDRESS_vtable builtin_addr_vtable;
-NAL_ADDRESS_vtable builtin_addr_vtable = {
+static const char *addr_prefixes[] = {"IP:", "IPv4:", "UNIX:", NULL};
+extern NAL_ADDRESS_vtable builtin_sock_addr_vtable;
+NAL_ADDRESS_vtable builtin_sock_addr_vtable = {
 	"proto_std",
 	sizeof(nal_sockaddr),
 	addr_prefixes,
@@ -62,6 +62,7 @@ static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l,
 						NAL_SELECTOR *sel);
 static void list_selector_add(const NAL_LISTENER *l, NAL_SELECTOR *sel);
 static void list_selector_del(const NAL_LISTENER *l, NAL_SELECTOR *sel);
+static int list_finished(const NAL_LISTENER *l);
 /* This is the type we attach to our listeners */
 typedef struct st_list_ctx {
 	int fd;
@@ -75,7 +76,8 @@ static const NAL_LISTENER_vtable list_vtable = {
 	list_listen,
 	list_pre_accept,
 	list_selector_add,
-	list_selector_del
+	list_selector_del,
+	list_finished
 };
 
 /* Predeclare the connection functions */
@@ -247,6 +249,11 @@ static void list_selector_del(const NAL_LISTENER *l, NAL_SELECTOR *sel)
 {
 	list_ctx *ctx = nal_listener_get_vtdata(l);
 	nal_selector_fd_unset(sel, ctx->fd);
+}
+
+static int list_finished(const NAL_LISTENER *l)
+{
+	return 0;
 }
 
 /******************************************/

@@ -19,6 +19,22 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) To support a more general class of network abstractions, is makes sense to
+     consider the possibility of a listener terminating. The pressing example
+     that I'm working on is a file-descriptor address type that would support,
+     for example, specifying stdin/stdout as an address for use in pipes and
+     what-not. In such a case, "listening" on stdin/stdout amounts to accepting
+     a single connection - and the most logical way to phrase this in the API
+     is to consider that the listener is "finished" once it has accepted a
+     single connection object (which it will gladly do at the first given
+     chance). So NAL_LISTENER_finished() has been added, with the appropriate
+     vtable wiring in libnal.
+     [Geoff Thorpe]
+
+  *) Add a NAL_BUFFER_transfer() function for automatically moving as much data
+     as possible from one buffer to another.
+     [Geoff Thorpe]
+
   *) Adjust the vtable design in libnal to make things more orthogonal. As part
      of this, each vtable has a parameterless constructor that is used in
      advance of any other "create" handlers. From the libnal API, these are

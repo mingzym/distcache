@@ -39,13 +39,13 @@
  * builtins to be registered by the application on startup and would also
  * require cleanup on exit, both of which are undesirable). */
 
-extern NAL_ADDRESS_vtable builtin_addr_vtable;
+extern NAL_ADDRESS_vtable builtin_sock_addr_vtable;
 
 /* API functions */
 
 const NAL_ADDRESS_vtable *NAL_ADDRESS_vtable_builtins(void)
 {
-	return &builtin_addr_vtable;
+	return &builtin_sock_addr_vtable;
 }
 
 void NAL_ADDRESS_vtable_link(NAL_ADDRESS_vtable *vt)
@@ -56,7 +56,7 @@ void NAL_ADDRESS_vtable_link(NAL_ADDRESS_vtable *vt)
 		 * as/when we NULL-terminate 'vt' for the linked-list. */
 		next = vt->next;
 		/* Check the existing global list doesn't have 'vt' */
-		i = &builtin_addr_vtable;
+		i = &builtin_sock_addr_vtable;
 conflict_loop:
 		if(strcmp(i->unique_name, vt->unique_name) == 0)
 			/* Already got it, ignore 'vt' */

@@ -171,3 +171,8 @@ void NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
 	if(list->vt) list->vt->selector_del(list, sel);
 }
 
+int NAL_LISTENER_finished(const NAL_LISTENER *list)
+{
+	if(list->vt) return list->vt->finished(list);
+	return 0;
+}
