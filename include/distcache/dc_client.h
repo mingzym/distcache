@@ -17,8 +17,8 @@
  * along with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#ifndef HEADER_LIBDISTCACHE_DC_CLIENT_H
-#define HEADER_LIBDISTCACHE_DC_CLIENT_H
+#ifndef HEADER_DISTCACHE_DC_CLIENT_H
+#define HEADER_DISTCACHE_DC_CLIENT_H
 
 /* This is an "API" version - it will be bumped each time an API change is
  * introduced to this header. NB: This version number does not track changes to
@@ -86,4 +86,4 @@ int DC_CTX_has_session(DC_CTX *ctx,
 			const unsigned char *id_data,
 			unsigned int id_len);
 
-#endif /* !defined(HEADER_LIBDISTCACHE_DC_CLIENT_H) */
+#endif /* !defined(HEADER_DISTCACHE_DC_CLIENT_H) */

@@ -20,8 +20,8 @@
 #ifndef HEADER_PRIVATE_SESSCLIENT_H
 #define HEADER_PRIVATE_SESSCLIENT_H
 
-#ifndef HEADER_LIBDISTCACHE_DC_ENC_H
-#error "must include 'libdistcache/dc_enc.h' prior to 'private.h'"
+#ifndef HEADER_DISTCACHE_DC_ENC_H
+#error "must include 'distcache/dc_enc.h' prior to 'private.h'"
 #endif
 
 /* Some debugging symbols ... */

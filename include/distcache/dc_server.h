@@ -17,11 +17,11 @@
  * along with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#ifndef HEADER_LIBDISTCACHESERVER_DC_SERVER_H
-#define HEADER_LIBDISTCACHESERVER_DC_SERVER_H
+#ifndef HEADER_DISTCACHE_DC_SERVER_H
+#define HEADER_DISTCACHE_DC_SERVER_H
 
 #ifndef HEADER_LIBNAL_COMMON_H
-#error "Must include libnal/common.h prior to libdistcacheserver/dc_server.h"
+#error "Must include 'libnal/common.h' prior to 'distcache/dc_server.h'"
 #endif
 
 /* Boundaries on input. Function callers should observe these limits as the
@@ -135,4 +135,4 @@ int DC_SERVER_clients_to_sel(DC_SERVER *ctx, NAL_SELECTOR *sel);
 int DC_SERVER_clients_io(DC_SERVER *ctx, NAL_SELECTOR *sel,
 				const struct timeval *now);
 
-#endif /* !defined(HEADER_LIBDISTCACHESERVER_DC_SERVER_H) */
+#endif /* !defined(HEADER_DISTCACHE_DC_SERVER_H) */

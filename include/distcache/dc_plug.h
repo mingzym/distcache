@@ -17,8 +17,8 @@
  * along with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#ifndef HEADER_LIBDISTCACHE_DC_PLUG_H
-#define HEADER_LIBDISTCACHE_DC_PLUG_H
+#ifndef HEADER_DISTCACHE_DC_PLUG_H
+#define HEADER_DISTCACHE_DC_PLUG_H
 
 /* These two macros extract the "protocol version" and "patch level" from a
  * 32-bit "protocol level" value. */
@@ -115,4 +115,4 @@ int DC_PLUG_commit(DC_PLUG *plug);
  * perhaps "write_more" will be discarded). */
 int DC_PLUG_rollback(DC_PLUG *plug);
 
-#endif /* !defined(HEADER_LIBDISTCACHE_DC_PLUG_H) */
+#endif /* !defined(HEADER_DISTCACHE_DC_PLUG_H) */
