@@ -330,10 +330,13 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 			moved);
 #endif
 		/* Forward the data to 'dest' before pulling it out of 'buf' */
+#ifndef NDEBUG
+/* the seemingly stupid NDEBUG check avoids "unused variable 'foo'" warnings */
 		{
 		unsigned int foo = NAL_BUFFER_write(buf_out, buf, moved);
 		assert(foo == moved);
 		}
+#endif
 		*buf_used -= moved;
 		if(*buf_used)
 			/* Shift the remaining data left */
