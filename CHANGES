@@ -19,6 +19,12 @@ Current version: x.x
 Changes between 0.4pre2 and x.x
 -------------------------------
 
+  *) The non-networking stuff in libnal (the daemon/sigpipe/etc wrappers as
+     well as the mem and streams debugging cruft) has been separated out into a
+     new library, libsys.a, that is not installed but is linked into the
+     distcache executables.
+     [Geoff Thorpe]
+
   *) Remove unnused stream-hacking functions from libnal, this should have been
      done when libnal first became a separately-installed library. I've also
      defined the NAL_fprintf and NAL_std[in|out|err] symbols directly to their
