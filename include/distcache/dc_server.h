@@ -1,5 +1,6 @@
 /* distcache, Distributed Session Caching technology
- * Copyright (C) 2000-2004  Geoff Thorpe, and Cryptographic Appliances, Inc.
+ * Copyright (C) 2000-2003  Geoff Thorpe, and Cryptographic Appliances, Inc.
+ * Copyright (C) 2004       The Distcache.org project
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
