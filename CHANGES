@@ -19,6 +19,19 @@ Current version: x.x
 Changes between 0.4 and x.x
 ---------------------------
 
+  *) Modifications to the RPM spec file;
+     - Build sslswamp and package it in its own RPM file (distcache-sslswamp).
+     - Use the "%configure" RPM macro rather than calling "./configure"
+       directly. This ensures that per-platform optimisations and/or
+       compilation preferences are honoured.
+     - Pre-define $INSTALL_PROGRAM to automatically strip installed
+       executables. I don't personally care about "GNU Coding Standards" that
+       result in installed programs that are consistently 10 times bigger than
+       they need to be, simple to add debugging information that would never be
+       used by people who aren't capable of building programs themselves. Disk
+       space and RAM are resources, and should not be abused.
+     [Geoff Thorpe]
+
   *) Change the top-level configuration such that the ssl/ tree is configured
      and built by default unless --disable-ssl is specified. Likewise, swamp
      is built by default unless --disable-swamp is specified.

@@ -92,6 +92,11 @@ Packager: Distcache project
 Summary: Libraries and header files for building distcache-compatible software
 Group: Networking/Other
 
+# RPM information: "sslswamp"
+%package sslswamp
+Summary: Utility for testing and benchmarking SSL/TLS servers
+Group: Networking/Other
+
 # RPM description
 %description
 This package provides tools from the distcache project to deploy a distributed
@@ -107,6 +112,14 @@ project that are required to compile distcache-compatible software. At present
 the policy of the distcache project is to use static-linking so there are no
 shared-libraries in the base package nor this "devel" package.
 
+# RPM information: "sslswamp"
+%description sslswamp
+This package provides the sslswamp utility for benchmarking and testing SSL/TLS
+servers. This utility used to be known as just 'swamp' but has been renamed as
+part of its inclusion into the distcache package. The most common use of this
+tool is for testing HTTPS (secure) web servers though it could be useful for
+other SSL/TLS cases.
+
 ######################
 # Prepare for building
 ######################
@@ -120,7 +133,7 @@ rm -rf $RPM_BUILD_ROOT
 #######
 
 %build
-./configure
+INSTALL_PROGRAM="/usr/bin/install --strip" %configure
 make
 
 #########
@@ -145,9 +158,9 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,0755)
 %doc README ANNOUNCE CHANGES FAQ LICENSE
-%{_mandir}/man1/*.1*
-%{_mandir}/man8/*.8*
-%{_bindir}/dc_*
+%{_mandir}/man1/d*.1*
+%{_mandir}/man8/d*.8*
+%{_bindir}/d*
 
 # RPM files: "devel"
 %files devel
@@ -157,6 +170,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libdistcache.*
 %{_libdir}/libdistcacheserver.*
 %{_mandir}/man2/*.2*
+
+# RPM files: "sslswamp"
+%files sslswamp
+%{_mandir}/man1/s*.1*
+%{_bindir}/s*
 
 #########
 # Changes
