@@ -4,4 +4,4 @@
 *.lo
 Makefile
 Makefile.in
-test_session
+dc_test
