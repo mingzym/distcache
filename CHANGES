@@ -12,9 +12,14 @@
                                                          -- W. Edwards Deming
 
 
-Current version: 1.5.1
+Current version: 1.5.x
 ----------------------
 
+
+Changes between 1.5.1 and 1.5.x
+-------------------------------
+
+  *)
 
 Changes between 1.5.0 and 1.5.1
 -------------------------------
