@@ -215,16 +215,16 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	/* Prepare our networking bits */
-	if(((addr = NAL_ADDRESS_malloc()) == NULL) ||
+	if(((addr = NAL_ADDRESS_new()) == NULL) ||
 			!NAL_ADDRESS_create(addr, listen_addr,
 				CLIENT_BUFFER_SIZE) ||
 			!NAL_ADDRESS_can_listen(addr) ||
-			((listener = NAL_LISTENER_malloc()) == NULL) ||
+			((listener = NAL_LISTENER_new()) == NULL) ||
 			!NAL_LISTENER_create(listener, addr)) {
 		NAL_fprintf(NAL_stderr(), "Error, bad listen address\n");
 		return 1;
 	}
-	if((sel = NAL_SELECTOR_malloc()) == NULL) {
+	if((sel = NAL_SELECTOR_new()) == NULL) {
 		NAL_fprintf(NAL_stderr(), "Error, malloc problem\n");
 		return 1;
 	}
@@ -262,7 +262,7 @@ main_loop:
 	/* If our "conn" is NULL, malloc it (an accepted connection gets
 	 * consumed by the resulting "plug" so we need to alloc it again each
 	 * time). */
-	if(!conn && ((conn = NAL_CONNECTION_malloc()) == NULL)) {
+	if(!conn && ((conn = NAL_CONNECTION_new()) == NULL)) {
 		NAL_fprintf(NAL_stderr(), "Error, connection couldn't be created!!\n");
 		goto end;
 	}

@@ -37,11 +37,11 @@ typedef struct st_NAL_BUFFER NAL_BUFFER;
 #define NAL_SELECT_FLAG_RW	(NAL_SELECT_FLAG_READ | NAL_SELECT_FLAG_SEND)
 
 /* Malloc functions */
-NAL_ADDRESS *	NAL_ADDRESS_malloc(void);
-NAL_LISTENER *	NAL_LISTENER_malloc(void);
-NAL_CONNECTION *NAL_CONNECTION_malloc(void);
-NAL_SELECTOR *	NAL_SELECTOR_malloc(void);
-NAL_BUFFER *	NAL_BUFFER_malloc(void);
+NAL_ADDRESS *	NAL_ADDRESS_new(void);
+NAL_LISTENER *	NAL_LISTENER_new(void);
+NAL_CONNECTION *NAL_CONNECTION_new(void);
+NAL_SELECTOR *	NAL_SELECTOR_new(void);
+NAL_BUFFER *	NAL_BUFFER_new(void);
 
 /* Free functions */
 void		NAL_ADDRESS_free(NAL_ADDRESS *a);

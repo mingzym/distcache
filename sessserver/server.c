@@ -178,9 +178,9 @@ static int do_server(const char *address, unsigned int max_sessions,
 	unsigned int total = 0, tmp_total;
 	unsigned long ops = 0, tmp_ops;
 	NAL_CONNECTION *conn = NULL;
-	NAL_ADDRESS *addr = NAL_ADDRESS_malloc();
-	NAL_SELECTOR *sel = NAL_SELECTOR_malloc();
-	NAL_LISTENER *listener = NAL_LISTENER_malloc();
+	NAL_ADDRESS *addr = NAL_ADDRESS_new();
+	NAL_SELECTOR *sel = NAL_SELECTOR_new();
+	NAL_LISTENER *listener = NAL_LISTENER_new();
 	DC_SERVER *server = NULL;
 
 	if(!DC_SERVER_set_default_cache() ||
@@ -222,7 +222,7 @@ static int do_server(const char *address, unsigned int max_sessions,
 	NAL_gettime(&last_now);
 network_loop:
 	if(!conn) {
-		conn = NAL_CONNECTION_malloc();
+		conn = NAL_CONNECTION_new();
 		if(!conn)
 			goto err;
 	}

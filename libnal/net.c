@@ -418,7 +418,7 @@ static int nal_address_close(NAL_ADDRESS *addr)
 	return 1;
 }
 
-NAL_ADDRESS *NAL_ADDRESS_malloc(void)
+NAL_ADDRESS *NAL_ADDRESS_new(void)
 {
 	NAL_ADDRESS *a = NAL_malloc(NAL_ADDRESS, 1);
 	if(a)
@@ -602,7 +602,7 @@ const char *NAL_ADDRESS_source_string(NAL_ADDRESS *addr)
 /* LISTENER FUNCTIONS */
 /**********************/
 
-NAL_LISTENER *NAL_LISTENER_malloc(void)
+NAL_LISTENER *NAL_LISTENER_new(void)
 {
 	NAL_LISTENER *l = NAL_malloc(NAL_LISTENER, 1);
 	if(l) {
@@ -749,7 +749,7 @@ const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list)
 /* CONNECTION FUNCTIONS */
 /************************/
 
-NAL_CONNECTION *NAL_CONNECTION_malloc(void)
+NAL_CONNECTION *NAL_CONNECTION_new(void)
 {
 	NAL_CONNECTION *conn = NAL_malloc(NAL_CONNECTION, 1);
 	if(conn) {
@@ -1017,7 +1017,7 @@ static void int_selector_item_close(NAL_SELECTOR_item *item)
 	int_selector_item_init(item);
 }
 
-NAL_SELECTOR *NAL_SELECTOR_malloc(void)
+NAL_SELECTOR *NAL_SELECTOR_new(void)
 {
 	NAL_SELECTOR *sel = NAL_malloc(NAL_SELECTOR, 1);
 	if(sel) {
@@ -1238,7 +1238,7 @@ static int nal_buffer_close(NAL_BUFFER *buf)
 	return 1;
 }
 
-NAL_BUFFER *NAL_BUFFER_malloc(void)
+NAL_BUFFER *NAL_BUFFER_new(void)
 {
 	NAL_BUFFER *b = NAL_malloc(NAL_BUFFER, 1);
 	if(b)

@@ -204,7 +204,7 @@ static int snoop_item_init(snoop_item *item, NAL_CONNECTION *accepted,
 			const NAL_ADDRESS *addr_server)
 {
 	int ret = 0;
-	if((item->server = NAL_CONNECTION_malloc()) == NULL) goto err;
+	if((item->server = NAL_CONNECTION_new()) == NULL) goto err;
 	if(!NAL_CONNECTION_create(item->server, addr_server)) goto err;
 	/* Success */
 	item->uid = uid_seed++;
@@ -386,16 +386,16 @@ static int snoop_ctx_init(snoop_ctx *ctx, const char *addr_listen,
 	ctx->newclient = NULL;
 	ctx->items_used = 0;
 	ctx->flags = flags;
-	if((a = NAL_ADDRESS_malloc()) == NULL) goto err;
+	if((a = NAL_ADDRESS_new()) == NULL) goto err;
 	if(!NAL_ADDRESS_create(a, addr_listen, SNOOP_BUF_SIZE)) goto err;
 	if(!NAL_ADDRESS_can_listen(a)) goto err;
-	if((ctx->addr = NAL_ADDRESS_malloc()) == NULL) goto err;
+	if((ctx->addr = NAL_ADDRESS_new()) == NULL) goto err;
 	if(!NAL_ADDRESS_create(ctx->addr, addr_server, SNOOP_BUF_SIZE)) goto err;
 	if(!NAL_ADDRESS_can_connect(ctx->addr)) goto err;
-	if((ctx->list = NAL_LISTENER_malloc()) == NULL) goto err;
+	if((ctx->list = NAL_LISTENER_new()) == NULL) goto err;
 	if(!NAL_LISTENER_create(ctx->list, a)) goto err;
-	if((ctx->sel = NAL_SELECTOR_malloc()) == NULL) goto err;
-	if((ctx->newclient = NAL_CONNECTION_malloc()) == NULL) goto err;
+	if((ctx->sel = NAL_SELECTOR_new()) == NULL) goto err;
+	if((ctx->newclient = NAL_CONNECTION_new()) == NULL) goto err;
 
 	/* Success */
 	ret = 1;
@@ -458,7 +458,7 @@ static int snoop_ctx_io(snoop_ctx *ctx)
 #endif
 			ctx->items_used++;
 		}
-		ctx->newclient = NAL_CONNECTION_malloc();
+		ctx->newclient = NAL_CONNECTION_new();
 		if(!ctx->newclient)
 			/* The failure here is malloc and not anything network
 			 * related, however this breaks our logic and will

@@ -55,7 +55,7 @@ static DC_PLUG *int_temp_connect(DC_CTX *ctx)
 {
 	NAL_CONNECTION *conn;
 	DC_PLUG *plug;
-	if(((conn = NAL_CONNECTION_malloc()) != NULL) &&
+	if(((conn = NAL_CONNECTION_new()) != NULL) &&
 			NAL_CONNECTION_create(conn, ctx->address) &&
 			((plug = DC_PLUG_new(conn,
 				DC_PLUG_FLAG_TO_SERVER)) != NULL))
@@ -139,7 +139,7 @@ static int int_transact(DC_CTX *ctx, DC_CMD cmd)
 			return 0;
 	}
 	/* Get our selector ready */
-	if((sel = NAL_SELECTOR_malloc()) == NULL)
+	if((sel = NAL_SELECTOR_new()) == NULL)
 		goto err;
 	/* Do the network loop. This writes "send_data" into the
 	 * plug and hopes for a response until either;
@@ -204,7 +204,7 @@ DC_CTX *DC_CTX_new(const char *target, unsigned int flags)
 	ctx->last_op_was_get = ctx->last_get_id_len = 0;
 	ctx->read_data_len = ctx->send_data_len = 0;
 	/* Construct the target address */
-	if(((ctx->address = NAL_ADDRESS_malloc()) == NULL) ||
+	if(((ctx->address = NAL_ADDRESS_new()) == NULL) ||
 			!NAL_ADDRESS_create(ctx->address, target,
 				DC_CTX_BUFFER_SIZE) ||
 			!NAL_ADDRESS_can_connect(ctx->address))

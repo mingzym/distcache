@@ -49,7 +49,7 @@ static void server_retry_util(server_t *s, const struct timeval *now)
 	if(!NAL_expirycheck(&s->last_fail, s->retry_msecs, now))
 		return;
 	/* OK, we try to reconnect */
-	conn = NAL_CONNECTION_malloc();
+	conn = NAL_CONNECTION_new();
 	if(!conn)
 		return;
 	/* No matter what fails from here on, we'll update the timestamp */
@@ -85,7 +85,7 @@ server_t *server_new(const char *address, unsigned long retry_msecs,
 			const struct timeval *now)
 {
 	server_t *s = NULL;
-	NAL_ADDRESS *a = NAL_ADDRESS_malloc();
+	NAL_ADDRESS *a = NAL_ADDRESS_new();
 
 	if(!a || !NAL_ADDRESS_create(a, address, SERVER_BUFFER_SIZE) ||
 			!NAL_ADDRESS_can_connect(a))
