@@ -19,6 +19,18 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) - Add a "-errinject" switch to nal_echo to have it insert 0xdeadbeef into
+       output periodically. (Oh, and ignore sigpipe too!)
+     - Add a "-mode" switch to nal_ping to control the type of data sent in the
+       ping packets (choices: 'zero', 'block', or 'noise').
+     - Have nal_ping display a full hexdump of send and receive packets when an
+       error is detected.
+     - Add "-peek" and "-quiet" switches to nal_ping to control the level of
+       output. The former will print the first 8 bytes of every packet sent and
+       received. The latter will surpress "Packet n ok" messages and error
+       hexdumps.
+     [Geoff Thorpe]
+
   *) Fix dc_client to call setuid() after it has written its pid file.
      [Joe Orton]
 

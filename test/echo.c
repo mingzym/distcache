@@ -37,6 +37,9 @@ static void usage(void)
 	SYS_fprintf(SYS_stderr, "where options include;\n");
 	SYS_fprintf(SYS_stderr, "   -accept <addr>    - default='%s'\n", DEF_SERVER_ADDRESS);
 	SYS_fprintf(SYS_stderr, "   -max <num>        - default=%d\n", MAX_CONNS);
+	SYS_fprintf(SYS_stderr, "   -errinject <num>  - default=<none>\n");
+	SYS_fprintf(SYS_stderr, "'errinject' will insert 0xdeadbeef into output every\n");
+	SYS_fprintf(SYS_stderr, "<num> times the selector logic breaks\n");
 }
 
 static int util_parsenum(const char *s, unsigned int *num)
@@ -80,6 +83,7 @@ int main(int argc, char *argv[])
 	NAL_CONNECTION *conn[MAX_CONNS];
 	const char *str_addr = DEF_SERVER_ADDRESS;
 	unsigned int num_conns = MAX_CONNS;
+	unsigned int errinject = 0;
 	NAL_ADDRESS *addr;
 	NAL_LISTENER *listener;
 	NAL_SELECTOR *sel;
@@ -97,10 +101,15 @@ int main(int argc, char *argv[])
 					"for -max\n", num_conns);
 				return 1;
 			}
+		} else if(strcmp(*argv, "-errinject") == 0) {
+			ARG_CHECK("-errinject");
+			if(!util_parsenum(*argv, &errinject))
+				return 1;
 		} else
 			return err_unknown(*argv);
 		ARG_INC;
 	}
+	SYS_sigpipe_ignore();
 	addr = NAL_ADDRESS_new();
 	listener = NAL_LISTENER_new();
 	sel = NAL_SELECTOR_new();
@@ -143,8 +152,22 @@ reselect:
 				conn[conns_used] = ptmp;
 			}
 		} else {
-			NAL_BUFFER_transfer(NAL_CONNECTION_get_send(conn[loop]),
-					NAL_CONNECTION_get_read(conn[loop]), 0);
+			static unsigned int inject = 0;
+			static const unsigned char deadbeef[] =
+				{ 0xde, 0xad, 0xbe, 0xef };
+			NAL_BUFFER *buf_send = NAL_CONNECTION_get_send(conn[loop]);
+			NAL_BUFFER *buf_read = NAL_CONNECTION_get_read(conn[loop]);
+			/* To ensure error injections work, don't allow
+			 * injections *OR* transfers unless there's at least 4
+			 * bytes available. */
+			if(NAL_BUFFER_unused(buf_send) >= sizeof(deadbeef)) {
+				if(++inject == errinject) {
+					NAL_BUFFER_write(buf_send, deadbeef,
+						sizeof(deadbeef));
+					inject = 0;
+				}
+				NAL_BUFFER_transfer(buf_send, buf_read, 0);
+			}
 			loop++;
 		}
 	}

@@ -39,6 +39,34 @@ static void usage(void)
 	SYS_fprintf(SYS_stderr, "   -num <num>        - default=%d\n", DEF_NUM_CONNS);
 	SYS_fprintf(SYS_stderr, "   -size <num>       - default=%d\n", DEF_PING_SIZE);
 	SYS_fprintf(SYS_stderr, "   -repeat <num>     - default=%d\n", DEF_PING_NUM);
+	SYS_fprintf(SYS_stderr, "   -mode <style>     - default='block'\n");
+	SYS_fprintf(SYS_stderr, "   -peek\n");
+	SYS_fprintf(SYS_stderr, "   -quiet\n");
+	SYS_fprintf(SYS_stderr, "alternative styles for '-mode' are;\n");
+	SYS_fprintf(SYS_stderr, "   zero    - all packets are zero\n");
+	SYS_fprintf(SYS_stderr, "   block   - each packet set to a different byte\n");
+	SYS_fprintf(SYS_stderr, "   noise   - messy data\n");
+}
+
+typedef enum {
+	pingmode_zero,
+	pingmode_block,
+	pingmode_noise
+} pingmode_t;
+
+static int util_parsemode(const char *s, pingmode_t *mode)
+{
+	if(strcmp(s, "zero") == 0)
+		*mode = pingmode_zero;
+	else if(strcmp(s, "block") == 0)
+		*mode = pingmode_block;
+	else if(strcmp(s, "noise") == 0)
+		*mode = pingmode_noise;
+	else {
+		SYS_fprintf(SYS_stderr, "Error, '%s' is not a recognised mode\n", s);
+		return 0;
+	}
+	return 1;
 }
 
 static int util_parsenum(const char *s, unsigned int *num)
@@ -68,6 +96,21 @@ static int err_unknown(const char *s)
 	return 1;
 }
 
+static void bindump(const unsigned char *data, unsigned int len)
+{
+#define LINEWIDTH 16
+	unsigned int pos = 0;
+	while(len--) {
+		SYS_fprintf(SYS_stdout, "0x%02x ", *(data++));
+		if(pos++ == LINEWIDTH) {
+			SYS_fprintf(SYS_stdout, "\n");
+			pos = 0;
+		}
+	}
+	if(pos)
+		SYS_fprintf(SYS_stdout, "\n");
+}
+
 #define ARG_INC do {argc--;argv++;} while(0)
 #define ARG_CHECK(a) \
 	if(argc < 2) \
@@ -75,16 +118,18 @@ static int err_unknown(const char *s)
 	ARG_INC
 
 typedef struct st_pingctx {
-	int connected, id, done;
+	unsigned char packet[MAX_PING_SIZE], response[MAX_PING_SIZE];
+	int connected, id, done, peek, quiet;
+	pingmode_t pingmode;
 	NAL_CONNECTION *conn;
 	unsigned int loop, counter, num_repeat, num_size;
-	unsigned char packet[MAX_PING_SIZE], response[MAX_PING_SIZE];
 } pingctx;
 
 static int pingctx_io(pingctx *ctx);
 
 static pingctx *pingctx_new(const NAL_ADDRESS *addr, NAL_SELECTOR *sel, int id,
-				unsigned int num_repeat, unsigned int num_size)
+				unsigned int num_repeat, unsigned int num_size,
+				pingmode_t pingmode, int peek, int quiet)
 {
 	pingctx *ret = SYS_malloc(pingctx, 1);
 	if(!ret) goto err;
@@ -99,6 +144,9 @@ static pingctx *pingctx_new(const NAL_ADDRESS *addr, NAL_SELECTOR *sel, int id,
 	ret->done = 0;
 	ret->num_repeat = num_repeat;
 	ret->num_size = num_size;
+	ret->pingmode = pingmode;
+	ret->peek = peek;
+	ret->quiet = quiet;
 	if(!pingctx_io(ret)) goto err;
 	return ret;
 err:
@@ -118,7 +166,6 @@ static void pingctx_free(pingctx *ctx)
 
 static int pingctx_io(pingctx *ctx)
 {
-	time_t munge;
 	if(ctx->done) return 1;
 	if(!NAL_CONNECTION_io(ctx->conn)) {
 		if(!ctx->connected)
@@ -142,24 +189,72 @@ static int pingctx_io(pingctx *ctx)
 		SYS_fprintf(SYS_stderr, "(%d) Read error: bad length\n", ctx->id);
 		return 0;
 	}
+	if(ctx->peek)
+		SYS_fprintf(SYS_stdout, "peek: I read "
+		"0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x [...]\n",
+		ctx->response[0], ctx->response[1], ctx->response[2], ctx->response[3],
+		ctx->response[4], ctx->response[5], ctx->response[6], ctx->response[7]);
 	if(memcmp(ctx->packet, ctx->response, ctx->num_size) != 0) {
 		SYS_fprintf(SYS_stderr, "(%d) Read error: bad match\n", ctx->id);
+		if(!ctx->quiet) {
+			SYS_fprintf(SYS_stdout, "output packet was;\n");
+			bindump(ctx->packet, ctx->num_size);
+			SYS_fprintf(SYS_stdout, "response packet was;\n");
+			bindump(ctx->response, ctx->num_size);
+		}
 		return 0;
 	}
-	SYS_fprintf(SYS_stderr, "(%d) Packet %d ok\n", ctx->id, ++ctx->loop);
+	ctx->loop++;
+	if(!ctx->quiet)
+		SYS_fprintf(SYS_stdout, "(%d) Packet %d ok\n", ctx->id, ctx->loop);
 write_ping:
 	if(ctx->loop == ctx->num_repeat) {
 		ctx->done = 1;
 		NAL_CONNECTION_reset(ctx->conn);
 		return 1;
 	}
-	munge = time(NULL);
-	SYS_cover_n(ctx->counter++ + munge, unsigned char, ctx->packet, ctx->num_size);
+	switch(ctx->pingmode) {
+	case pingmode_zero:
+		SYS_zero_n(unsigned char, ctx->packet, ctx->num_size);
+		break;
+	case pingmode_block:
+		SYS_cover_n(ctx->counter + time(NULL), unsigned char,
+			ctx->packet, ctx->num_size);
+		break;
+	case pingmode_noise:
+	{
+		unsigned int loop = ctx->num_size;
+		unsigned char *p = ctx->packet;
+		unsigned int base, mult, duration = 0;
+		srand(ctx->counter + time(NULL));
+		do {
+			if(!duration) {
+				/* refresh */
+				base = (int)(65536.0 * rand()/(RAND_MAX+1.0));
+				mult = 1 + (int)(65536.0 * rand()/(RAND_MAX+1.0));
+				duration = 1 + (int)(100.0 * rand()/(RAND_MAX+1.0));
+			}
+			base *= mult;
+			base += mult;
+			*(p++) = (base >> 24) ^ (base & 0xFF);
+		} while(duration--, loop--);
+	}
+		break;
+	default:
+		/* bug */
+		abort();
+	}
+	ctx->counter++;
 	if(NAL_BUFFER_write(NAL_CONNECTION_get_send(ctx->conn), ctx->packet,
 					ctx->num_size) != ctx->num_size) {
 		SYS_fprintf(SYS_stderr, "(%d) Write error\n", ctx->id);
 		return 0;
 	}
+	if(ctx->peek)
+		SYS_fprintf(SYS_stdout, "peek: I sent "
+		"0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x [...]\n",
+		ctx->packet[0], ctx->packet[1], ctx->packet[2], ctx->packet[3],
+		ctx->packet[4], ctx->packet[5], ctx->packet[6], ctx->packet[7]);
 	return 1;
 }
 
@@ -172,6 +267,8 @@ int main(int argc, char *argv[])
 	unsigned int num_repeat = DEF_PING_NUM;
 	unsigned int num_size = DEF_PING_SIZE;
 	unsigned int num_conns = DEF_NUM_CONNS;
+	pingmode_t pingmode = pingmode_block;
+	int peek = 0, quiet = 0;
 	NAL_ADDRESS *addr = NAL_ADDRESS_new();
 	NAL_SELECTOR *sel = NAL_SELECTOR_new();
 	if(!addr || !sel) abort();
@@ -197,6 +294,14 @@ int main(int argc, char *argv[])
 					"out of range\n", num_size);
 				return 1;
 			}
+		} else if(strcmp(*argv, "-mode") == 0) {
+			ARG_CHECK("-mode");
+			if(!util_parsemode(*argv, &pingmode))
+				return 1;
+		} else if(strcmp(*argv, "-peek") == 0)
+			peek = 1;
+		else if(strcmp(*argv, "-quiet") == 0) {
+			quiet = 1;
 		} else
 			return err_unknown(*argv);
 		ARG_INC;
@@ -204,8 +309,8 @@ int main(int argc, char *argv[])
 	if((ctx = SYS_malloc(pingctx*, num_conns)) == NULL) abort();
 	if(!NAL_ADDRESS_create(addr, str_addr, BUFFER_SIZE)) abort();
 	for(loop = 0; loop < num_conns; loop++)
-		if((ctx[loop] = pingctx_new(addr, sel, loop,
-				num_repeat, num_size)) == NULL)
+		if((ctx[loop] = pingctx_new(addr, sel, loop, num_repeat,
+				num_size, pingmode, peek, quiet)) == NULL)
 			abort();
 mainloop:
 	/* Select */
