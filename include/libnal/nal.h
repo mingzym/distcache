@@ -109,8 +109,8 @@ int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
 
 /* These are used by distcache utilities (excluding daemons) in one or two
  * places, and they were not worth explicitly hiding from the libnal
- * abstraction. But nevertheless don't warrant a mention in the API. As such,
- * they're left in for simplicity's sake but not mentioned in the documents.
+ * abstraction but nevertheless don't warrant a mention in the API. As such,
+ * these are left in for simplicity's sake but not mentioned in the documents.
  * If you're silly enough to want to use these, please be my guest. However I
  * don't promise that I won't butcher these at some point, and if anyone wants
  * them anyway, they would probably be better off implementing a new
