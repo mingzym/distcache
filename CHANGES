@@ -19,6 +19,21 @@ Current version: x.x
 Changes between 0.4 and x.x
 ---------------------------
 
+  *) An "ssl/" sub-tree has been created that includes its own autotools
+     framework for building openssl-based utilities. The top-level build system
+     handles;
+     - selectively enabling the sub-tree's participation depending on the
+       "--enable-ssl" switch.
+     - synchronising the autoconf version number in ssl/ with that in the
+       top-level distcache code.
+     - Passing any ssl-specific configure switches through to the ssl/
+       sub-tree's own configure script.
+     - (un)bootstrapping the ssl/ sub-tree together with the top-level.
+     Additionally, the latest release of swamp has been ported to use libnal
+     and is included in the ssl/ sub-tree. Building of this ssl/tls
+     benchmarking tool can be activated by specifying "--enable-swamp".
+     [Geoff Thorpe]
+
   *) I will be creating a sub-tree for building SSL/TLS-dependant applications
      and this will start with the import of "swamp", a benchmarking program I
      want to unify with libnal. As part of this move, I'm bumping up the
