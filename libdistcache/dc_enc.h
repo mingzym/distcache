@@ -37,8 +37,8 @@
  * incompatible behavioural (or binary formatting) changes should cause an
  * corresponding bump in the most-significant word (the "protocol version") and
  * thus "officially" break interoperability with prior versions. */
-#define DISTCACHE_PROTO_VER	0x0010
-#define DISTCACHE_PATCH_LEVEL	0x0000
+#define DISTCACHE_PROTO_VER	0x10
+#define DISTCACHE_PATCH_LEVEL	0x00
 #define DISTCACHE_PROTO_LEVEL	DISTCACHE_MAKE_PROTO_LEVEL(\
 					DISTCACHE_PROTO_VER,DISTCACHE_PATCH_LEVEL)
 
