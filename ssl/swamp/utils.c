@@ -224,9 +224,13 @@ char *util_parse_escaped_string(const char *str_toconvert)
 {
 	char *toreturn, *dest;
 	int ctrl = 0;
-	
+
+	/* Duplicate the input string */
 	SYS_strdup(&toreturn, str_toconvert);
+	if(!toreturn) return NULL;
 	dest = toreturn;
+	/* Iterate across the input string and output strings in a
+	 * state-machine to handle control-characters. */
 	while(*str_toconvert) {
 		if(!ctrl) {
 			/* We're not in escaped mode, what's the next char? */
@@ -248,13 +252,15 @@ char *util_parse_escaped_string(const char *str_toconvert)
 				 * literally translate "\x" into "x". */
 				*(dest++) = *str_toconvert;
 			}
+			/* We're no longer in escaped mode */
+			ctrl = 0;
 		}
 		/* In all cases, we increment our "source" string pointer. What
 		 * we do with our "destination" string pointer varies and is
 		 * handled (above) case-by-case. */
 		str_toconvert++;
 	}
-	/* NULL-terminate the translated string. */
+	/* NULL-terminate the output string. */
 	*dest = 0;
 	return toreturn;
 }
