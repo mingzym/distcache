@@ -13,9 +13,12 @@ source code, refer to it as "#include <directory/header.h>".
 (3) Does this header need to be used outside the distcache source code? Ie. is it
 to be an installed API header?
 
-if NO -> you're done, otherwise (4);
+if NO -> do 4(a) only, if YES -> do 4(b) only;
 
-(4) Add the header to the EXTRA_include_HEADERS directive in the Makefile.am
+4(a) Add the header to the EXTRA_SOURCES directive in the Makefile.am for the
+corresponding directory.
+
+4(b) Add the header to the EXTRA_include_HEADERS directive in the Makefile.am
 for the corresponding directory.
 
 Part of the reason for this is legacy - the header installed to

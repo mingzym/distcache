@@ -10,7 +10,7 @@ dc_htmllist = \
 		 NAL_ADDRESS_new.html NAL_CONNECTION_new.html \
 		 distcache.html
 
-EXTRA_DIST = $(dc_manpagelist)
+EXTRA_DIST = $(dc_manpagelist) $(dc_htmllist)
 
 CLEANFILES = *.1 *.2 *.8 *.html
 
