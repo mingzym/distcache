@@ -458,11 +458,13 @@ static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 {
 	conn_ctx *ctx = nal_connection_get_vtdata(conn);
 	nal_selector_fd_set(sel, ctx->fd,
-		/* Do we select for readability? */
+		/* Do we select for readability? Only if connection is complete
+		 * and there is space in the buffer. */
 		(ctx->established &&
 		(flags & NAL_SELECT_FLAG_READ) && NAL_BUFFER_notfull(ctx->b_read) ?
 			SELECTOR_FLAG_READ : 0) |
-		/* Do we select for writability? */
+		/* Do we select for writability? We do if the connection isn't
+		 * complete or there is data in the buffer to be sent. */
 		(!ctx->established ||
 		((flags & NAL_SELECT_FLAG_SEND) && NAL_BUFFER_notempty(ctx->b_send)) ?
 			SELECTOR_FLAG_SEND : 0) |
