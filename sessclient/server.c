@@ -38,25 +38,26 @@ struct st_server_t {
 	unsigned long retry_msecs;
 };
 
-static void server_retry_util(server_t *s, const struct timeval *now)
+/* Returns non-zero if a new plug was created (used for select logic) */
+static int server_retry_util(server_t *s, const struct timeval *now)
 {
 	NAL_CONNECTION *conn;
-	if(s->plug)
-		return;
+	if(s->plug) return 0;
 	if(!SYS_expirycheck(&s->last_fail, s->retry_msecs, now))
-		return;
+		return 0;
 	/* OK, we try to reconnect */
 	conn = NAL_CONNECTION_new();
-	if(!conn)
-		return;
+	if(!conn) return 0;
 	/* No matter what fails from here on, we'll update the timestamp */
 	SYS_timecpy(&s->last_fail, now);
 	if(!NAL_CONNECTION_create(conn, s->address) ||
 			((s->plug = DC_PLUG_new(conn,
 				DC_PLUG_FLAG_TO_SERVER)) == NULL)) {
 		NAL_CONNECTION_free(conn);
-	} else
-		s->uid = uid_seed++;
+		return 0;
+	}
+	s->uid = uid_seed++;
+	return 1;
 }
 
 static void server_dead_util(server_t *s, multiplexer_t *m, clients_t *c,
@@ -96,8 +97,8 @@ server_t *server_new(const char *address, unsigned long retry_msecs,
 	/* Ensure the "last_fail" is set so that we'll attempt a connect on the
 	 * very first attempt */
 	SYS_timesub(&s->last_fail, now, retry_msecs + 1);
-	/* We're OK, whether this connection attempt works or not */
-	server_retry_util(s, now);
+	/* We leave 's' unconnected, the first 'server_selector_hook' handles
+	 * this and avoids duplication of code. */
 	return s;
 err:
 	if(a)
@@ -113,18 +114,17 @@ void server_free(server_t *s)
 	SYS_free(server_t, s);
 }
 
-void server_to_selector(server_t *s, NAL_SELECTOR *sel, multiplexer_t *m,
-			clients_t *c, const struct timeval *now)
+int server_selector_hook(server_t *s, NAL_SELECTOR *sel, const struct timeval *now)
 {
-	server_retry_util(s, now);
-	if(server_is_active(s))
-		DC_PLUG_to_select(s->plug, sel);
+	if(server_retry_util(s, now))
+		return DC_PLUG_to_select(s->plug, sel);
+	return 1;
 }
 
-int server_io(server_t *s, NAL_SELECTOR *sel, multiplexer_t *m,
-			clients_t *c, const struct timeval *now)
+int server_io(server_t *s, multiplexer_t *m, clients_t *c,
+			const struct timeval *now)
 {
-	if(server_is_active(s) && !DC_PLUG_io(s->plug, sel))
+	if(server_is_active(s) && !DC_PLUG_io(s->plug))
 		server_dead_util(s, m, c, now);
 	return 1;
 }

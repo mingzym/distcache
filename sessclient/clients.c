@@ -134,16 +134,10 @@ static void client_ctx_free(client_ctx *c)
 	SYS_free(client_ctx, c);
 }
 
-static void client_ctx_to_selector(client_ctx *c, NAL_SELECTOR *sel)
+static int client_ctx_io(client_ctx *c)
 {
 	assert(c->plug != NULL);
-	DC_PLUG_to_select(c->plug, sel);
-}
-
-static int client_ctx_io(client_ctx *c, NAL_SELECTOR *sel)
-{
-	assert(c->plug != NULL);
-	if(!DC_PLUG_io(c->plug, sel))
+	if(!DC_PLUG_io(c->plug))
 		return 0;
 	client_ctx_flush(c);
 	return 1;
@@ -292,22 +286,12 @@ static void clients_delete(clients_t *c, unsigned int idx, multiplexer_t *m)
 	priority_removed(c, idx);
 }
 
-void clients_to_selector(clients_t *c, NAL_SELECTOR *sel)
-{
-	unsigned int pos = 0;
-	while(pos < c->used) {
-		client_ctx_to_selector(c->items[pos], sel);
-		pos++;
-	}
-}
-
-int clients_io(clients_t *c, NAL_SELECTOR *sel, multiplexer_t *m,
-			const struct timeval *now,
+int clients_io(clients_t *c, multiplexer_t *m, const struct timeval *now,
 			unsigned long idle_timeout)
 {
 	unsigned int pos = 0;
 	while(pos < c->used) {
-		if(!client_ctx_io(c->items[pos], sel) || (idle_timeout &&
+		if(!client_ctx_io(c->items[pos]) || (idle_timeout &&
 				client_ctx_should_timeout(c->items[pos],
 					idle_timeout, now)))
 			clients_delete(c, pos, m);

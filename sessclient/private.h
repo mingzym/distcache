@@ -46,9 +46,7 @@ typedef struct st_multiplexer_t	multiplexer_t;
 clients_t *clients_new(void);
 void clients_free(clients_t *c);
 int clients_empty(const clients_t *c);
-void clients_to_selector(clients_t *c, NAL_SELECTOR *sel);
-int clients_io(clients_t *c, NAL_SELECTOR *sel, multiplexer_t *m,
-			const struct timeval *now,
+int clients_io(clients_t *c, multiplexer_t *m, const struct timeval *now,
 			unsigned long idle_timeout);
 int clients_new_client(clients_t *c, NAL_CONNECTION *conn,
 			const struct timeval *now);
@@ -65,10 +63,9 @@ void clients_digest_error(clients_t *c, unsigned long client_uid);
 server_t *server_new(const char *address, unsigned long retry_msecs,
 			const struct timeval *now);
 void server_free(server_t *s);
-void server_to_selector(server_t *s, NAL_SELECTOR *sel, multiplexer_t *m,
-			clients_t *c, const struct timeval *now);
-int server_io(server_t *s, NAL_SELECTOR *sel, multiplexer_t *m,
-			clients_t *c, const struct timeval *now);
+int server_selector_hook(server_t *s, NAL_SELECTOR *sel, const struct timeval *now);
+int server_io(server_t *s, multiplexer_t *m, clients_t *c,
+			const struct timeval *now);
 int server_to_clients(server_t *s, clients_t *c, multiplexer_t *m,
 			const struct timeval *now);
 int server_place_request(server_t *s, unsigned long uid, DC_CMD cmd,

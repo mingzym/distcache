@@ -319,22 +319,30 @@ int main(int argc, char *argv[])
 	if(timeout < 20000)
 		timeout = 20000;
 
+	/* We try to keep conn non-NULL, the accept code will recreate
+	 * immediately after consuming one. */
+	if((conn = NAL_CONNECTION_new()) == NULL) {
+		SYS_fprintf(SYS_stderr, "Error, connection couldn't be created!!\n");
+		goto err;
+	}
+	/* Start with the listener added to the selector */
+	if(!NAL_LISTENER_add_to_selector(listener, sel))
+		goto err;
 main_loop:
+	/* Because servers can be dropped and retried, we just provide this
+	 * opaque hook which handles the requirements of reconnecting and
+	 * adding to the selector. */
+	if(!server_selector_hook(server, sel, &now)) {
+		SYS_fprintf(SYS_stderr, "Error, selector problem\n");
+		goto err;
+	}
 	if(NAL_LISTENER_finished(listener)) {
+		/* This call can be repeated safely */
+		NAL_LISTENER_del_from_selector(listener);
+		/* Terminate only once the client list is empty */
 		if(clients_empty(clients))
 			goto end;
-	} else {
-		/* If our "conn" is NULL, malloc it (an accepted connection gets
-		 * consumed by the resulting "plug" so we need to alloc it again each
-		 * time). */
-		if(!conn && ((conn = NAL_CONNECTION_new()) == NULL)) {
-			SYS_fprintf(SYS_stderr, "Error, connection couldn't be created!!\n");
-			goto err;
-		}
-		if(conn) NAL_LISTENER_add_to_selector(listener, sel);
 	}
-	clients_to_selector(clients, sel);
-	server_to_selector(server, sel, multiplexer, clients, &now);
 	if(!killable || !got_signal)
 		tmp_res = NAL_SELECTOR_select(sel, timeout, 1);
 	else
@@ -357,19 +365,23 @@ main_loop:
 	/* Set a "now" value that can be used throughout this post-select loop
 	 * (saving on redundant calls to gettimeofday()). */
 	SYS_gettime(&now);
-	if(!NAL_LISTENER_finished(listener) && conn && NAL_CONNECTION_accept(
-						conn, listener, sel)) {
-		if(!clients_new_client(clients, conn, &now)) {
+	while(!NAL_LISTENER_finished(listener) &&
+			NAL_CONNECTION_accept(conn, listener)) {
+		if(!NAL_CONNECTION_add_to_selector(conn, sel) ||
+				!clients_new_client(clients, conn, &now)) {
 			SYS_fprintf(SYS_stderr, "Error, couldn't add in new "
 				"client connection - dropping it.\n");
 			NAL_CONNECTION_free(conn);
 		}
 		/* The connection was "consumed" by the client, even in the
 		 * event of an error. */
-		conn = NULL;
+		if((conn = NAL_CONNECTION_new()) == NULL) {
+			SYS_fprintf(SYS_stderr, "Error, connection couldn't be created!!\n");
+			goto err;
+		}
 	}
-	if(!clients_io(clients, sel, multiplexer, &now, idle_timeout) ||
-			!server_io(server, sel, multiplexer, clients, &now)) {
+	if(!clients_io(clients, multiplexer, &now, idle_timeout) ||
+			!server_io(server, multiplexer, clients, &now)) {
 		SYS_fprintf(SYS_stderr, "Error, a fatal problem with the "
 			"client or server code occured. Closing.\n");
 		goto err;
@@ -386,11 +398,11 @@ end:
 err:
 	if(conn)
 		NAL_CONNECTION_free(conn);
-	NAL_SELECTOR_free(sel);
 	NAL_LISTENER_free(listener);
 	clients_free(clients);
 	server_free(server);
 	multiplexer_free(multiplexer);
+	NAL_SELECTOR_free(sel);
 	return res;
 }
 
