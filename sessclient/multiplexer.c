@@ -140,6 +140,7 @@ unsigned long multiplexer_add(multiplexer_t *m, unsigned long client_uid,
 	item->m_uid = m->uid_seed++;
 	item->c_uid = client_uid;
 	item->s_uid = server_uid;
+	item->state = ITEM_NORMAL;
 	m->used++;
 	return item->m_uid;
 }
