@@ -108,6 +108,9 @@
 #if defined(HAVE_NETINET_TCP_H)
 #include <netinet/tcp.h>
 #endif
+#if defined(HAVE_SYS_RESOURCE_H)
+#include <sys/resource.h>
+#endif
 #if defined(HAVE_SYS_SOCKET_H)
 #include <sys/socket.h>
 #endif
