@@ -56,7 +56,7 @@ static int proto_level_test(unsigned long pl)
 #ifndef DISTCACHE_NO_PROTOCOL_STDERR
 		SYS_fprintf(SYS_stderr, "libdistcache(pid=%u) protocol "
 			"incompatibility; my level is %08x, the peer's is %08x\n",
-			(unsigned int)getpid(), DISTCACHE_PROTO_LEVEL,
+			(unsigned int)SYS_getpid(), DISTCACHE_PROTO_LEVEL,
 			(unsigned int)pl);
 #endif
 		abort();
