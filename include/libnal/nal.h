@@ -36,22 +36,15 @@ typedef struct st_NAL_BUFFER NAL_BUFFER;
 #define NAL_SELECT_FLAG_SEND	(unsigned int)0x0002
 #define NAL_SELECT_FLAG_RW	(NAL_SELECT_FLAG_READ | NAL_SELECT_FLAG_SEND)
 
-/* Malloc functions */
-NAL_ADDRESS *	NAL_ADDRESS_new(void);
-NAL_LISTENER *	NAL_LISTENER_new(void);
-NAL_CONNECTION *NAL_CONNECTION_new(void);
-NAL_SELECTOR *	NAL_SELECTOR_new(void);
-NAL_BUFFER *	NAL_BUFFER_new(void);
+/********************/
+/* Global functions */
 
-/* Free functions */
-void		NAL_ADDRESS_free(NAL_ADDRESS *a);
-void		NAL_LISTENER_free(NAL_LISTENER *a);
-void		NAL_CONNECTION_free(NAL_CONNECTION *a);
-void		NAL_SELECTOR_free(NAL_SELECTOR *a);
-void		NAL_BUFFER_free(NAL_BUFFER *a);
+int		NAL_config_set_nagle(int enabled);
 
 /*********************/
 /* Address functions */
+NAL_ADDRESS *	NAL_ADDRESS_new(void);
+void		NAL_ADDRESS_free(NAL_ADDRESS *a);
 int		NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 				unsigned int def_buffer_size);
 int		NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
@@ -62,6 +55,8 @@ const char *	NAL_ADDRESS_source_string(NAL_ADDRESS *addr);
 
 /**********************/
 /* Listener functions */
+NAL_LISTENER *	NAL_LISTENER_new(void);
+void		NAL_LISTENER_free(NAL_LISTENER *a);
 int		NAL_LISTENER_create(NAL_LISTENER *list,
 				const NAL_ADDRESS *addr);
 int		NAL_LISTENER_accept_block(const NAL_LISTENER *list,
@@ -73,6 +68,8 @@ const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list);
 
 /************************/
 /* Connection functions */
+NAL_CONNECTION *NAL_CONNECTION_new(void);
+void		NAL_CONNECTION_free(NAL_CONNECTION *a);
 int		NAL_CONNECTION_create(NAL_CONNECTION *conn,
 				const NAL_ADDRESS *addr);
 int		NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1,
@@ -93,6 +90,8 @@ int		NAL_CONNECTION_get_fd(const NAL_CONNECTION *conn);
 
 /**********************/
 /* Selector functions */
+NAL_SELECTOR *	NAL_SELECTOR_new(void);
+void		NAL_SELECTOR_free(NAL_SELECTOR *a);
 int		NAL_SELECTOR_add_conn(NAL_SELECTOR *sel,
 				const NAL_CONNECTION *conn);
 int		NAL_SELECTOR_del_conn(NAL_SELECTOR *sel,
@@ -107,20 +106,23 @@ int		NAL_SELECTOR_del_listener(NAL_SELECTOR *sel,
 int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
 				unsigned long usec_timeout,
 				int use_timeout);
-/********************/
-/* Specials ... :-) */
-int		NAL_stdin_set_non_blocking(int non_blocking);
+
+/* These are used by distcache utilities (excluding daemons) in one or two
+ * places, and they were not worth explicitly hiding from the libnal
+ * abstraction. But nevertheless don't warrant a mention in the API. As such,
+ * they're left in for simplicity's sake but not mentioned in the documents.
+ * If you're silly enough to want to use these, please be my guest. However I
+ * don't promise that I won't butcher these at some point, and if anyone wants
+ * them anyway, they would probably be better off implementing a new
+ * NAL_CONNECTION type to encapsulate arbitrary fd's. */
 int		NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel);
 int		NAL_SELECTOR_stdin_readable(NAL_SELECTOR *sel);
-/* The Nagle algorithm tries to reduce fragmentation by occasionally holding up
- * packets in case they can be piggy-backed. Calling this function can turn it
- * off (or back on). With it off, any new connections (over ipv4 only), either
- * from NAL_CONNECTION_create() or NAL_LISTENER_accept[_block](), will have Nagle
- * disabled. */
-int		NAL_config_set_nagle(int enabled);
+int		NAL_stdin_set_non_blocking(int non_blocking);
 
 /********************/
 /* Buffer functions */
+NAL_BUFFER *	NAL_BUFFER_new(void);
+void		NAL_BUFFER_free(NAL_BUFFER *a);
 int		NAL_BUFFER_set_size(NAL_BUFFER *buf,
 				unsigned int size);
 int		NAL_BUFFER_empty(const NAL_BUFFER *buf);
