@@ -9,7 +9,7 @@ DC_SERVER_PID="$THISDIR/pid.dc_server"
 DC_CLIENT_PROG="$THISDIR/sessclient/dc_client"
 DC_CLIENT_UNIX="$THISDIR/unix.dc_client"
 DC_CLIENT_PID="$THISDIR/pid.dc_client"
-TESTSESS="$THISDIR/test/test_session -timeout 30 -timevar 10 -ops 2000"
+TESTSESS="$THISDIR/test/dc_test -timeout 30 -timevar 10 -ops 2000"
 TESTSESSP="$TESTSESS -persistent"
 
 DC_SERVER="$DC_SERVER_PROG -listen UNIX:$DC_SERVER_UNIX -pidfile $DC_SERVER_PID -daemon"
@@ -80,17 +80,17 @@ start_daemon "$DC_CLIENT" "dc_client" || exit 1
 
 echo ""
 
-sleep 3
+sleep 1
 
 echo "Testing direct to dc_server, using temporary connections ..."
-run_test "$TESTSESS -connect UNIX:$DC_SERVER_UNIX" "test_session" || echo "continuing anyway"
+run_test "$TESTSESS -connect UNIX:$DC_SERVER_UNIX" "dc_test" || echo "continuing anyway"
 echo "Testing direct to dc_server, using persistent connections ..."
-run_test "$TESTSESSP -connect UNIX:$DC_SERVER_UNIX" "test_session" || echo "continuing anyway"
+run_test "$TESTSESSP -connect UNIX:$DC_SERVER_UNIX" "dc_test" || echo "continuing anyway"
 
 echo "Testing through dc_client, using temporary connections ..."
-run_test "$TESTSESS -connect UNIX:$DC_CLIENT_UNIX" "test_session" || echo "continuing anyway"
+run_test "$TESTSESS -connect UNIX:$DC_CLIENT_UNIX" "dc_test" || echo "continuing anyway"
 echo "Testing through dc_client, using persistent connections ..."
-run_test "$TESTSESSP -connect UNIX:$DC_CLIENT_UNIX" "test_session" || echo "continuing anyway"
+run_test "$TESTSESSP -connect UNIX:$DC_CLIENT_UNIX" "dc_test" || echo "continuing anyway"
 
 cleanup
 

@@ -52,7 +52,7 @@ static const unsigned long def_progress = 0;
  * required to support" warning by splitting this into an array of strings. */
 static const char *usage_msg[] = {
 "",
-"Usage: test_session [options]     where 'options' are from;",
+"Usage: dc_test [options]     where 'options' are from;",
 "  -connect <addr>  (connect to server at address 'addr')",
 "  -progress <num>  (report transaction count every 'num' operations)",
 "  -sessions <num>  (create 'num' sessions to use for testing)",
@@ -67,7 +67,7 @@ static const char *usage_msg[] = {
 "  -persistent      (use a persistent connection for all operations)",
 "  -<h|help|?>      (display this usage message)",
 "",
-"Eg. test_session -connect UNIX:/tmp/session_cache -sessions 10 -withcert 3",
+"Eg. dc_test -connect UNIX:/tmp/session_cache -sessions 10 -withcert 3",
 "  will start connecting to a cache server (or a cache proxy like 'dc_client')",
 "  and will runs tests using 10 sample SSL/TLS sessions, 3 of which will be",
 "  large due to peer-certificate encoding.",
