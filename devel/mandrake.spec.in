@@ -45,9 +45,11 @@
 # directory.
 #
 # Redhat, Suse, etc: If you are building for a target system whose RPM layout
-# is not like that of Mandrake, consider replacing the group directive;
+# is not like that of Mandrake, consider replacing BOTH of the group
+# directives;
 #             Group: Networking/Other
-# to match an appropriate group for the target distribution.
+# to match an appropriate group for the target distribution. Note, the second
+# declaration is in the "devel" RPM section.
 #
 # Now you have a 'bz2' tarball, the steps to building the RPMs are relatively
 # straightforward;
@@ -87,8 +89,7 @@ Packager: Distcache project
 # RPM information: "devel"
 %package devel
 Summary: Libraries and header files for building distcache-compatible software
-# Change this if the devel package should go in a different group
-#Group: Networking/Other
+Group: Networking/Other
 
 # RPM description
 %description
