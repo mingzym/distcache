@@ -46,6 +46,12 @@ AC_DEFUN([DO_SSL_CONFIG],
 		echo "Configuring SSL/TLS-specific targets;"
 		dnl Add any --prefix to the configure arguments
 		dc_ssl_params="--prefix=$prefix $dc_ssl_params"
-		(cd ssl && echo "./configure $dc_ssl_params" | sh) || exit 1
+		dnl This workaround is required for out-of-tree builds
+		if test ! -d ssl ; then
+			mkdir ssl
+		fi
+		dc_ssl_dir="`cd $srcdir && cd ssl && pwd`"
+		dc_ssl_params="--srcdir=$dc_ssl_dir $dc_ssl_params"
+		(cd ssl && echo "$dc_ssl_dir/configure $dc_ssl_params" | sh) || exit 1
 	fi
 ])

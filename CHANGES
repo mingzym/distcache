@@ -19,6 +19,11 @@ Current version: x.x
 Changes between 0.4 and x.x
 ---------------------------
 
+  *) Implemented the appropriate tweaks so that --prefix and --srcdir flags
+     (for non-default installations and out-of-tree builds, respectively) work
+     when building the ssl/ sub-tree.
+     [Geoff Thorpe]
+
   *) Rename "swamp" to "sslswamp". This is to reduce the chances of name
      collisions with other non-ssl utilities, and to help the chances of
      sslswamp turning up on searches for ssl utilities.
