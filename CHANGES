@@ -19,6 +19,13 @@ Current version: x.x
 Changes between 0.4pre1 and x.x
 -------------------------------
 
+  *) Replaced the "distcache.spec" RPM spec with "mandrake.spec.in". To work on
+     non-Mandrake distributions probably requires changes anyway (as per the
+     comments in the spec file). The use of autoconf to generate the spec file
+     from mandrake.spec.in allows the appropriate version to be substituted
+     automatically.
+     [Geoff Thorpe]
+
   *) Forced "VERSION" to be defined by autoconf/automake by hacking inside
      configure.ac, and in such a way that "@VERSION@" is usable by Makefile.am
      files (eg. for pod2man, etc). This previously only worked reliably for the
