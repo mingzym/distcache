@@ -19,6 +19,16 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Add a new test tool, "nal_hose", for use as an alternative to nal_ping.
+     The new tool allows each connection to have more than one chunk of data in
+     flight whilst waiting for responses from the echo server - this is
+     controlled by a "-lag" command-line switch. Also, the chunks each have a
+     8-byte header, that uniquely determine the rest of data as well as the
+     index of the chunk itself. This allows it to congest a lot of outgoing
+     data into the network without needing to maintain state to handle the
+     responses later.
+     [Geoff Thorpe]
+
   *) Add "-update" and "-units" command-line switches to nal_echo to allow
      traffic and CPU usage to be monitored. See the usage output for more
      details ("nal_echo -?").
