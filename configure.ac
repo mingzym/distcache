@@ -62,6 +62,7 @@ AC_CONFIG_FILES([Makefile
 		 sessserver/Makefile
 		 snoop/Makefile
 		 test/Makefile
+		 util/Makefile
 		 doc/Makefile
 		 include/Makefile
 		 include/distcache/Makefile

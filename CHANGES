@@ -19,6 +19,20 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Add a new shell tool called "piper" to help support and test
+     file-descriptor based addresses. This code is in a new directory, "util/".
+     'piper' lets you start two commands as child-processes with arbitrary
+     pipes between them. The default pipe, "--", is equivalent to "--1>0,0<1"
+     which means to bind stdin/stdout to each other between the two commands (a
+     bidirectional version of the traditional pipe '|'). The code is ugly, and
+     it could probably benefit with being overhauled and generalised (eg.
+     chaining more than two commands, allowing pipes from the last command to
+     the first, etc). However, right now it works and lets you do things like;
+
+        piper dc_test -connect FD:0:1 -persistent -- dc_server -listen FD:0:1
+
+     [Geoff Thorpe]
+
   *) Reinstate the NAL_CONNECTION_create_pair() function in the new vtable
      code (as its an API function to the socket-specific vtables).
      [Geoff Thorpe]
