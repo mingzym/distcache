@@ -402,8 +402,12 @@ static unsigned char sel_fd_test(const NAL_SELECTOR *sel,
 				flags |= SELECTOR_FLAG_READ;
 			if(pfd->revents & POLLOUT)
 				flags |= SELECTOR_FLAG_SEND;
-			if(pfd->revents & (POLLERR|POLLHUP|POLLNVAL))
-				flags |= SELECTOR_FLAG_EXCEPT;
+			/* poll() exhibits a behaviour that a peer's send()
+			 * followed by a close() could arrive here as POLLIN
+			 * and POLLERR it seems. So only set EXCEPT if there
+			 * aren't other flags involved. */
+			if(!flags && (pfd->revents & (POLLERR|POLLHUP|POLLNVAL)))
+				flags = SELECTOR_FLAG_EXCEPT;
 			return flags;
 		}
 	}
