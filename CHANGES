@@ -19,6 +19,26 @@ Current version: x.x.x
 Changes between 1.4.3 and x.x.x
 -------------------------------
 
+  *) Replace configure.ac with configure.ac.template in the ssl/ subdirectory
+     so that the bootstrap.sh script can (re)create the autoconf script more
+     easily. This is to ensure the version information from the top-level
+     configure.ac script is replicated into the sub-directory's script.
+     [Geoff Thorpe]
+
+  *) Ensure that the default behaviour is to built static libs and no shared
+     libs. Specifying --disable-static and/or --enable-shared to the configure
+     script can override this behaviour. Reword the help strings in the
+     configure script to be "--disable-..." when the feature in question is
+     on by default. Also, use autoconf to define (or not, as the case may be)
+     optional sub-directories to the Makefile.in->Makefile conversion rather
+     than using automake conditionals in the Makefile.am->Makefile.in process.
+     This fixes a build error in 1.4.3 that would configure ssl targets but
+     not build or install them.
+     [Geoff Thorpe]
+
+  *) Minor documentation improvements.
+     [Geoff Thorpe]
+
   *) Add a new switch "-sslmeth <meth>" to the 'sslswamp' tool to allow the
      user to stipulate the record and handshake layer version required. Apart
      from fixing the record layer version in advance, this switch is also the

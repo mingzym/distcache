@@ -45,6 +45,23 @@ compilation problems, please give us some information - if you can provide
 fixes or allow us shell access to such a machine to fix it ourselves we would
 be most grateful; please mail distcache-team@lists.sourceforge.net.
 
+A warning about shared-libraries. For development (and version-control)
+reasons, the default settings are to build static libraries only. To build
+build and install shared-libraries, the "--enable-shared" flag must be passed
+to "./configure". To disable the building of static libraries, add the
+"--disable-static" switch also.
+
+A warning also about file sizes. The size of compiled executables can usually
+be dramatically reduced (eg. sometimes by up to 90%) by stripping the
+executables of symbol information. Unless you have the intention of debugging
+applications (or providing detailed debugging information to developers without
+first recompiling), it is a wise idea to reduce this bloat. Fortunately, the
+GNU autotools have built-in support for this functionality, all you need to do
+is to specify "make install-strip" instead of "make install". Note however that
+only executables are stripped, libraries are not touched - therefore for
+maximum space savings it is recommended to build with static-linking
+(--disable-shared).
+
 Before long, 'distcache' should be well supported on the standard Unix-like
 platforms as well as Win32 (using Cygwin) because of the GNU autotools suite.
 Please feel free to monitor ongoing development in CVS, and contributions are
