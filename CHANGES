@@ -25,6 +25,7 @@ Changes between 0.3 and 0.xx
      - dc_server(1)
      - dc_client(1)
      - dc_snoop(1)
+     - dc_test(1)
      [Geoff Thorpe]
 
   *) Make "-connect" and "-server" aliases in dc_snoop for consistency with the
