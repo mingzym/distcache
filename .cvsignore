@@ -5,12 +5,11 @@
 Makefile
 Makefile.in
 config
-config.h
-config.h.in
 config.log
 config.status
 configure
 autom4te-2.5x.cache
+autom4te.cache
 aclocal.m4
 stamp-h1
-
+libtool
