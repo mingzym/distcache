@@ -48,7 +48,7 @@ else
 		CFLAGS="-Wall -pedantic -Wundef -Wshadow -Wpointer-arith \
 		-Wbad-function-cast -Wcast-qual -Wcast-align \
 		-Wsign-compare -Wstrict-prototypes -Wmissing-prototypes \
-		-Wmissing-declarations -Wredundant-decls \
+		-Wmissing-declarations -Wredundant-decls -Wwrite-strings \
 		-Wunreachable-code -g -ggdb3" ./configure || exit 1
 	else
 		echo "Error, '$PRECONF' is not recognised as a value for PRECONF"
