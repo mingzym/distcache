@@ -25,6 +25,11 @@
   seconds after the expiry where dc_test should then assume it was removed by
   the server so future ADDs succeed, DELETEs fail, etc.
 
+- The remainder of README.API and README.TOOLS needs to find its way into man
+  pages so that these can be deleted from CVS. Until then, these files will
+  continue to live in CVS but won't be included in "make dist".
+
 - "make dist" currently fails to copy lots of files that should arguably be
   copied when producing a source distribution. Eg. this BUGS file, READMEs
   besides the top-level one (which gets copied automatically), etc.
+
