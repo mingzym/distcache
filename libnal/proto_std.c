@@ -36,10 +36,13 @@ static int addr_can_connect(const NAL_ADDRESS *addr);
 static int addr_can_listen(const NAL_ADDRESS *addr);
 static const NAL_LISTENER_vtable *addr_create_listener(const NAL_ADDRESS *addr);
 static const NAL_CONNECTION_vtable *addr_create_connection(const NAL_ADDRESS *addr);
+const char *addr_prefixes[] = {"IP:", "IPv4:", "UNIX:", NULL};
 static const NAL_ADDRESS_vtable addr_vtable = {
 	sizeof(nal_sockaddr),
+	addr_prefixes,
 	addr_on_create,
 	addr_on_destroy,
+	addr_on_destroy, /* destroy==reset */
 	addr_can_connect,
 	addr_can_listen,
 	addr_create_listener,
@@ -64,6 +67,7 @@ static const NAL_LISTENER_vtable list_vtable = {
 	sizeof(list_ctx),
 	list_on_create,
 	list_on_destroy,
+	list_on_destroy, /* destroy==reset */
 	list_do_accept,
 	list_selector_add,
 	list_selector_del
@@ -73,6 +77,7 @@ static const NAL_LISTENER_vtable list_vtable = {
 static int conn_on_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr);
 static int conn_on_accept(NAL_CONNECTION *conn, const NAL_LISTENER *l);
 static void conn_on_destroy(NAL_CONNECTION *conn);
+static void conn_on_reset(NAL_CONNECTION *conn);
 static int conn_set_size(NAL_CONNECTION *conn, unsigned int size);
 static NAL_BUFFER *conn_get_read(const NAL_CONNECTION *conn);
 static NAL_BUFFER *conn_get_send(const NAL_CONNECTION *conn);
@@ -92,6 +97,7 @@ static const NAL_CONNECTION_vtable conn_vtable = {
 	conn_on_create,
 	conn_on_accept,
 	conn_on_destroy,
+	conn_on_reset,
 	conn_set_size,
 	conn_get_read,
 	conn_get_send,
@@ -291,7 +297,12 @@ static void conn_on_destroy(NAL_CONNECTION *conn)
 	nal_fd_close(&ctx->fd);
 	NAL_BUFFER_free(ctx->b_read);
 	NAL_BUFFER_free(ctx->b_send);
-	SYS_zero(conn_ctx, ctx);
+}
+
+static void conn_on_reset(NAL_CONNECTION *conn)
+{
+	conn_ctx *ctx = nal_connection_get_vtdata(conn);
+	nal_fd_close(&ctx->fd);
 }
 
 static int conn_set_size(NAL_CONNECTION *conn, unsigned int size)

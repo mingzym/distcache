@@ -32,6 +32,8 @@ struct st_NAL_ADDRESS {
 	void *vt_data;
 	/* Size of implementation data allocated */
 	size_t vt_data_size;
+	/* When resetting objects for reuse, this is set to allow 'vt' to be NULL */
+	const NAL_ADDRESS_vtable *reset;
 	/* def_buffer_size is handled directly by the API */
 	unsigned int def_buffer_size;
 };
@@ -63,13 +65,26 @@ const NAL_CONNECTION_vtable *nal_address_get_connection(const NAL_ADDRESS *addr)
 }
 
 /* Internal only function used to handle vt_data */
-static int int_address_set_vt_size(NAL_ADDRESS *a, const NAL_ADDRESS_vtable *vtable)
+static int int_address_set_vt(NAL_ADDRESS *a, const NAL_ADDRESS_vtable *vtable)
 {
+	if(a->reset) {
+		if(a->reset != vtable) {
+			/* We need to cleanup because we're not reusing state */
+			a->vt = a->reset;
+			a->vt->on_destroy(a);
+			a->reset = NULL;
+			SYS_zero_n(unsigned char, a->vt_data, a->vt_data_size);
+		} else
+			/* We're reusing the previous state */
+			goto ok;
+	}
+	/* We're not reusing, though there may be (zeroed) data allocated we
+	 * can use if it's big enough. */
 	if(vtable->vtdata_size > 0) {
 		if(a->vt_data) {
 			if(a->vt_data_size >= vtable->vtdata_size)
 				/* The existing vtdata is fine */
-				return 1;
+				goto ok;
 			/* We need to reallocate */
 			SYS_free(void, a->vt_data);
 		}
@@ -79,6 +94,7 @@ static int int_address_set_vt_size(NAL_ADDRESS *a, const NAL_ADDRESS_vtable *vta
 		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
 		a->vt_data_size = vtable->vtdata_size;
 	}
+ok:
 	/* All's well, more code-saving by setting the vtable for the caller */
 	a->vt = vtable;
 	return 1;
@@ -94,6 +110,7 @@ NAL_ADDRESS *NAL_ADDRESS_new(void)
 	if(a) {
 		a->vt = NULL;
 		a->vt_data = NULL;
+		a->reset = NULL;
 		a->def_buffer_size = 0;
 	}
 	return a;
@@ -102,8 +119,18 @@ NAL_ADDRESS *NAL_ADDRESS_new(void)
 void NAL_ADDRESS_free(NAL_ADDRESS *a)
 {
 	if(a->vt) a->vt->on_destroy(a);
+	else if(a->reset) a->reset->on_destroy(a);
 	if(a->vt_data) SYS_free(void, a->vt_data);
 	SYS_free(NAL_ADDRESS, a);
+}
+
+void NAL_ADDRESS_reset(NAL_ADDRESS *a)
+{
+	if(a->vt) {
+		a->vt->on_reset(a);
+		a->reset = a->vt;
+		a->vt = NULL;
+	}
 }
 
 unsigned int NAL_ADDRESS_get_def_buffer_size(const NAL_ADDRESS *addr)
@@ -122,7 +149,7 @@ int NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
 int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 			unsigned int def_buffer_size)
 {
-	int len;
+	unsigned int len;
 	const NAL_ADDRESS_vtable *vtable = NAL_ADDRESS_vtable_builtins();
 	if(addr->vt) return 0; /* 'addr' is in use */
 	if(!NAL_ADDRESS_set_def_buffer_size(addr, def_buffer_size))
@@ -131,16 +158,19 @@ int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 	if((len < 2) || (len > NAL_ADDRESS_MAX_STR_LEN))
 		return 0; /* 'addr_string' can't be valid */
 	while(vtable) {
-		/* FIXME: We need to change the address vtable to include
-		 * strings so that we only call on_create() on the successful
-		 * implementation and not on everything we search. */
-		if(!int_address_set_vt_size(addr, vtable))
-			return 0;
-		if(vtable->on_create(addr, addr_string))
-			break; /* 'vtable' accepted this string */
+		const char **pre = vtable->prefixes;
+		while(*pre) {
+			unsigned int pre_len = strlen(*pre);
+			if((pre_len <= len) && (strncmp(*pre, addr_string,
+							pre_len) == 0))
+				goto done;
+			pre++;
+		}
 		vtable = vtable->next; /* move to next address type */
 	}
-	if(!vtable) {
+done:
+	if(!vtable || !int_address_set_vt(addr, vtable) ||
+			!vtable->on_create(addr, addr_string)) {
 		/* no builtin vtable accepted 'addr_string' */
 		addr->vt = NULL;
 		return 0;

@@ -100,6 +100,8 @@ typedef struct st_NAL_CONNECTION_vtable {
 	int (*on_accept)(NAL_CONNECTION *conn, const NAL_LISTENER *l);
 	/* destructor */
 	void (*on_destroy)(NAL_CONNECTION *conn);
+	/* passive destructor */
+	void (*on_reset)(NAL_CONNECTION *conn);
 	/* Handlers for NAL_CONNECTION functionality */
 	int (*set_size)(NAL_CONNECTION *conn, unsigned int size);
 	NAL_BUFFER *(*get_read)(const NAL_CONNECTION *conn);
@@ -116,9 +118,10 @@ const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *con
 typedef struct st_NAL_LISTENER_vtable {
 	/* The size of "vtdata" the NAL_CONNECTION should provide */
 	size_t vtdata_size;
-	/* constructor/destructor */
+	/* constructor/destructor/passive-destructor */
 	int (*on_create)(NAL_LISTENER *l, const NAL_ADDRESS *addr);
 	void (*on_destroy)(NAL_LISTENER *l);
+	void (*on_reset)(NAL_LISTENER *l);
 	/* Handlers for NAL_LISTENER functionality */
 	const NAL_CONNECTION_vtable *(*do_accept)(NAL_LISTENER *l,
 						NAL_SELECTOR *sel);
@@ -133,9 +136,13 @@ const NAL_CONNECTION_vtable *nal_listener_accept_connection(NAL_LISTENER *l,
 typedef struct st_NAL_ADDRESS_vtable {
 	/* The size of "vtdata" the NAL_CONNECTION should provide */
 	size_t vtdata_size;
-	/* constructor/destructor */
+	/* NULL-terminated array of string prefixes that correspond to this
+	 * vtable. Should include trailing colon. */
+	const char **prefixes;
+	/* constructor/destructor/passive-destructor */
 	int (*on_create)(NAL_ADDRESS *addr, const char *addr_string);
 	void (*on_destroy)(NAL_ADDRESS *addr);
+	void (*on_reset)(NAL_ADDRESS *addr);
 	/* Handlers for NAL_ADDRESS functionality */
 	int (*can_connect)(const NAL_ADDRESS *addr);
 	int (*can_listen)(const NAL_ADDRESS *addr);

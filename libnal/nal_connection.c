@@ -32,16 +32,31 @@ struct st_NAL_CONNECTION {
 	void *vt_data;
 	/* Size of implementation data allocated */
 	size_t vt_data_size;
+	/* When resetting objects for reuse, this is set to allow 'vt' to be NULL */
+	const NAL_CONNECTION_vtable *reset;
 };
 
-/* Internal only function used to handle vt_data */
-static int int_connection_set_vt_size(NAL_CONNECTION *a, const NAL_CONNECTION_vtable *vtable)
+/* Internal only function used to set the vtable (and handle reset logic) */
+static int int_connection_set_vt(NAL_CONNECTION *a, const NAL_CONNECTION_vtable *vtable)
 {
+	if(a->reset) {
+		if(a->reset != vtable) {
+			/* We need to cleanup because we're not reusing state */
+			a->vt = a->reset;
+			a->vt->on_destroy(a);
+			a->reset = NULL;
+			SYS_zero_n(unsigned char, a->vt_data, a->vt_data_size);
+		} else
+			/* We're reusing the previous state */
+			goto ok;
+	}
+	/* We're not reusing, though there may be (zeroed) data allocated we
+	 * can use if it's big enough. */
 	if(vtable->vtdata_size > 0) {
 		if(a->vt_data) {
 			if(a->vt_data_size >= vtable->vtdata_size)
 				/* The existing vtdata is fine */
-				return 1;
+				goto ok;
 			/* We need to reallocate */
 			SYS_free(void, a->vt_data);
 		}
@@ -51,6 +66,7 @@ static int int_connection_set_vt_size(NAL_CONNECTION *a, const NAL_CONNECTION_vt
 		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
 		a->vt_data_size = vtable->vtdata_size;
 	}
+ok:
 	/* All's well, more code-saving by setting the vtable for the caller */
 	a->vt = vtable;
 	return 1;
@@ -80,6 +96,7 @@ NAL_CONNECTION *NAL_CONNECTION_new(void)
 	if(conn) {
 		conn->vt = NULL;
 		conn->vt_data = NULL;
+		conn->reset = NULL;
 	}
 	return conn;
 }
@@ -87,8 +104,18 @@ NAL_CONNECTION *NAL_CONNECTION_new(void)
 void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 {
 	if(conn->vt) conn->vt->on_destroy(conn);
+	else if(conn->reset) conn->reset->on_destroy(conn);
 	if(conn->vt_data) SYS_free(void, conn->vt_data);
 	SYS_free(NAL_CONNECTION, conn);
+}
+
+void NAL_CONNECTION_reset(NAL_CONNECTION *conn)
+{
+	if(conn->vt) {
+		conn->vt->on_reset(conn);
+		conn->reset = conn->vt;
+		conn->vt = NULL;
+	}
 }
 
 int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
@@ -98,7 +125,7 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 		return 0;
 	if((vtable = nal_address_get_connection(addr)) == NULL)
 		return 0;
-	if(!int_connection_set_vt_size(conn, vtable))
+	if(!int_connection_set_vt(conn, vtable))
 		return 0;
 	if(!conn->vt->on_create(conn, addr)) {
 		conn->vt = NULL;
@@ -114,7 +141,7 @@ int NAL_CONNECTION_accept(NAL_CONNECTION *conn, NAL_LISTENER *list,
 	if(conn->vt) return 0;
 	if((vtable = nal_listener_accept_connection(list, sel)) == NULL)
 		return 0;
-	if(!int_connection_set_vt_size(conn, vtable))
+	if(!int_connection_set_vt(conn, vtable))
 		return 0;
 	if(!conn->vt->on_accept(conn, list)) {
 		conn->vt = NULL;

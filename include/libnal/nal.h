@@ -47,6 +47,7 @@ void		NAL_config_set_nagle(int enabled);
 
 NAL_ADDRESS *	NAL_ADDRESS_new(void);
 void		NAL_ADDRESS_free(NAL_ADDRESS *a);
+void		NAL_ADDRESS_reset(NAL_ADDRESS *a);
 int		NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 				unsigned int def_buffer_size);
 unsigned int	NAL_ADDRESS_get_def_buffer_size(const NAL_ADDRESS *addr);
@@ -71,6 +72,7 @@ int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
 
 NAL_LISTENER *	NAL_LISTENER_new(void);
 void		NAL_LISTENER_free(NAL_LISTENER *a);
+void		NAL_LISTENER_reset(NAL_LISTENER *a);
 int		NAL_LISTENER_create(NAL_LISTENER *list,
 				const NAL_ADDRESS *addr);
 void		NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
@@ -84,6 +86,7 @@ void		NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
 
 NAL_CONNECTION *NAL_CONNECTION_new(void);
 void		NAL_CONNECTION_free(NAL_CONNECTION *a);
+void		NAL_CONNECTION_reset(NAL_CONNECTION *a);
 int		NAL_CONNECTION_create(NAL_CONNECTION *conn,
 				const NAL_ADDRESS *addr);
 int		NAL_CONNECTION_accept(NAL_CONNECTION *conn,
