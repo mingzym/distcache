@@ -134,6 +134,39 @@ void NAL_config_set_nagle(int enabled)
 	gb_use_nagle = enabled;
 }
 
+int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1,
+				NAL_CONNECTION *conn2,
+				unsigned int def_buffer_size)
+{
+	int fds[2];
+	conn_ctx *ctx1, *ctx2;
+	if(nal_connection_get_vtable(conn1) || nal_connection_get_vtable(conn2))
+		return 0;
+	if(!nal_connection_set_vtable(conn1, &conn_vtable) ||
+			!nal_connection_set_vtable(conn2, &conn_vtable))
+		return 0;
+	if(!NAL_CONNECTION_set_size(conn1, def_buffer_size) ||
+			!NAL_CONNECTION_set_size(conn2, def_buffer_size))
+		return 0;
+	if(!nal_sock_create_unix_pair(fds))
+		return 0;
+	if(!nal_fd_make_non_blocking(fds[0], 1) ||
+			!nal_fd_make_non_blocking(fds[1], 1) ||
+			!nal_sock_set_nagle(fds[0], gb_use_nagle, nal_sockaddr_type_unix) ||
+			!nal_sock_set_nagle(fds[1], gb_use_nagle, nal_sockaddr_type_unix)) {
+		nal_fd_close(fds);
+		nal_fd_close(fds + 1);
+		return 0;
+	}
+	ctx1 = nal_connection_get_vtdata(conn1);
+	ctx2 = nal_connection_get_vtdata(conn2);
+	ctx1->fd = fds[0];
+	ctx2->fd = fds[1];
+	ctx1->established = 1;
+	ctx2->established = 1;
+	return 1;
+}
+
 /**************************************/
 /* Implementation of address handlers */
 /**************************************/

@@ -112,10 +112,10 @@ void		NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,
 /* Connection functions (specialised) */
 /**************************************/
 
-#if 0
 int		NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1,
 				NAL_CONNECTION *conn2,
 				unsigned int def_buffer_size);
+#if 0
 int		NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 				unsigned int def_buffer_size);
 #endif

@@ -144,7 +144,7 @@ static int addr_parse(NAL_ADDRESS *addr, const char *addr_string)
 {
 	char *tmp_ptr;
 	addr_ctx *ctx;
-	unsigned long conv_val;
+	long conv_val;
 
 	/* The addresses we support all start with a protocol followed by a
 	 * colon. */
@@ -154,13 +154,16 @@ static int addr_parse(NAL_ADDRESS *addr, const char *addr_string)
 	ctx = nal_address_get_vtdata(addr);
 	/* Point to what remains after the ':' */
 	addr_string = tmp_ptr + 1;
-	conv_val = strtoul(addr_string, &tmp_ptr, 10);
+	conv_val = strtol(addr_string, &tmp_ptr, 10);
 	if(!tmp_ptr || (tmp_ptr == addr_string)) return 0;
-	if((conv_val == ULONG_MAX) && (errno == ERANGE)) return 0;
-	if((conv_val == 0) && (errno == EINVAL)) return 0;
+	if(((conv_val == LONG_MIN) || (conv_val == LONG_MAX)) &&
+			(errno == ERANGE)) return 0;
+	if((conv_val < -1) && (errno == EINVAL)) return 0;
 	if(conv_val > 65535) return 0;
 	switch(*tmp_ptr) {
 	case '\0':
+		/* we can't use -1 for both directions. */
+		if(conv_val < 0) return 0;
 		ctx->fd_read = ctx->fd_send = (int)conv_val;
 		return 1;
 	case ':':
@@ -171,12 +174,15 @@ static int addr_parse(NAL_ADDRESS *addr, const char *addr_string)
 	}
 	/* Repeat the above for the second fd */
 	addr_string = tmp_ptr + 1;
-	conv_val = strtoul(addr_string, &tmp_ptr, 10);
+	conv_val = strtol(addr_string, &tmp_ptr, 10);
 	if(!tmp_ptr || (tmp_ptr == addr_string)) return 0;
-	if((conv_val == ULONG_MAX) && (errno == ERANGE)) return 0;
-	if((conv_val == 0) && (errno == EINVAL)) return 0;
+	if(((conv_val == LONG_MIN) || (conv_val == LONG_MAX)) &&
+			(errno == ERANGE)) return 0;
+	if((conv_val < -1) && (errno == EINVAL)) return 0;
 	if(conv_val > 65535) return 0;
 	if(*tmp_ptr != '\0') return 0;
+	/* we can't use -1 for both directions. */
+	if((ctx->fd_read < 0) && (conv_val < 0)) return 0;
 	ctx->fd_send = (int)conv_val;
 	/* Success */
 	return 1;
@@ -184,14 +190,12 @@ static int addr_parse(NAL_ADDRESS *addr, const char *addr_string)
 
 static int addr_can_connect(const NAL_ADDRESS *addr)
 {
-	addr_ctx *ctx = nal_address_get_vtdata(addr);
-	return (ctx->fd_read != -1);
+	return 1;
 }
 
 static int addr_can_listen(const NAL_ADDRESS *addr)
 {
-	addr_ctx *ctx = nal_address_get_vtdata(addr);
-	return (ctx->fd_read != -1);
+	return 1;
 }
 
 static const NAL_LISTENER_vtable *addr_create_listener(const NAL_ADDRESS *addr)
@@ -262,8 +266,9 @@ static int list_finished(const NAL_LISTENER *l)
 static int conn_ctx_setup(conn_ctx *ctx_conn, int fd_read, int fd_send,
 				unsigned int buf_size)
 {
-	if(!NAL_BUFFER_set_size(ctx_conn->b_read, buf_size) ||
-			!NAL_BUFFER_set_size(ctx_conn->b_send, buf_size))
+	if((fd_read != -1) && !NAL_BUFFER_set_size(ctx_conn->b_read, buf_size))
+		return 0;
+	if((fd_send != -1) && !NAL_BUFFER_set_size(ctx_conn->b_send, buf_size))
 		return 0;
 	ctx_conn->fd_read = fd_read;
 	ctx_conn->fd_send = fd_send;
@@ -301,10 +306,11 @@ static int conn_connect(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 {
 	const addr_ctx *ctx_addr = nal_address_get_vtdata(addr);
 	conn_ctx *ctx_conn = nal_connection_get_vtdata(conn);
-	if(!nal_fd_make_non_blocking(ctx_addr->fd_read, 1) ||
-			!nal_fd_make_non_blocking(ctx_addr->fd_send, 1) ||
-			!conn_ctx_setup(ctx_conn, ctx_addr->fd_read,
-				ctx_addr->fd_send,
+	if((ctx_addr->fd_read != -1) && !nal_fd_make_non_blocking(ctx_addr->fd_read, 1))
+		return 0;
+	if((ctx_addr->fd_send != -1) && !nal_fd_make_non_blocking(ctx_addr->fd_send, 1))
+		return 0;
+	if(!conn_ctx_setup(ctx_conn, ctx_addr->fd_read, ctx_addr->fd_send,
 				NAL_ADDRESS_get_def_buffer_size(addr)))
 		return 0;
 	return 1;
@@ -314,10 +320,11 @@ static int conn_accept(NAL_CONNECTION *conn, const NAL_LISTENER *l)
 {
 	list_ctx *ctx_list = nal_listener_get_vtdata(l);
 	conn_ctx *ctx_conn = nal_connection_get_vtdata(conn);
-	if(!nal_fd_make_non_blocking(ctx_list->fd_read, 1) ||
-			!nal_fd_make_non_blocking(ctx_list->fd_send, 1) ||
-			!conn_ctx_setup(ctx_conn, ctx_list->fd_read,
-				ctx_list->fd_send,
+	if((ctx_list->fd_read != -1) && !nal_fd_make_non_blocking(ctx_list->fd_read, 1))
+		return 0;
+	if((ctx_list->fd_send != -1) && !nal_fd_make_non_blocking(ctx_list->fd_send, 1))
+		return 0;
+	if(!conn_ctx_setup(ctx_conn, ctx_list->fd_read, ctx_list->fd_send,
 				nal_listener_get_def_buffer_size(l)))
 		return 0;
 	ctx_list->accepted = 1;
@@ -327,8 +334,9 @@ static int conn_accept(NAL_CONNECTION *conn, const NAL_LISTENER *l)
 static int conn_set_size(NAL_CONNECTION *conn, unsigned int size)
 {
 	conn_ctx *ctx_conn = nal_connection_get_vtdata(conn);
-	if(!NAL_BUFFER_set_size(ctx_conn->b_read, size) ||
-			!NAL_BUFFER_set_size(ctx_conn->b_send, size))
+	if((ctx_conn->fd_read != -1) && !NAL_BUFFER_set_size(ctx_conn->b_read, size))
+		return 0;
+	if((ctx_conn->fd_send != -1) && !NAL_BUFFER_set_size(ctx_conn->b_send, size))
 		return 0;
 	return 1;
 }
@@ -354,9 +362,10 @@ static int conn_do_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 		unsigned int max_read, unsigned int max_send)
 {
 	conn_ctx *ctx = nal_connection_get_vtdata(conn);
-	unsigned char flags_read = nal_selector_fd_test(sel, ctx->fd_read);
-	unsigned char flags_send = (ctx->fd_read == ctx->fd_send ? flags_read :
-			nal_selector_fd_test(sel, ctx->fd_send));
+	unsigned char flags_read = ((ctx->fd_read != -1) ?
+		nal_selector_fd_test(sel, ctx->fd_read) : 0);
+	unsigned char flags_send = ((ctx->fd_read == ctx->fd_send) ? flags_read :
+			((ctx->fd_send != -1) ? nal_selector_fd_test(sel, ctx->fd_send) : 0));
 	if((flags_read | flags_send) & SELECTOR_FLAG_EXCEPT) return 0;
 	if(flags_read & SELECTOR_FLAG_READ) {
 		int io_ret = nal_fd_buffer_from_fd(ctx->b_read, ctx->fd_read, max_read);
@@ -369,8 +378,9 @@ static int conn_do_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 		if(io_ret <= 0)
 			return 0;
 	}
-	nal_selector_fd_clear(sel, ctx->fd_read);
-	if(ctx->fd_read != ctx->fd_send)
+	if(ctx->fd_read != -1)
+		nal_selector_fd_clear(sel, ctx->fd_read);
+	if((ctx->fd_read != ctx->fd_send) && (ctx->fd_send != -1))
 		nal_selector_fd_clear(sel, ctx->fd_send);
 	return 1;
 }
@@ -382,20 +392,26 @@ static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel)
 					SELECTOR_FLAG_READ : 0);
 	unsigned char tosend = (NAL_BUFFER_notempty(ctx->b_send) ?
 					SELECTOR_FLAG_SEND : 0);
-	if(ctx->fd_read == ctx->fd_send)
-		nal_selector_fd_set(sel, ctx->fd_read, toread | tosend |
+	if(ctx->fd_read == ctx->fd_send) {
+		if(ctx->fd_read != -1)
+			nal_selector_fd_set(sel, ctx->fd_read, toread | tosend |
 						SELECTOR_FLAG_EXCEPT);
-	else {
-		nal_selector_fd_set(sel, ctx->fd_read, toread | SELECTOR_FLAG_EXCEPT);
-		nal_selector_fd_set(sel, ctx->fd_send, tosend | SELECTOR_FLAG_EXCEPT);
+	} else {
+		if(ctx->fd_read != -1)
+			nal_selector_fd_set(sel, ctx->fd_read,
+					toread | SELECTOR_FLAG_EXCEPT);
+		if(ctx->fd_send != -1)
+			nal_selector_fd_set(sel, ctx->fd_send,
+					tosend | SELECTOR_FLAG_EXCEPT);
 	}
 }
 
 static void conn_selector_del(const NAL_CONNECTION *conn, NAL_SELECTOR *sel)
 {
 	conn_ctx *ctx = nal_connection_get_vtdata(conn);
-	nal_selector_fd_unset(sel, ctx->fd_read);
-	if(ctx->fd_read != ctx->fd_send)
+	if(ctx->fd_read != -1)
+		nal_selector_fd_unset(sel, ctx->fd_read);
+	if((ctx->fd_read != ctx->fd_send) && (ctx->fd_send != -1))
 		nal_selector_fd_unset(sel, ctx->fd_send);
 }
 
