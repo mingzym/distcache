@@ -19,6 +19,12 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Add another libnal test, nal_pong, that plays request/response
+     transactions with configurable sizes. It doesn't check payloads, and
+     requires clients and servers to be set up with matching parameters, but
+     provides a useful way to run asymmetric traffic tests.
+     [Geoff Thorpe]
+
   *) Turn nagle off (ie. set TCP_NODELAY) by default on sockets. The IO models
      we use typically results in good defragmentation anyway and nagle adds
      unnecessary delay.
