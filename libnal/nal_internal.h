@@ -47,15 +47,12 @@
 /* An upper limit on the size of address strings that will be allowable */
 #define NAL_ADDRESS_MAX_STR_LEN	255
 
+/* This nal_sockaddr stuff is to encapsulate unix domain and ipv4 socket
+ * code. */
 typedef enum {
-		nal_sockaddr_type_ip,
-		nal_sockaddr_type_unix
+	nal_sockaddr_type_ip,
+	nal_sockaddr_type_unix
 } nal_sockaddr_type;
-/* This is a dummy type used to ensure our "sockaddr" is big enough to store
- * whatever. I previously assumed "struct sockaddr" already was, but it turns
- * out (dammit) that;
- *     sizeof(struct sockaddr_un) > sizeof(struct sockaddr)
- */
 typedef struct st_nal_sockaddr {
 	union {
 		struct sockaddr_in val_in;
@@ -95,12 +92,15 @@ int nal_sock_is_connected(int fd);
 /***********/
 
 typedef struct st_NAL_CONNECTION_vtable {
+	/* The size of "vtdata" the NAL_CONNECTION should provide */
+	size_t vtdata_size;
 	/* constructor after NAL_ADDRESS_vtable->create_connection() */
 	int (*on_create)(NAL_CONNECTION *conn, const NAL_ADDRESS *addr);
 	/* constructor after NAL_LISTENER_vtable->do_accept() */
 	int (*on_accept)(NAL_CONNECTION *conn, const NAL_LISTENER *l);
 	/* destructor */
 	void (*on_destroy)(NAL_CONNECTION *conn);
+	/* Handlers for NAL_CONNECTION functionality */
 	int (*set_size)(NAL_CONNECTION *conn, unsigned int size);
 	NAL_BUFFER *(*get_read)(const NAL_CONNECTION *conn);
 	NAL_BUFFER *(*get_send)(const NAL_CONNECTION *conn);
@@ -111,26 +111,32 @@ typedef struct st_NAL_CONNECTION_vtable {
 	void (*selector_del)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
 } NAL_CONNECTION_vtable;
 void *nal_connection_get_vtdata(const NAL_CONNECTION *conn);
-void nal_connection_set_vtdata(NAL_CONNECTION *conn, void *vtdata);
 const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *conn);
 
 typedef struct st_NAL_LISTENER_vtable {
+	/* The size of "vtdata" the NAL_CONNECTION should provide */
+	size_t vtdata_size;
+	/* constructor/destructor */
 	int (*on_create)(NAL_LISTENER *l, const NAL_ADDRESS *addr);
 	void (*on_destroy)(NAL_LISTENER *l);
+	/* Handlers for NAL_LISTENER functionality */
 	const NAL_CONNECTION_vtable *(*do_accept)(NAL_LISTENER *l,
 						NAL_SELECTOR *sel);
 	void (*selector_add)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
 	void (*selector_del)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
 } NAL_LISTENER_vtable;
 void *nal_listener_get_vtdata(const NAL_LISTENER *l);
-void nal_listener_set_vtdata(NAL_LISTENER *l, void *vtdata);
 const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *l);
 const NAL_CONNECTION_vtable *nal_listener_accept_connection(NAL_LISTENER *l,
 							NAL_SELECTOR *sel);
 
 typedef struct st_NAL_ADDRESS_vtable {
+	/* The size of "vtdata" the NAL_CONNECTION should provide */
+	size_t vtdata_size;
+	/* constructor/destructor */
 	int (*on_create)(NAL_ADDRESS *addr, const char *addr_string);
 	void (*on_destroy)(NAL_ADDRESS *addr);
+	/* Handlers for NAL_ADDRESS functionality */
 	int (*can_connect)(const NAL_ADDRESS *addr);
 	int (*can_listen)(const NAL_ADDRESS *addr);
 	const NAL_LISTENER_vtable *(*create_listener)(const NAL_ADDRESS *addr);
@@ -138,7 +144,6 @@ typedef struct st_NAL_ADDRESS_vtable {
 	struct st_NAL_ADDRESS_vtable *next;
 } NAL_ADDRESS_vtable;
 void *nal_address_get_vtdata(const NAL_ADDRESS *addr);
-void nal_address_set_vtdata(NAL_ADDRESS *addr, void *vtdata);
 const NAL_ADDRESS_vtable *nal_address_get_vtable(const NAL_ADDRESS *addr);
 const NAL_LISTENER_vtable *nal_address_get_listener(const NAL_ADDRESS *addr);
 const NAL_CONNECTION_vtable *nal_address_get_connection(const NAL_ADDRESS *addr);

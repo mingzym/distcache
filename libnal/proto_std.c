@@ -37,6 +37,7 @@ static int addr_can_listen(const NAL_ADDRESS *addr);
 static const NAL_LISTENER_vtable *addr_create_listener(const NAL_ADDRESS *addr);
 static const NAL_CONNECTION_vtable *addr_create_connection(const NAL_ADDRESS *addr);
 static const NAL_ADDRESS_vtable addr_vtable = {
+	sizeof(nal_sockaddr),
 	addr_on_create,
 	addr_on_destroy,
 	addr_can_connect,
@@ -53,7 +54,14 @@ static const NAL_CONNECTION_vtable *list_do_accept(NAL_LISTENER *l,
 						NAL_SELECTOR *sel);
 static void list_selector_add(const NAL_LISTENER *l, NAL_SELECTOR *sel);
 static void list_selector_del(const NAL_LISTENER *l, NAL_SELECTOR *sel);
+/* This is the type we attach to our listeners */
+typedef struct st_list_ctx {
+	int fd;
+	nal_sockaddr_type type;
+	unsigned int def_buffer_size;
+} list_ctx;
 static const NAL_LISTENER_vtable list_vtable = {
+	sizeof(list_ctx),
 	list_on_create,
 	list_on_destroy,
 	list_do_accept,
@@ -73,7 +81,14 @@ static int conn_do_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 		unsigned int max_read, unsigned int max_send);
 static void conn_selector_add(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
 static void conn_selector_del(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
+/* This is the type we attach to our connections */
+typedef struct st_conn_ctx {
+	int fd, established;
+	NAL_BUFFER *b_read;
+	NAL_BUFFER *b_send;
+} conn_ctx;
 static const NAL_CONNECTION_vtable conn_vtable = {
+	sizeof(conn_ctx),
 	conn_on_create,
 	conn_on_accept,
 	conn_on_destroy,
@@ -127,32 +142,25 @@ static int addr_on_create(NAL_ADDRESS *addr, const char *addr_string)
 	if(len < 1) return 0;
 	/* Make 'tmp_ptr' point to what remains after the ':' */
 	tmp_ptr++;
-	/* Allocate the context we attach to NAL_ADDRESS */
-	ctx = SYS_malloc(nal_sockaddr, 1);
-	if(!ctx) return 0;
+	/* Retrieve the context we keep attached to NAL_ADDRESS */
+	ctx = nal_address_get_vtdata(addr);
 	/* Parse the string */
 	if(((len == 4) && (strncmp(addr_string, "IPv4", 4) == 0)) ||
 			((len == 2) && (strncmp(addr_string, "IP", 2) == 0))) {
 		if(!nal_sock_sockaddr_from_ipv4(ctx, tmp_ptr))
-			goto err;
+			return 0;
 	} else if((len == 4) && (strncmp(addr_string, "UNIX", 4) == 0)) {
 		if(!nal_sock_sockaddr_from_unix(ctx, tmp_ptr))
-			goto err;
+			return 0;
 	} else
 		/* Unknown prefix */
-		goto err;
+		return 0;
 	/* Success */
-	nal_address_set_vtdata(addr, ctx);
 	return 1;
-err:
-	if(ctx) SYS_free(nal_sockaddr, ctx);
-	return 0;
 }
 
 static void addr_on_destroy(NAL_ADDRESS *addr)
 {
-	nal_sockaddr *ctx = nal_address_get_vtdata(addr);
-	SYS_free(nal_sockaddr, ctx);
 }
 
 static int addr_can_connect(const NAL_ADDRESS *addr)
@@ -181,28 +189,18 @@ static const NAL_CONNECTION_vtable *addr_create_connection(const NAL_ADDRESS *ad
 /* Implementation of list_vtable handlers */
 /******************************************/
 
-/* This is the type we attach to our listeners */
-typedef struct st_list_ctx {
-	int fd;
-	nal_sockaddr_type type;
-	unsigned int def_buffer_size;
-} list_ctx;
-
 static int list_on_create(NAL_LISTENER *l, const NAL_ADDRESS *addr)
 {
 	nal_sockaddr *ctx_addr = nal_address_get_vtdata(addr);
-	list_ctx *ctx_listener = SYS_malloc(list_ctx, 1);
-	if(!ctx_listener) return 0;
+	list_ctx *ctx_listener = nal_listener_get_vtdata(l);
 	ctx_listener->fd = -1;
 	if(!nal_sock_create_socket(&ctx_listener->fd, ctx_addr) ||
 			!nal_sock_listen(ctx_listener->fd, ctx_addr)) {
 		nal_fd_close(&ctx_listener->fd);
-		SYS_free(list_ctx, ctx_listener);
 		return 0;
 	}
 	ctx_listener->type = ctx_addr->type;
 	ctx_listener->def_buffer_size = NAL_ADDRESS_get_def_buffer_size(addr);
-	nal_listener_set_vtdata(l, ctx_listener);
 	return 1;
 }
 
@@ -210,7 +208,6 @@ static void list_on_destroy(NAL_LISTENER *l)
 {
 	list_ctx *ctx = nal_listener_get_vtdata(l);
 	nal_fd_close(&ctx->fd);
-	SYS_free(list_ctx, ctx);
 }
 
 static const NAL_CONNECTION_vtable *list_do_accept(NAL_LISTENER *l,
@@ -239,49 +236,32 @@ static void list_selector_del(const NAL_LISTENER *l, NAL_SELECTOR *sel)
 /* Implementation of conn_vtable handlers */
 /******************************************/
 
-/* This is the type we attach to our connections */
-typedef struct st_conn_ctx {
-	int fd, established;
-	NAL_BUFFER *b_read;
-	NAL_BUFFER *b_send;
-} conn_ctx;
-
 /* internal function shared by conn_on_create and conn_on_accept */
-static conn_ctx *conn_ctx_setup(int fd, int established, unsigned int buf_size)
+static int conn_ctx_setup(conn_ctx *ctx_conn, int fd, int established, unsigned int buf_size)
 {
-	conn_ctx *ctx_conn = SYS_malloc(conn_ctx, 1);
-	if(!ctx_conn) return NULL;
-	ctx_conn->b_read = NAL_BUFFER_new();
-	ctx_conn->b_send = NAL_BUFFER_new();
-	if(!ctx_conn->b_read || !ctx_conn->b_send)
-		goto err;
+	if(!ctx_conn->b_read) ctx_conn->b_read = NAL_BUFFER_new();
+	if(!ctx_conn->b_send) ctx_conn->b_send = NAL_BUFFER_new();
+	if(!ctx_conn->b_read || !ctx_conn->b_send) return 0;
 	if(!NAL_BUFFER_set_size(ctx_conn->b_read, buf_size) ||
 			!NAL_BUFFER_set_size(ctx_conn->b_send, buf_size))
-		goto err;
+		return 0;
 	ctx_conn->fd = fd;
 	ctx_conn->established = established;
-	return ctx_conn;
-err:
-	if(ctx_conn->b_read) NAL_BUFFER_free(ctx_conn->b_read);
-	if(ctx_conn->b_send) NAL_BUFFER_free(ctx_conn->b_send);
-	SYS_free(conn_ctx, ctx_conn);
-	return NULL;
+	return 1;
 }
 
 static int conn_on_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 {
-	conn_ctx *ctx_conn;
 	int fd = -1, established;
 	nal_sockaddr *ctx_addr = nal_address_get_vtdata(addr);
+	conn_ctx *ctx_conn = nal_connection_get_vtdata(conn);
 	if(!nal_sock_create_socket(&fd, ctx_addr) ||
 			!nal_fd_make_non_blocking(fd, 1) ||
 			!nal_sock_connect(fd, ctx_addr, &established) ||
-			!nal_sock_set_nagle(fd, gb_use_nagle, ctx_addr->type))
+			!nal_sock_set_nagle(fd, gb_use_nagle, ctx_addr->type) ||
+			!conn_ctx_setup(ctx_conn, fd, established,
+				NAL_ADDRESS_get_def_buffer_size(addr)))
 		goto err;
-	ctx_conn = conn_ctx_setup(fd, established,
-			NAL_ADDRESS_get_def_buffer_size(addr));
-	if(!ctx_conn) goto err;
-	nal_connection_set_vtdata(conn, ctx_conn);
 	return 1;
 err:
 	nal_fd_close(&fd);
@@ -290,16 +270,15 @@ err:
 
 static int conn_on_accept(NAL_CONNECTION *conn, const NAL_LISTENER *l)
 {
-	conn_ctx *ctx_conn;
 	int fd = -1;
 	list_ctx *ctx_list = nal_listener_get_vtdata(l);
+	conn_ctx *ctx_conn = nal_connection_get_vtdata(conn);
 	if(!nal_sock_accept(ctx_list->fd, &fd) ||
 			!nal_fd_make_non_blocking(fd, 1) ||
-			!nal_sock_set_nagle(fd, gb_use_nagle, ctx_list->type))
+			!nal_sock_set_nagle(fd, gb_use_nagle, ctx_list->type) ||
+			!conn_ctx_setup(ctx_conn, fd, 1,
+				ctx_list->def_buffer_size))
 		goto err;
-	ctx_conn = conn_ctx_setup(fd, 1, ctx_list->def_buffer_size);
-	if(!ctx_conn) goto err;
-	nal_connection_set_vtdata(conn, ctx_conn);
 	return 1;
 err:
 	nal_fd_close(&fd);
@@ -312,7 +291,7 @@ static void conn_on_destroy(NAL_CONNECTION *conn)
 	nal_fd_close(&ctx->fd);
 	NAL_BUFFER_free(ctx->b_read);
 	NAL_BUFFER_free(ctx->b_send);
-	SYS_free(conn_ctx, ctx);
+	SYS_zero(conn_ctx, ctx);
 }
 
 static int conn_set_size(NAL_CONNECTION *conn, unsigned int size)

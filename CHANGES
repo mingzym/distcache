@@ -19,6 +19,13 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Adjusted the NAL_[ADDRESS|LISTENER|CONNECTION] vtable handling in libnal
+     so that the API instantiates contexts on behalf of implementations. Apart
+     from simplifying implementation code (their contexts are always there so,
+     there's no allocation and error handling required), this will also make it
+     easier to introduce object reuse.
+     [Geoff Thorpe]
+
   *) Added the beginnings of a benchmarking and self-testing libnal program,
      nal_test.
      [Geoff Thorpe]

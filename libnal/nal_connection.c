@@ -30,7 +30,31 @@ struct st_NAL_CONNECTION {
 	const NAL_CONNECTION_vtable *vt;
 	/* Implementation data */
 	void *vt_data;
+	/* Size of implementation data allocated */
+	size_t vt_data_size;
 };
+
+/* Internal only function used to handle vt_data */
+static int int_connection_set_vt_size(NAL_CONNECTION *a, const NAL_CONNECTION_vtable *vtable)
+{
+	if(vtable->vtdata_size > 0) {
+		if(a->vt_data) {
+			if(a->vt_data_size >= vtable->vtdata_size)
+				/* The existing vtdata is fine */
+				return 1;
+			/* We need to reallocate */
+			SYS_free(void, a->vt_data);
+		}
+		a->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
+		if(!a->vt_data)
+			return 0;
+		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
+		a->vt_data_size = vtable->vtdata_size;
+	}
+	/* All's well, more code-saving by setting the vtable for the caller */
+	a->vt = vtable;
+	return 1;
+}
 
 /*****************************/
 /* libnal internal functions */
@@ -39,11 +63,6 @@ struct st_NAL_CONNECTION {
 void *nal_connection_get_vtdata(const NAL_CONNECTION *conn)
 {
 	return conn->vt_data;
-}
-
-void nal_connection_set_vtdata(NAL_CONNECTION *conn, void *vtdata)
-{
-	conn->vt_data = vtdata;
 }
 
 const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *conn)
@@ -68,14 +87,18 @@ NAL_CONNECTION *NAL_CONNECTION_new(void)
 void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 {
 	if(conn->vt) conn->vt->on_destroy(conn);
+	if(conn->vt_data) SYS_free(void, conn->vt_data);
 	SYS_free(NAL_CONNECTION, conn);
 }
 
 int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 {
+	const NAL_CONNECTION_vtable *vtable;
 	if(conn->vt || !NAL_ADDRESS_can_connect(addr))
 		return 0;
-	if((conn->vt = nal_address_get_connection(addr)) == NULL)
+	if((vtable = nal_address_get_connection(addr)) == NULL)
+		return 0;
+	if(!int_connection_set_vt_size(conn, vtable))
 		return 0;
 	if(!conn->vt->on_create(conn, addr)) {
 		conn->vt = NULL;
@@ -87,8 +110,11 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 int NAL_CONNECTION_accept(NAL_CONNECTION *conn, NAL_LISTENER *list,
 			NAL_SELECTOR *sel)
 {
+	const NAL_CONNECTION_vtable *vtable;
 	if(conn->vt) return 0;
-	if((conn->vt = nal_listener_accept_connection(list, sel)) == NULL)
+	if((vtable = nal_listener_accept_connection(list, sel)) == NULL)
+		return 0;
+	if(!int_connection_set_vt_size(conn, vtable))
 		return 0;
 	if(!conn->vt->on_accept(conn, list)) {
 		conn->vt = NULL;

@@ -30,7 +30,31 @@ struct st_NAL_LISTENER {
 	const NAL_LISTENER_vtable *vt;
 	/* Implementation data */
 	void *vt_data;
+	/* Size of implementation data allocated */
+	size_t vt_data_size;
 };
+
+/* Internal only function used to handle vt_data */
+static int int_listener_set_vt_size(NAL_LISTENER *a, const NAL_LISTENER_vtable *vtable)
+{
+	if(vtable->vtdata_size > 0) {
+		if(a->vt_data) {
+			if(a->vt_data_size >= vtable->vtdata_size)
+				/* The existing vtdata is fine */
+				return 1;
+			/* We need to reallocate */
+			SYS_free(void, a->vt_data);
+		}
+		a->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
+		if(!a->vt_data)
+			return 0;
+		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
+		a->vt_data_size = vtable->vtdata_size;
+	}
+	/* All's well, more code-saving by setting the vtable for the caller */
+	a->vt = vtable;
+	return 1;
+}
 
 /*****************************/
 /* libnal internal functions */
@@ -39,11 +63,6 @@ struct st_NAL_LISTENER {
 void *nal_listener_get_vtdata(const NAL_LISTENER *l)
 {
 	return l->vt_data;
-}
-
-void nal_listener_set_vtdata(NAL_LISTENER *l, void *vtdata)
-{
-	l->vt_data = vtdata;
 }
 
 const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *l)
@@ -75,6 +94,7 @@ NAL_LISTENER *NAL_LISTENER_new(void)
 void NAL_LISTENER_free(NAL_LISTENER *list)
 {
 	if(list->vt) list->vt->on_destroy(list);
+	if(list->vt_data) SYS_free(void, list->vt_data);
 	SYS_free(NAL_LISTENER, list);
 }
 
@@ -83,7 +103,8 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 	const NAL_LISTENER_vtable *vtable;
 	if(list->vt) return 0; /* 'list' is in use */
 	vtable = nal_address_get_listener(addr);
-	list->vt = vtable; /* in case 'on_create' cares ... */
+	if(!int_listener_set_vt_size(list, vtable))
+		return 0;
 	if(!vtable->on_create(list, addr)) {
 		list->vt = NULL;
 		return 0;

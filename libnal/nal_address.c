@@ -30,6 +30,8 @@ struct st_NAL_ADDRESS {
 	const NAL_ADDRESS_vtable *vt;
 	/* Implementation data */
 	void *vt_data;
+	/* Size of implementation data allocated */
+	size_t vt_data_size;
 	/* def_buffer_size is handled directly by the API */
 	unsigned int def_buffer_size;
 };
@@ -41,11 +43,6 @@ struct st_NAL_ADDRESS {
 void *nal_address_get_vtdata(const NAL_ADDRESS *addr)
 {
 	return addr->vt_data;
-}
-
-void nal_address_set_vtdata(NAL_ADDRESS *addr, void *vtdata)
-{
-	addr->vt_data = vtdata;
 }
 
 const NAL_ADDRESS_vtable *nal_address_get_vtable(const NAL_ADDRESS *addr)
@@ -63,6 +60,28 @@ const NAL_CONNECTION_vtable *nal_address_get_connection(const NAL_ADDRESS *addr)
 {
 	if(addr->vt) return addr->vt->create_connection(addr);
 	return NULL;
+}
+
+/* Internal only function used to handle vt_data */
+static int int_address_set_vt_size(NAL_ADDRESS *a, const NAL_ADDRESS_vtable *vtable)
+{
+	if(vtable->vtdata_size > 0) {
+		if(a->vt_data) {
+			if(a->vt_data_size >= vtable->vtdata_size)
+				/* The existing vtdata is fine */
+				return 1;
+			/* We need to reallocate */
+			SYS_free(void, a->vt_data);
+		}
+		a->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
+		if(!a->vt_data)
+			return 0;
+		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
+		a->vt_data_size = vtable->vtdata_size;
+	}
+	/* All's well, more code-saving by setting the vtable for the caller */
+	a->vt = vtable;
+	return 1;
 }
 
 /*****************************/
@@ -83,6 +102,7 @@ NAL_ADDRESS *NAL_ADDRESS_new(void)
 void NAL_ADDRESS_free(NAL_ADDRESS *a)
 {
 	if(a->vt) a->vt->on_destroy(a);
+	if(a->vt_data) SYS_free(void, a->vt_data);
 	SYS_free(NAL_ADDRESS, a);
 }
 
@@ -111,7 +131,11 @@ int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 	if((len < 2) || (len > NAL_ADDRESS_MAX_STR_LEN))
 		return 0; /* 'addr_string' can't be valid */
 	while(vtable) {
-		addr->vt = vtable; /* in case 'on_create' cares ... */
+		/* FIXME: We need to change the address vtable to include
+		 * strings so that we only call on_create() on the successful
+		 * implementation and not on everything we search. */
+		if(!int_address_set_vt_size(addr, vtable))
+			return 0;
 		if(vtable->on_create(addr, addr_string))
 			break; /* 'vtable' accepted this string */
 		vtable = vtable->next; /* move to next address type */
