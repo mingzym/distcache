@@ -85,7 +85,7 @@ typedef struct st_snoop_ctx {
 #define SNOOP_FLAG_MSG_DETAIL	(unsigned int)0x0004	/* Dump complete messages */
 
 static const char *def_listen = NULL;
-static const char *def_connect = NULL;
+static const char *def_server = NULL;
 static const unsigned int def_flags = 0;
 
 /* Avoid the dreaded "greater than the length `509' ISO C89 compilers are
@@ -100,7 +100,7 @@ static const char *usage_msg[] = {
 "", NULL};
 
 /* Prototypes */
-static int do_snoop(const char *addr_connect, const char *addr_listen,
+static int do_snoop(const char *addr_server, const char *addr_listen,
 			unsigned int flags);
 
 static int usage(void)
@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 {
 	/* Overridables */
 	const char *addr_listen = def_listen;
-	const char *addr_connect = def_connect;
+	const char *addr_server = def_server;
 	unsigned int flags = def_flags;
 
 	ARG_INC;
@@ -165,10 +165,10 @@ int main(int argc, char *argv[])
 			return usage();
 		else if(strcmp(*argv, CMD_SERVER1) == 0) {
 			ARG_CHECK(CMD_SERVER1);
-			addr_connect = *argv;
+			addr_server = *argv;
 		} else if(strcmp(*argv, CMD_SERVER2) == 0) {
 			ARG_CHECK(CMD_SERVER2);
-			addr_connect = *argv;
+			addr_server = *argv;
 		} else if(strcmp(*argv, CMD_LISTEN) == 0) {
 			ARG_CHECK(CMD_LISTEN);
 			addr_listen = *argv;
@@ -178,8 +178,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* Scrutinise the settings */
-	if(!addr_connect || !addr_listen) {
-		NAL_fprintf(NAL_stderr(), "Error, must provide -connect and -listen\n");
+	if(!addr_server || !addr_listen) {
+		NAL_fprintf(NAL_stderr(), "Error, must provide -listen and -server\n");
 		return 1;
 	}
 
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	return do_snoop(addr_connect, addr_listen, flags);
+	return do_snoop(addr_server, addr_listen, flags);
 }
 
 /************************/
@@ -201,11 +201,11 @@ int main(int argc, char *argv[])
 static unsigned int uid_seed = 0;
 
 static int snoop_item_init(snoop_item *item, NAL_CONNECTION *accepted,
-			const NAL_ADDRESS *addr_connect)
+			const NAL_ADDRESS *addr_server)
 {
 	int ret = 0;
 	if((item->server = NAL_CONNECTION_malloc()) == NULL) goto err;
-	if(!NAL_CONNECTION_create(item->server, addr_connect)) goto err;
+	if(!NAL_CONNECTION_create(item->server, addr_server)) goto err;
 	/* Success */
 	item->uid = uid_seed++;
 	item->client = accepted;
@@ -376,7 +376,7 @@ static int snoop_item_io(snoop_item *item, NAL_SELECTOR *sel)
 /***********************/
 
 static int snoop_ctx_init(snoop_ctx *ctx, const char *addr_listen,
-			const char *addr_connect, unsigned int flags)
+			const char *addr_server, unsigned int flags)
 {
 	int ret = 0;
 	NAL_ADDRESS *a;
@@ -390,7 +390,7 @@ static int snoop_ctx_init(snoop_ctx *ctx, const char *addr_listen,
 	if(!NAL_ADDRESS_create(a, addr_listen, SNOOP_BUF_SIZE)) goto err;
 	if(!NAL_ADDRESS_can_listen(a)) goto err;
 	if((ctx->addr = NAL_ADDRESS_malloc()) == NULL) goto err;
-	if(!NAL_ADDRESS_create(ctx->addr, addr_connect, SNOOP_BUF_SIZE)) goto err;
+	if(!NAL_ADDRESS_create(ctx->addr, addr_server, SNOOP_BUF_SIZE)) goto err;
 	if(!NAL_ADDRESS_can_connect(ctx->addr)) goto err;
 	if((ctx->list = NAL_LISTENER_malloc()) == NULL) goto err;
 	if(!NAL_LISTENER_create(ctx->list, a)) goto err;
@@ -526,11 +526,11 @@ static int snoop_ctx_loop(snoop_ctx *ctx)
 /* do_snoop */
 /************/
 
-static int do_snoop(const char *addr_connect, const char *addr_listen,
+static int do_snoop(const char *addr_server, const char *addr_listen,
 			unsigned int flags)
 {
 	snoop_ctx ctx;
-	if(!snoop_ctx_init(&ctx, addr_listen, addr_connect, flags))
+	if(!snoop_ctx_init(&ctx, addr_listen, addr_server, flags))
 		return 0;
 	while(snoop_ctx_loop(&ctx))
 		;
