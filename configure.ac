@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(distcache, 1.4.3, distcache-users@lists.sourceforge.net)
-AM_INIT_AUTOMAKE(distcache, 1.4.3)
+AC_INIT(distcache, 1.4.4dev, distcache-users@lists.sourceforge.net)
+AM_INIT_AUTOMAKE(distcache, 1.4.4dev)
 
 echo ""
 echo "Configuring Distcache libraries and utilities;"
