@@ -29,10 +29,6 @@
   pages so that these can be deleted from CVS. Until then, these files will
   continue to live in CVS but won't be included in "make dist".
 
-- "make dist" currently fails to copy lots of files that should arguably be
-  copied when producing a source distribution. Eg. this BUGS file, READMEs
-  besides the top-level one (which gets copied automatically), etc.
-
 - I'm pretty sure the building of the documents is not 100% kosher. Eg. the
   links don't seem to do anything useful in the HTML versions at least, and
   there's loads of cross-link errors/warnings when building. (NOTE: I've
