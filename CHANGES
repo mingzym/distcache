@@ -19,6 +19,10 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Compact the AC_CHECK_*** macros so we save space in the generated
+     configure scripts.
+     [Joe Orton]
+
   *) Adjusted the NAL_[ADDRESS|LISTENER|CONNECTION] vtable handling in libnal
      so that the API instantiates contexts on behalf of implementations. Apart
      from simplifying implementation code (their contexts are always there so,
