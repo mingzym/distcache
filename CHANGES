@@ -12,12 +12,12 @@
                                                          -- W. Edwards Deming
 
 
-Current version: x.x
---------------------
+Current version: 1.4.1
+----------------------
 
 
-Changes between 0.4 and x.x
----------------------------
+Changes between 0.4 and 1.4.1 
+-----------------------------
 
   *) Bundle CA.pem and A-client.pem into the sslswamp directory (and RPM). These
      are also installed in the appropriate location and the sslswamp executable

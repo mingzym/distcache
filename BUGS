@@ -22,3 +22,5 @@
   there's loads of cross-link errors/warnings when building. (NOTE: I've
   disabled compilation of HTML documents for now).
 
+- I need to migrate and/or rewrite the swamp 1.1.0 documentation to the
+  sslswamp man-page. Right now the man page is very incomplete.

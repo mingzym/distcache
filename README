@@ -22,6 +22,11 @@ network functionality, the session caching protocol, and APIs for applications
 wishing to use a distributed session cache, or indeed even implement a storage
 mechanism for a session cache server.
 
+As of version 1.4.1, the distcache package now includes the "sslswamp" utility
+for testing and benchmarking SSL/TLS servers. This utility used to be known
+simply as "swamp" and was maintained separately, but the version included with
+distcache is now the actively developed and maintained one.
+
 The distributed session caching technology that formed the seed code of the
 'distcache' project was developed by Cryptographic Appliances Inc, who in July
 2002 gave permission for release of the code and creation of the public
@@ -39,7 +44,9 @@ Features
  o Includes useful implementations of a session cache server and proxy.
  o Includes self-testing and traffic-analysis tools (dc_test, dc_snoop).
  o Already integrated for use with Apache/mod_ssl and Stunnel.
- o Builds/runs without any dependancies on Apache, mod_ssl, OpenSSL, etc.
+ o Includes the "sslswamp" SSL/TLS benchmarking/testing tool.
+ o Distcache libraries and utilities builds/run without any dependancies on
+   Apache, mod_ssl, OpenSSL, etc. (does not apply to sslswamp)
  o probably much, much more ...
 
 
