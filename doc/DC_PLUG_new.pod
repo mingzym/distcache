@@ -1,0 +1,78 @@
+=pod
+
+=head1 NAME
+
+DC_PLUG_new, DC_PLUG_free, DC_PLUG_to_select, DC_PLUG_io - basic DC_PLUG functions
+
+=head1 SYNOPSIS
+
+ #include <distcache/dc_enc.h>
+
+ DC_PLUG *DC_PLUG_new(NAL_CONNECTION *conn, unsigned int flags);
+ int DC_PLUG_free(DC_PLUG *plug);
+ int DC_PLUG_to_select(DC_PLUG *plug, NAL_SELECTOR *sel);
+ int DC_PLUG_io(DC_PLUG *plug, NAL_SELECTOR *sel);
+
+=head1 DESCRIPTION
+
+DC_PLUG_new() allocates and initialises a B<DC_PLUG> structure encapsulating the
+specified connection. The B<flags> parameter is zero or a bitmask combining one or
+more of the following flags;
+
+ #define DC_PLUG_FLAG_TO_SERVER         (unsigned int)0x0001
+ #define DC_PLUG_FLAG_NOFREE_CONN       (unsigned int)0x0002
+
+If the I<DC_PLUG_FLAG_TO_SERVER> flag is specified, the plug object will expect
+to be sending ``request'' messages and receiving ``response'' messages,
+otherwise will default to the opposite sense.
+
+DC_PLUG_free() frees the B<DC_PLUG> structure and, unless it had been created
+with the I<DC_PLUG_FLAG_NOFREE_CONN> flag, will also destroy the connection
+object it encapsulates.
+
+DC_PLUG_to_select() is used to add a plug object to the B<sel> selector so that
+it can be tested for network events it is waiting on. This will automatically
+handle selection of flags depending on the plug object's state. Ie. it will
+select for writability on its underlying connection only if there is data
+waiting to be sent, and likewise will select for readability only if it is
+ready to receive any data that may have arrived.
+
+DC_PLUG_io() is used to allow network I/O to be performed on a plug object's
+underlying connection depending on the results of the last select operation on
+B<sel>.
+
+=head1 RETURN VALUES
+
+DC_PLUG_new() returns the new plug object on success, otherwise B<NULL> for
+failure.
+
+DC_PLUG_free() should never fail and should only return non-zero results.
+
+DC_PLUG_to_select() and DC_PLUG_io() return zero on an error, otherwise
+non-zero.
+
+None of the B<DC_PLUG> functions sets (or clears) B<errno> because it is
+implemented on top of the I<libnal> library which in turn is an abstraction
+layer for the system's networking interfaces. As such, any B<errno> codes set
+by failure in system libraries will not be overwritten by these functions.
+
+=head1 SEE ALSO
+
+L<DC_PLUG_read(2)> - Provides documentation for other B<DC_PLUG>
+functions also.
+
+L<distcache(8)> - Overview of the distcache architecture.
+
+F<http://www.distcache.org/> - Distcache home page.
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
+
+Home Page: F<http://www.distcache.org>
+

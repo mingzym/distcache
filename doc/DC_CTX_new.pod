@@ -1,0 +1,165 @@
+=pod
+
+=head1 NAME
+
+DC_CTX_new, DC_CTX_free, DC_CTX_add_session, DC_CTX_remove_session, DC_CTX_get_session, DC_CTX_reget_session, DC_CTX_has_session - distcache blocking client API
+
+=head1 SYNOPSIS
+
+ #include <distcache/dc_client.h>
+
+ DC_CTX *DC_CTX_new(const char *target, unsigned int flags);
+ void DC_CTX_free(DC_CTX *ctx);
+ int DC_CTX_add_session(DC_CTX *ctx, const unsigned char *id_data,
+                        unsigned int id_len, const unsigned char *sess_data,
+                        unsigned int sess_len, unsigned long timeout_msecs);
+ int DC_CTX_remove_session(DC_CTX *ctx, const unsigned char *id_data,
+                           unsigned int id_len);
+ int DC_CTX_get_session(DC_CTX *ctx, const unsigned char *id_data,
+                        unsigned int id_len, unsigned char *result_storage,
+                        unsigned int result_size, unsigned int *result_used);
+ int DC_CTX_reget_session(DC_CTX *ctx, const unsigned char *id_data,
+                          unsigned int id_len, unsigned char *result_storage,
+                          unsigned int result_size, unsigned int *result_used);
+ int DC_CTX_has_session(DC_CTX *ctx, const unsigned char *id_data,
+                        unsigned int id_len);
+
+=head1 DESCRIPTION
+
+DC_CTX_new() allocates and initialises a B<DC_CTX> structure with an address
+for sending session caching operation requests to, and flags controlling the
+behaviour of the B<DC_CTX> object. The address specified by B<target> should be
+compatible with the syntax defined by the I<libnal> API, see the L<NOTES>
+section below. The B<flags> parameter can be zero to indicate that each cache
+operation should create and destroy a temporary connection, otherwise a bitmask
+combining one or more of the following flags;
+
+ #define DC_CTX_FLAG_PERSISTENT           (unsigned int)0x0001
+ #define DC_CTX_FLAG_PERSISTENT_PIDCHECK  (unsigned int)0x0002
+ #define DC_CTX_FLAG_PERSISTENT_RETRY     (unsigned int)0x0004
+ #define DC_CTX_FLAG_PERSISTENT_LATE      (unsigned int)0x0008
+
+DC_CTX_free() frees the B<ctx> object.
+
+DC_CTX_add_session() attempts to add session data to the cache. B<id_data> and
+B<id_len> define the unique session ID corresponding to the session data - this
+is the ID used in DC_CTX_get_session() or DC_CTX_remove_session() to refer to
+the session being added, and the ``add'' operation will fail if there is
+already a session with a matching ID in the cache. B<sess_data> and B<sess_len>
+define the session data itself to be stored in the cache. B<timeout_msecs>
+specifies the expiry period for the session - if this period of time passes
+without the corresponding session being explicitly removed nor scrolled out of
+the cache because of over-filling, then the cache server will remove the
+session from the cache anyway.
+
+DC_CTX_remove_session() provides a session ID with B<id_data> and B<id_len> and
+requests that the corresponding session be removed from the cache.
+
+DC_CTX_get_session() provides a session ID with B<id_data> and B<id_len> and
+requests that the corresponding session data be retrieved from the cache.
+B<result_storage> and B<result_size> specify a storage area for the retrieved
+session data, and B<result_used> points to a variable that will be set to the
+length of the retrieved session data. Even if DC_CTX_get_session() returns
+successfully, the caller should check the value of B<result_used> - if it is
+larger than B<result_size> then the requested session data was too big for the
+provided storage area and only partial data will have been returned. In this
+case, the caller should immediately call DC_CTX_reget_session().
+
+DC_CTX_reget_session() is similar to DC_CTX_get_session() except that it does
+not perform any network operations at all. It is designed to return session
+data that had previously been retrieved by DC_CTX_get_session(), so that a
+larger storage area can be provided if the one first provided to
+DC_CTX_get_session() was too small. This function will fail if the last
+operation on B<ctx> was not DC_CTX_get_session() with an exact match for
+B<id_data> and B<id_len>.
+
+DC_CTX_has_session() is similar to DC_CTX_get_session() except that it does not
+ask for session data to be returned, merely to know whether the session is in
+the cache or not. This should be used by any application that already has a
+copy of the required session but merely wishes to verify that it hasn't already
+been explicitly invalidated. As distcache allows parallel use of a single cache
+from multiple clients across potentially multiple machines, it is a security
+flaw for any client (thread, process, or machine) to implement local session
+caching and using its sessions whenever there is a cache-hit. If the session
+was used and for any reason required invalidation (eg. renegotiation, data
+corruption detected, etc) then another client should not use a locally cached
+copy of the session without first verifying with the shared cache that the
+session is still OK. This function should be used in such cases as it provides
+the same check as DC_CTX_get_session() but with less network overhead.
+
+=head1 RETURN VALUES
+
+DC_CTX_new() returns a valid B<DC_CTX> object on success, otherwise NULL for
+failure.
+
+DC_CTX_free() has no return type.
+
+All other B<DC_CTX> functions return zero on failure, otherwise non-zero.
+
+=head1 NOTES
+
+The following code snippet attempts to create a session cache context that uses
+a temporary connection for each operation to a local B<dc_client> agent running
+on a unix domain socket at /tmp/dc_client;
+
+    DC_CTX *ctx = DC_CTX_new("UNIX:/tmp/dc_client", 0);
+
+The following code snippet attempts to create a session cache context to
+communicate with a remote server listening on TCP/IPv4 port 9001. It will
+attempt to use a persistent connection for all cache operations
+(DC_CTX_FLAG_PERSISTENT), retry once for any cache operation that suffers a
+network I/O error (DC_CTX_FLAG_PERSISTENT_RETRY), will wait until the first
+cache operation before trying to connect (DC_CTX_FLAG_PERSISTENT_LATE), and
+will verify before any cache operation whether it is running in a different
+process than it used to be and if so will close then re-open a new connection
+(DC_CTX_FLAG_PERSISTENT_PIDCHECK).
+
+    DC_CTX *ctx = DC_CTX_new("IP:cacheserver.localnet",
+           DC_CTX_FLAG_PERSISTENT | DC_CTX_FLAG_PERSISTENT_PIDCHECK |
+           DC_CTX_FLAG_PERSISTENT_RETRY | DC_CTX_FLAG_PERSISTENT_LATE);
+
+The DC_CTX_FLAG_PERSISTENT_RETRY flag exists because of the B<-idle>
+command-line switch in the dc_client(1) tool. This switch allows B<dc_client>
+to automatically close client connections that have been idle for some
+configurable length of time.  However, this creates the possiblity for race
+conditions if a persistent B<DC_CTX> is used by an application to request a
+cache operation at the same time or following a decision by B<dc_client> to
+close the connection. The most robust way to address this is to have DC_CTX
+regard any first network error during the operation as an idle-timeout from the
+peer and to immediately re-connect and retry the operation. Any subsequent
+error (or initial error that can not be timeout-related, such as connection
+failure) is considered a failure and will not result in any retry.
+
+The DC_CTX_FLAG_PERSISTENT_PIDCHECK flag exists for software like Apache or
+Stunnel that use fork(2) or clone(2) to create child processes that inherit
+file-descriptors from the parent process. In such circumstances, attempts by
+the parent and child processes to communicate over the same file-descriptor can
+have unpredictable results and is, generally speaking, never useful. This flag
+will force a check before each operation that the process ID is ``what it used
+to be'' and if not, will close any persistent connection, reconnect with a
+new file-descriptor, and reset the process ID in the B<DC_CTX>. If a parent
+process has a B<DC_CTX> that has a connection open, this flag will ensure
+that any subsequent child processes that attempt to perform cache operations
+will transparently reconnect with their own connections.
+
+=head1 SEE ALSO
+
+L<DC_PLUG_new(2)>, L<DC_PLUG_read(2)> - Lower-level asynchronous implementation
+of the distcache protocol, useful for client and server operation. This
+B<DC_CTX> implementation is built on top of the B<DC_PLUG> functionality.
+
+L<distcache(8)> - Overview of the distcache architecture.
+
+F<http://www.distcache.org/> - Distcache home page.
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
+
+Home Page: F<http://www.distcache.org>
+

@@ -1,0 +1,94 @@
+=pod
+
+=head1 NAME
+
+DC_PLUG_read, DC_PLUG_consume, DC_PLUG_write, DC_PLUG_write_more, DC_PLUG_commit, DC_PLUG_rollback - DC_PLUG read/write functions
+
+=head1 SYNOPSIS
+
+ #include <distcache/dc_enc.h>
+
+ int DC_PLUG_read(DC_PLUG *plug, int resume, unsigned long *request_uid,
+                  DC_CMD *cmd, const unsigned char **payload_data,
+                  unsigned int *payload_len);
+ int DC_PLUG_consume(DC_PLUG *plug);
+ int DC_PLUG_write(DC_PLUG *plug, int resume, unsigned long request_uid,
+                   DC_CMD cmd, const unsigned char *payload_data,
+                   unsigned int payload_len);
+ int DC_PLUG_write_more(DC_PLUG *plug, const unsigned char *data,
+                        unsigned int data_len);
+ int DC_PLUG_commit(DC_PLUG *plug);
+ int DC_PLUG_rollback(DC_PLUG *plug);
+
+ typedef enum {
+         DC_CMD_ERROR,
+         DC_CMD_ADD,
+         DC_CMD_GET,
+         DC_CMD_REMOVE,
+         DC_CMD_HAVE
+ } DC_CMD;
+
+=head1 DESCRIPTION
+
+DC_PLUG_read() will attempt to open the next distcache message received by
+B<plug> for reading. This message will block the reading of any other received
+messages remain until DC_PLUG_consume() is called. If a message has already
+been opened for reading inside B<plug>, then DC_PLUG_read() will fail unless
+B<resume> is set to non-zero in which case it will simply re-open the message
+that was already being read. If DC_PLUG_read() succeeds, B<request_uid>,
+B<cmd>, B<payload_data> and B<payload_len> are populated with the message's
+data. Note that B<payload_data> points to the original data stored inside
+B<plug> and this pointer is only valid until the next call to
+DC_PLUG_consume().
+
+DC_PLUG_consume() will close the message currently opened for reading in
+B<plug>, and will allow a future call to DC_PLUG_read() to succeed if there any
+subsequent (complete) messages received from the plug object's connection.
+
+DC_PLUG_write() will attempt to open a distcache message for writing in
+B<plug>. If successful, this message will block the writing of any other
+messages until the message is committed with DC_PLUG_commit() or discarded with
+DC_PLUG_rollback(). If a message has already been opened for writing,
+DC_PLUG_write() will fail unless B<resume> is non-zero in which case the
+message will be re-opened and will overwrite the settings from the previous
+DC_PLUG_write() call. This is equivalent to DC_PLUG_rollback() followed
+immediately by DC_PLUG_write() with a zero B<resume> value. Note that
+B<payload_len> can be zero (and thus B<payload_data> can be NULL) even if the
+message will eventually have payload data - this can be supplemented afterwards
+using the DC_PLUG_write_more() function. B<request_uid> and B<cmd>, on the
+other hand, must be specified at once in DC_PLUG_write().
+
+
+DC_PLUG_write_more() will attempt to add more payload data to the message
+currently opened for writing in B<plug>. This data will be concatenated to the
+end of any payload data already provided in prior calls to DC_PLUG_write() or
+DC_PLUG_write_more().
+
+DC_PLUG_commit() will close the message currently opened for writing, and queue it
+for serialisation out on the plug object's connection.
+
+DC_PLUG_rollback() will discard the message currently opened for writing.
+
+=head1 RETURN VALUES
+
+All these B<DC_PLUG> functions return zero on failure, otherwise non-zero.
+
+=head1 SEE ALSO
+
+L<DC_PLUG_new(2)> - Basic B<DC_PLUG> functions.
+
+L<distcache(8)> - Overview of the distcache architecture.
+
+F<http://www.distcache.org/> - Distcache home page.
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
+
+Home Page: F<http://www.distcache.org>
+
