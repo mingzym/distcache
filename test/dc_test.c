@@ -316,6 +316,7 @@ static int do_client(const char *address, unsigned int num_sessions,
 			unsigned int timevar, unsigned int tests,
 			unsigned long progress, int persistent)
 {
+	int to_return = 1;
 	int sessions_bool[MAX_SESSIONS];
 	unsigned char *sessions_enc[MAX_SESSIONS];
 	unsigned char *sessions_id[MAX_SESSIONS];
@@ -507,12 +508,22 @@ static int do_client(const char *address, unsigned int num_sessions,
 			SYS_fprintf(SYS_stdout, "Info, total operations = "
 					"%7u\n", idx);
 	}
-	SYS_fprintf(SYS_stdout, "Info, all tests complete\n");
-	return 0;
+	to_return = 0;
 bail:
-	SYS_fprintf(SYS_stdout, "Info, %u tests succeeded before the first failure\n",
+	if(!to_return)
+		SYS_fprintf(SYS_stdout, "Info, all tests complete\n");
+	else
+		SYS_fprintf(SYS_stdout, "Info, %u tests succeeded before the first failure\n",
 			idx);
-	return 1;
+	/* cleanup */
+	idx = 0;
+	while(idx < num_sessions) {
+		SYS_free(unsigned char, sessions_id[idx]);
+		SYS_free(unsigned char, sessions_enc[idx]);
+		idx++;
+	}
+	DC_CTX_free(ctx);
+	return to_return;
 }
 
 #ifdef HAVE_OPENSSL

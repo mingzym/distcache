@@ -19,6 +19,9 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Improved cleanup code in dc_test (for memory leaks).
+     [Geoff Thorpe]
+
   *) Major overhaul of libnal
      - NAL_BUFFER implementation separated out into buffer.c
      - NAL_SELECTOR implementation separated out into selector.c
