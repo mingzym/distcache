@@ -25,7 +25,41 @@
  * frames to be debugged to the controlling console. */
 /* #define DC_MSG_DEBUG */
 
-int DC_MSG_set_cmd(DC_MSG *msg, DC_CMD cmd)
+/* This helper function exists to reduce duplication of code (and thus eliminate
+ * possible inconsistencies) when checking a "protocol level" */
+static int proto_level_test(unsigned long pl)
+{
+	/* Here is where we decide whether to accept the protocol level or not.
+	 * It is important to not reject newer patch levels in the same protocol
+	 * version, because the sender will always specify their own patch
+	 * level, irrespective whether they are a newer version using backward
+	 * compatibility or not. However we *can* reject patch levels if we know
+	 * they're old enough to contain bugs that you shouldn't try to
+	 * interoperate with (this is a good way to root out un-patched
+	 * utilities!). */
+	if((DISTCACHE_GET_PROTO_VER(pl) != DISTCACHE_PROTO_VER)
+#if 0
+	/* Add any "reject-old-bugs" rules here, eg; */
+			|| (DISTCACHE_GET_PATCH_LEVEL(pl) < 0x0003)
+			|| (DISTCACHE_GET_PATCH_LEVEL(pl) == 0x00a3)
+#endif
+								) {
+		/* This should generally be left switched on so that if stderr
+		 * is being tracked, we report that "failures" are happening
+		 * because of protocol incompatibilities and not
+		 * misconfigurations or network problems. */
+#ifndef DISTCACHE_NO_PROTOCOL_STDERR
+		NAL_fprintf(NAL_stderr(), "libdistcache(pid=%u) protocol "
+			"incompatibility; my level is %08x, the peer's is %08x\n",
+			(unsigned int)getpid(), DISTCACHE_PROTO_LEVEL, pl);
+#endif
+		abort();
+		return 0;
+	}
+	return 1;
+}
+
+static int DC_MSG_set_cmd(DC_MSG *msg, DC_CMD cmd)
 {
 	switch(cmd) {
 	case DC_CMD_ADD:
@@ -73,12 +107,12 @@ err:
 	return DC_CMD_ERROR;
 }
 
-DC_CMD DC_MSG_get_cmd(const DC_MSG *msg)
+static DC_CMD DC_MSG_get_cmd(const DC_MSG *msg)
 {
 	return int_get_cmd(msg->op_class, msg->operation);
 }
 
-int DC_MSG_start_response(const DC_MSG *request,
+static int DC_MSG_start_response(const DC_MSG *request,
 				DC_MSG *response)
 {
 	if(request->is_response)
@@ -99,24 +133,42 @@ int DC_MSG_start_response(const DC_MSG *request,
  * the 'DC_MSG' structure definition and its encoding format.
  */
 
-unsigned int DC_MSG_encoding_size(const DC_MSG *msg)
+static unsigned int DC_MSG_encoding_size(const DC_MSG *msg)
 {
 	assert(msg->data_len <= DC_MSG_MAX_DATA);
 	/* The fixed size fields total 10 bytes */
-	return (10 + msg->data_len);
+	return (14 + msg->data_len);
 }
 
-DC_DECODE_STATE DC_MSG_pre_decode(const unsigned char *data,
+/* This function checks various things, but one very important role is that it
+ * is the "incoming" version-control gate. This is where the protocol version of
+ * the peer will be decoded and either accepted or rejected. The corresponding
+ * *outgoing* version control gate is in DC_MSG_encode() where our compiled-in
+ * protocal version will be inserted into all outgoing messages. */
+static DC_DECODE_STATE DC_MSG_pre_decode(const unsigned char *data,
 					unsigned int data_len)
 {
 	unsigned char op_class, complete;
 	unsigned short payload_len;
-	/* We *could* just check there's at least 9 bytes first, but the better
+	unsigned long ver;
+	/* We *could* just check there's at least 13 bytes first, but the better
 	 * approach is to catch data corruption errors immediately. So if
-	 * someone accidently sends us an 8-byte "hello" for some other
-	 * protocol, we'll more likely spot it. */
-	if(data_len-- < 1)
+	 * someone accidently sends us an 12-byte "hello" for some other
+	 * protocol, and we sit and wait for a never-to-arrive 13th byte, we're
+	 * more likely to catch it. */
+	if(data_len-- < 5)
 		return DC_DECODE_STATE_INCOMPLETE;
+	/* To avoid violating the encapsulation of libnal, we have to use the
+	 * proper decoding function to verify sanity of the protocol version. */
+	{
+		const unsigned char *data_1 = data;
+		unsigned int len_1 = 4;
+		if(!NAL_decode_uint32(&data_1, &len_1, &ver))
+			return DC_DECODE_STATE_CORRUPT;
+		if(!proto_level_test(ver))
+			return DC_DECODE_STATE_CORRUPT;
+	}
+	data += 4;
 	if(*(data++) > 1)
 		/* invalid 'is_response' value */
 		return DC_DECODE_STATE_CORRUPT;
@@ -175,9 +227,29 @@ static const char *dump_int_to_str(int val, const char **strs)
 		return *strs;
 	return "<unrecognised value>";
 }
+#define debug_bytes_per_line 20
+static void debug_dump_bin(FILE *f, const char *prefix,
+		const unsigned char *data, unsigned int len)
+{
+	NAL_fprintf(f, "len=%u\n", len);
+	while(len) {
+		unsigned int to_print = ((len < debug_bytes_per_line) ?
+				len : debug_bytes_per_line);
+		len -= to_print;
+		NAL_fprintf(f, "%s", prefix);
+		while(to_print--)
+			NAL_fprintf(f, "%02x ", *(data++));
+		NAL_fprintf(f, "\n");
+	}
+}
+
 static void dump_msg(const DC_MSG *msg)
 {
 	NAL_fprintf(NAL_stdout(), "DC_MSG_DEBUG: dumping message...\n");
+	NAL_fprintf(NAL_stdout(), "   proto_level:  %08x\n",
+		msg->proto_level);
+	if(msg->proto_level != 0x00100000)
+		abort();
 	NAL_fprintf(NAL_stdout(), "   is_response:  %u (%s)\n",
 		msg->is_response, (msg->is_response ? "response" : "request"));
 	NAL_fprintf(NAL_stdout(), "   request_uid:  %u\n", msg->request_uid);
@@ -189,15 +261,30 @@ static void dump_msg(const DC_MSG *msg)
 		msg->complete, (msg->complete ? "complete" : "incomplete"));
 	NAL_fprintf(NAL_stdout(), "   data_len:     %u\n", msg->data_len);
 	NAL_fprintf(NAL_stdout(), "   data:\n");
-	debug_dump_bin(NAL_stdout(), "      ", msg->data, msg->data_len);
+	debug_dump_bin(NAL_stdout(), "       ", msg->data, msg->data_len);
 }
 #endif
 
-unsigned int DC_MSG_encode(const DC_MSG *msg, unsigned char *ptr,
+/* This function has a very important role as the "outgoing" version-control
+ * gate. This is where our protocol version is inserted into all outgoing
+ * messages. The corresponding *incoming* version control gate is in
+ * DC_MSG_pre_decode() where the protocol version of the peer will be decoded
+ * and either accepted or rejected. */
+static unsigned int DC_MSG_encode(const DC_MSG *msg, unsigned char *ptr,
 				unsigned int data_len)
 {
 	unsigned int len = data_len;
-	if(!NAL_encode_char(&ptr, &len, msg->is_response) ||
+#if 0
+	/* oops, OK so there's an exception here - msg is *const* so the actual
+	 * setting of the proto_level will be done one level up just before the
+	 * only place this function is called from, which is in
+	 * DC_PLUG_IO_write_flush(). That code has a comment pointing here so if
+	 * you change any of this horrible great hack-around, don't forget to
+	 * change the code and the comment up there!!! */
+	msg->proto_level = DISTCACHE_PROTO_LEVEL;
+#endif
+	if(!NAL_encode_uint32(&ptr, &len, msg->proto_level) ||
+			!NAL_encode_char(&ptr, &len, msg->is_response) ||
 			!NAL_encode_uint32(&ptr, &len, msg->request_uid) ||
 			!NAL_encode_char(&ptr, &len, msg->op_class) ||
 			!NAL_encode_char(&ptr, &len, msg->operation) ||
@@ -214,12 +301,13 @@ unsigned int DC_MSG_encode(const DC_MSG *msg, unsigned char *ptr,
 	return data_len - len;
 }
 
-unsigned int DC_MSG_decode(DC_MSG *msg, const unsigned char *data,
+static unsigned int DC_MSG_decode(DC_MSG *msg, const unsigned char *data,
 				unsigned int data_len)
 {
 	unsigned char op_class, operation; /* coz msg's aren't actually chars! */
 	unsigned int len = data_len;
-	if(!NAL_decode_char(&data, &len, &msg->is_response) ||
+	if(!NAL_decode_uint32(&data, &len, &msg->proto_level) ||
+			!NAL_decode_char(&data, &len, &msg->is_response) ||
 			!NAL_decode_uint32(&data, &len, &msg->request_uid) ||
 			!NAL_decode_char(&data, &len, &op_class) ||
 			!NAL_decode_char(&data, &len, &operation) ||
@@ -494,7 +582,12 @@ static int DC_PLUG_IO_write_flush(DC_PLUG_IO *io, int to_server,
 	if(DC_MSG_encoding_size(&io->msg) > buf_len)
 		/* Can't do anything */
 		return 1;
+	/* HACK ALERT: read the important the note in DC_MSG_encode()'s "#if 0"
+	 * code before changing any of this. */
+	io->msg.proto_level = DISTCACHE_PROTO_LEVEL; /* <-- this is the hack */
 	tmp = DC_MSG_encode(&io->msg, buf_ptr, buf_len);
+	if(!tmp)
+		return 0;
 	NAL_BUFFER_wrote(buffer, tmp);
 	/* It's encoded, so adjust our state */
 	io->data_used -= io->msg.data_len;

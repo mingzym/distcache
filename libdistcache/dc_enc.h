@@ -20,16 +20,51 @@
 #ifndef HEADER_LIBDISTCACHE_DC_ENC_H
 #define HEADER_LIBDISTCACHE_DC_ENC_H
 
+/* These two macros extract the "protocol version" and "patch level" from a
+ * 32-bit "protocol level" value. */
+#define DISTCACHE_GET_PROTO_VER(a)	((a) >> 16)
+#define DISTCACHE_GET_PATCH_LEVEL(a)	((a) & 0x0000FFFF)
+
+/* This macro creates a "protocol level" from a "protocol version" and "patch
+ * level". */
+#define DISTCACHE_MAKE_PROTO_LEVEL(a,b)	(((a) << 16) + (b))
+
+/* This is the value used for "proto_level" in the currently implemented message
+ * format, preceeded by its last-significant word (the "patch level") and its
+ * most-significant word (the "patch level"). It is envisaged that tools with
+ * matching "proto_level" will be interoperable because the more recent knows
+ * how to communicate with the oldest of the two. For this reason, any genuinely
+ * incompatible behavioural (or binary formatting) changes should cause an
+ * corresponding bump in the most-significant word (the "protocol version") and
+ * thus "officially" break interoperability with prior versions. */
+#define DISTCACHE_PROTO_VER	0x0010
+#define DISTCACHE_PATCH_LEVEL	0x0000
+#define DISTCACHE_PROTO_LEVEL	DISTCACHE_MAKE_PROTO_LEVEL(\
+					DISTCACHE_PROTO_VER,DISTCACHE_PATCH_LEVEL)
+
 /* This header supports the binary standard unpinning the session caching.
  *
  * --------------
  * Message format
  * --------------
  *
- * Requests and responses use the same binary "message" standard with the
- * distinction being made in the message's data. Each message is of the same
- * basic format;
+ * Requests and responses use the same binary "message" format with the
+ * distinction between operations being made in the message's data. However,
+ * "proto_level" allows for this format to evolve over time (when NECESSARY!) by
+ * performing a version check on the first 4 bytes of any request/response -
+ * thus allowing cleaner error handling of version incompatibilites. The
+ * DISTCACHE_PROTOCOL_VER symbol is used as the "proto_level" value by the
+ * sender to indicate its protocol version (most-significant word) as well as
+ * its patch level (least-significant word). The patch level isn't strictly
+ * needed for assuring binary format compatibility of the protocol, but it can
+ * help by allowing the possibility for more recent tools to be backwards
+ * compatible with older versions. When a bug-fix or enhancement can not do
+ * this, an incompatible bump in the protocol version is necessary.
+ * 
+ * For the current protocol version, 0x0010, each message is of this basic
+ * format;
  *
+ * unsigned long (4-bytes)              proto_level
  * unsigned char (1-byte)               is_response
  * unsigned long (4-bytes)              request_uid
  * unsigned char (1-byte)               op_class
@@ -38,6 +73,9 @@
  * unsigned int (2-bytes)               data_len    (max: 1024)
  * unsigned char[] ('data_len' bytes)   data
  *
+ * proto_level;
+ *    A 32-bit version number for the protocol used by the sender for encoding
+ *    the the message. See above for explanations.
  * is_response;
  *    There are two valid values; 0 -> the message is a request
  *                                1 -> the message is a response
@@ -169,7 +207,7 @@ typedef enum {
 } DC_DECODE_STATE;
 
 /* The maximum size of "data" in a single message (or "frame") */
-#define DC_MSG_MAX_DATA	2048
+#define DC_MSG_MAX_DATA		2048
 /* The maximum number of messages in a command request or response */
 #define DC_MAX_MSG		16
 /* The maximum total payload of a defragmented command */
@@ -178,9 +216,10 @@ typedef enum {
  * payload interpretation, which is where we actually put session IDs and
  * session data - the limit is only mentioned here to save duplicating it in
  * other headers that are supposed to be independant of each other. */
-#define DC_MAX_ID_LEN	64
+#define DC_MAX_ID_LEN		64
 
 typedef struct st_DC_MSG {
+	unsigned long	proto_level;
 	unsigned char	is_response;
 	unsigned long	request_uid;
 	DC_CLASS	op_class;
@@ -190,6 +229,10 @@ typedef struct st_DC_MSG {
 	unsigned char	data[DC_MSG_MAX_DATA];
 } DC_MSG;
 
+/* Most of these have been converted to "static" functions internal to dc_enc.c
+ * to ensure they're only used via "more recommended routes". I'm leaving the
+ * definitions here case I want them exported again later. */
+#if 0
 /* Populate a DC_MSG with a command (converting to op_class/operation pairs
  * automatically). */
 int DC_MSG_set_cmd(DC_MSG *msg, DC_CMD cmd);
@@ -209,6 +252,7 @@ DC_DECODE_STATE DC_MSG_pre_decode(const unsigned char *data,
 /* Decode a message (returns the number of bytes decoded) */
 unsigned int DC_MSG_decode(DC_MSG *msg, const unsigned char *data,
 				unsigned int data_len);
+#endif
 
 /***************************************/
 /* libsession's "DC_PLUG" declarations */
