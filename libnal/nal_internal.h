@@ -87,9 +87,9 @@ int nal_sock_listen(int fd, const nal_sockaddr *addr);
 int nal_sock_accept(int listen_fd, int *conn);
 int nal_sock_is_connected(int fd);
 
-/***********/
-/* vtables */
-/***********/
+/******************/
+/* NAL_CONNECTION */
+/******************/
 
 typedef struct st_NAL_CONNECTION_vtable {
 	/* The size of "vtdata" the NAL_CONNECTION should provide */
@@ -115,6 +115,10 @@ typedef struct st_NAL_CONNECTION_vtable {
 void *nal_connection_get_vtdata(const NAL_CONNECTION *conn);
 const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *conn);
 
+/****************/
+/* NAL_LISTENER */
+/****************/
+
 typedef struct st_NAL_LISTENER_vtable {
 	/* The size of "vtdata" the NAL_CONNECTION should provide */
 	size_t vtdata_size;
@@ -132,6 +136,10 @@ void *nal_listener_get_vtdata(const NAL_LISTENER *l);
 const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *l);
 const NAL_CONNECTION_vtable *nal_listener_accept_connection(NAL_LISTENER *l,
 							NAL_SELECTOR *sel);
+
+/***************/
+/* NAL_ADDRESS */
+/***************/
 
 typedef struct st_NAL_ADDRESS_vtable {
 	/* The size of "vtdata" the NAL_CONNECTION should provide */
@@ -161,9 +169,9 @@ const NAL_CONNECTION_vtable *nal_address_get_connection(const NAL_ADDRESS *addr)
 
 const NAL_ADDRESS_vtable *NAL_ADDRESS_vtable_builtins(void);
 
-/****************************************/
-/* NAL_BUFFER - implemented in buffer.c */
-/****************************************/
+/**************/
+/* NAL_BUFFER */
+/**************/
 
 /* There's little point making data buffers bigger than this, but it can be
  * changed later if desired. To cut down latencies, buffers used for network IO
@@ -177,9 +185,9 @@ const NAL_ADDRESS_vtable *NAL_ADDRESS_vtable_builtins(void);
 #define NAL_BUFFER_MAX_SIZE  32768
 #define nal_check_buffer_size(sz) (((sz) > NAL_BUFFER_MAX_SIZE) ? 0 : 1)
 
-/********************************************/
-/* NAL_SELECTOR - implemented in selector.c */
-/********************************************/
+/****************/
+/* NAL_SELECTOR */
+/****************/
 
 #define SELECTOR_FLAG_READ	0x01
 #define SELECTOR_FLAG_SEND	0x02
