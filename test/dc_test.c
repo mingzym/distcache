@@ -302,6 +302,40 @@ static unsigned char *int_new_noise(unsigned int len)
 }
 #endif
 
+#ifdef HAVE_OPENSSL
+static void int_random_test(unsigned int *res, unsigned int num_sessions,
+				unsigned int timeout, unsigned int timevar)
+{
+	generate_random_bytes((unsigned char *)res, 3 * sizeof(unsigned int));
+	res[0] = res[0] % num_sessions;
+	res[1] = res[1] % 4;
+	if(timevar)
+		res[2] = res[2] % (2000 * timevar);
+	else
+		res[2] = 0;
+	res[2] += (1000 * (timeout - timevar));
+}
+#else
+static void int_random_test(unsigned int *res, unsigned int num_sessions,
+				unsigned int timeout, unsigned int timevar)
+{
+	static int seeded = 0;
+	if(!seeded) {
+		unsigned int foo;
+		generate_random_bytes((unsigned char *)&foo, sizeof(foo));
+		srand(foo);
+		seeded = 1;
+	}
+	res[0] = rand() % num_sessions;
+	res[1] = rand() % 4;
+	if(timevar)
+		res[2] = rand() % (2000 * timevar);
+	else
+		res[2] = 0;
+	res[2] += (1000 * (timeout - timevar));
+}
+#endif
+
 static int do_client(const char *address, unsigned int num_sessions,
 			unsigned int datamin, unsigned int datamax,
 			unsigned int withcert, unsigned int timeout,
@@ -382,27 +416,17 @@ static int do_client(const char *address, unsigned int num_sessions,
 	idx = 0;
 	while(idx < tests) {
 		int ret;
-		unsigned int s, op;
-		unsigned long t;
+		unsigned int s;
 		unsigned int c[3];
 		/* Pick a random session and a random add/remove/get */
-		generate_random_bytes((unsigned char *)c, sizeof(c));
+		int_random_test(c, num_sessions, timeout, timevar);
 		s = c[0] % num_sessions;
-		op = c[1] % 4;
-		switch(op) {
+		switch(c[1]) {
 		case 0:
 			/* add */
-			/* pick a random timeout (NB: we operate this program in
-			 * seconds for user-simplicity, but the API works in
-			 * milliseconds). */
-			if(timevar)
-				t = c[2] % (2000 * timevar);
-			else
-				t = 0;
-			t += (1000 * (timeout - timevar));
 			ret = DC_CTX_add_session(ctx,
 					sessions_id[s], sessions_idlen[s],
-					sessions_enc[s], sessions_len[s], t);
+					sessions_enc[s], sessions_len[s], c[2]);
 			/* This should succeed iff the session wasn't already on
 			 * the server */
 			if(sessions_bool[s]) {
