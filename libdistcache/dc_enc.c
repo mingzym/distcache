@@ -235,23 +235,23 @@ static void debug_dump_bin(FILE *f, const char *prefix,
 
 static void dump_msg(const DC_MSG *msg)
 {
-	SYS_fprintf(SYS_stdout, "DC_MSG_DEBUG: dumping message...\n");
-	SYS_fprintf(SYS_stdout, "   proto_level:  %08x\n",
+	SYS_fprintf(SYS_stderr, "DC_MSG_DEBUG: dumping message...\n");
+	SYS_fprintf(SYS_stderr, "   proto_level:  %08x\n",
 		msg->proto_level);
 	if(msg->proto_level != 0x00100000)
 		abort();
-	SYS_fprintf(SYS_stdout, "   is_response:  %u (%s)\n",
+	SYS_fprintf(SYS_stderr, "   is_response:  %u (%s)\n",
 		msg->is_response, (msg->is_response ? "response" : "request"));
-	SYS_fprintf(SYS_stdout, "   request_uid:  %u\n", msg->request_uid);
-	SYS_fprintf(SYS_stdout, "   op_class:     %s\n",
+	SYS_fprintf(SYS_stderr, "   request_uid:  %u\n", msg->request_uid);
+	SYS_fprintf(SYS_stderr, "   op_class:     %s\n",
 		dump_int_to_str(msg->op_class, str_dump_class));
-	SYS_fprintf(SYS_stdout, "   operation:    %s\n",
+	SYS_fprintf(SYS_stderr, "   operation:    %s\n",
 		dump_int_to_str(msg->operation, str_dump_op));
-	SYS_fprintf(SYS_stdout, "   complete:     %u (%s)\n",
+	SYS_fprintf(SYS_stderr, "   complete:     %u (%s)\n",
 		msg->complete, (msg->complete ? "complete" : "incomplete"));
-	SYS_fprintf(SYS_stdout, "   data_len:     %u\n", msg->data_len);
-	SYS_fprintf(SYS_stdout, "   data:\n");
-	debug_dump_bin(SYS_stdout, "       ", msg->data, msg->data_len);
+	SYS_fprintf(SYS_stderr, "   data_len:     %u\n", msg->data_len);
+	SYS_fprintf(SYS_stderr, "   data:\n");
+	debug_dump_bin(SYS_stderr, "       ", msg->data, msg->data_len);
 }
 #endif
 

@@ -25,7 +25,7 @@ static unsigned int verify_fail_reported = 0; /* Certificate-verification failur
 void copyright(int nologo)
 {
 	if(!nologo)
-		SYS_fprintf(SYS_stdout,
+		SYS_fprintf(SYS_stderr,
 			"\nThis is SWAMP (%s), an OpenSSL-based SSL/TLS load-tester\n"
 			"Distributed as part of the Distcache Project (www.distcache.org)\n"
 			"Copyright (c) 2001-2003 Geoff Thorpe, http://www.geoffthorpe.net/\n"

@@ -411,7 +411,7 @@ static int do_client(const char *address, unsigned int num_sessions,
 		sessions_bool[idx] = 0;
 		idx++;
 	}
-	SYS_fprintf(SYS_stdout, "Info, %u sessions generated, will run %u "
+	SYS_fprintf(SYS_stderr, "Info, %u sessions generated, will run %u "
 			"random tests\n", num_sessions, tests);
 	idx = 0;
 	while(idx < tests) {
@@ -521,15 +521,15 @@ static int do_client(const char *address, unsigned int num_sessions,
 		}
 		idx++;
 		if(progress && ((idx % progress) == 0))
-			SYS_fprintf(SYS_stdout, "Info, total operations = "
+			SYS_fprintf(SYS_stderr, "Info, total operations = "
 					"%7u\n", idx);
 	}
 	to_return = 0;
 bail:
 	if(!to_return)
-		SYS_fprintf(SYS_stdout, "Info, all tests complete\n");
+		SYS_fprintf(SYS_stderr, "Info, all tests complete\n");
 	else
-		SYS_fprintf(SYS_stdout, "Info, %u tests succeeded before the first failure\n",
+		SYS_fprintf(SYS_stderr, "Info, %u tests succeeded before the first failure\n",
 			idx);
 	/* cleanup */
 	idx = 0;

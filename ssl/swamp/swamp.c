@@ -431,12 +431,12 @@ possible_reconnect:
 			if(ctx->config->output_sessions) {
 				temp_session = SSL_get1_session(item->ssl);
 				/* debug some stuff :-) */
-				SYS_fprintf(SYS_stdout, "session-id[conn:%i]:", loop);
+				SYS_fprintf(SYS_stderr, "session-id[conn:%i]:", loop);
 				for(tmp = 0; tmp < (int)temp_session->session_id_length;
 						tmp++)
-					SYS_fprintf(SYS_stdout, "%02X",
+					SYS_fprintf(SYS_stderr, "%02X",
 						temp_session->session_id[tmp]);
-				SYS_fprintf(SYS_stdout, "\n");
+				SYS_fprintf(SYS_stderr, "\n");
 				SSL_SESSION_free(temp_session);
 			}
 		}
@@ -490,8 +490,8 @@ possible_reconnect:
 		ctx->resumes_hit += item->resumes_hit;
 		ctx->resumes_missed += item->resumes_missed;
 	}
-	/* Flush stdout */
-	fflush(SYS_stdout);
+	/* Flush stderr */
+	fflush(SYS_stderr);
 	return(1);
 }
 
@@ -501,7 +501,7 @@ possible_reconnect:
 	if((span = SYS_msecs_between(&exact_start, &exact_finish)) > 0) \
 		rate = (float)(ctx.total_completed - last_total) * 1000 / span; \
 	SYS_timecpy(&exact_start, &exact_finish); \
-	SYS_fprintf(SYS_stdout, "%u seconds since starting, %u successful, " \
+	SYS_fprintf(SYS_stderr, "%u seconds since starting, %u successful, " \
 		"%u failed, resumes(+%u,-%u) %.2f ops/sec\n", \
 		(unsigned int)(finish - start), ctx.total_completed, \
 		ctx.total_failed, ctx.resumes_hit, ctx.resumes_missed, rate); \
@@ -544,7 +544,7 @@ int main(int argc, char *argv[])
 	time(&start);
 	last_update = last_csv = start;
 #ifdef DATE_OUTPUT
-	SYS_fprintf(SYS_stdout, "%s", ctime(&start));
+	SYS_fprintf(SYS_stderr, "%s", ctime(&start));
 #endif
 	time(&finish);
 	SYS_gettime(&exact_start);
@@ -573,7 +573,7 @@ loop_start:
 	}
 	/* Grab the time again now the select is done. */
 	time(&finish);
-	/* Now log an update to stdout if it's been long enough since the last
+	/* Now log an update to stderr if it's been long enough since the last
 	 * one (and the user wants any). */
 	if(config.period_update > 0) {
 		if((unsigned long)(finish - last_update) >= config.period_update)
@@ -600,7 +600,7 @@ loop_start:
 loop_complete:
 	PRINT_PERIOD_UPDATE()
 #ifdef DATE_OUTPUT
-	SYS_fprintf(SYS_stdout, "%s", ctime(&finish));
+	SYS_fprintf(SYS_stderr, "%s", ctime(&finish));
 #endif
 	/* Cleanup before stopping */
 	swamp_thread_ctx_finish(&ctx);

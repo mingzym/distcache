@@ -28,7 +28,7 @@
 #include <libsys/post.h>
 
 /* If you define DC_CACHE_DEBUG, the cached-lookup code in this default
- * implementation will have extra debugging; it will print to stdout each time
+ * implementation will have extra debugging; it will print to stderr each time
  * either "cached_removes", "cached_hits", or "cached_misses" hits a multiple of
  * DC_CACHE_DEBUG_INTERVAL. */
 /* #define DC_CACHE_DEBUG */
@@ -79,13 +79,13 @@ static unsigned int cached_misses = 0;
 static unsigned int cached_hits = 0;
 
 #define CACHED_REMOVE {if((++cached_removes % DC_CACHE_DEBUG_INTERVAL) == 0) \
-		SYS_fprintf(SYS_stdout, "DC_CACHE_DEBUG: cached_removes = %u\n", \
+		SYS_fprintf(SYS_stderr, "DC_CACHE_DEBUG: cached_removes = %u\n", \
 				cached_removes); }
 #define CACHED_MISS {if((++cached_misses % DC_CACHE_DEBUG_INTERVAL) == 0) \
-		SYS_fprintf(SYS_stdout, "DC_CACHE_DEBUG: cached_misses = %u\n", \
+		SYS_fprintf(SYS_stderr, "DC_CACHE_DEBUG: cached_misses = %u\n", \
 				cached_misses); }
 #define CACHED_HIT {if((++cached_hits % DC_CACHE_DEBUG_INTERVAL) == 0) \
-		SYS_fprintf(SYS_stdout, "DC_CACHE_DEBUG: cached_hits = %u\n", \
+		SYS_fprintf(SYS_stderr, "DC_CACHE_DEBUG: cached_hits = %u\n", \
 				cached_hits); }
 #else
 #define CACHED_REMOVE
