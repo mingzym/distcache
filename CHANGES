@@ -19,7 +19,125 @@ Current version: xx.xx
 Changes between 0.2 and xx.xx
 -----------------------------
 
-  *)
+  *) Tidy up the "bootstrap.sh" script and add support for two built-in gcc
+     configurations. If the PRECONF environment variable is set, then the
+     bootstrap script will automatically invoke "./configure" with preset
+     CFLAGS. The two built-in options are PRECONF=[gcc-RELEASE|gcc-DEBUG].
+     [Geoff Thorpe]
+
+  *) Add two switches to test_session to allow controlling the size of session
+     data when generating sample sessions manually. This doesn't apply in the
+     OpenSSL case, but I have disabled the use of OpenSSL in test_session too
+     as it wasn't terribly useful and adds complexity to the build system.
+     [Geoff Thorpe]
+
+  *) Fix a "flushing" bug in libdistcache that would occasionally not fully
+     advance the state-machine of a "plug" in either the read or write
+     direction.  This occurred when a connection's read or write buffer
+     contained data for more than one fragment of message - sometimes a
+     subsequent fragment would not be pulled (or pushed) through, leading to
+     occasional hangs in a select() waiting for traffic that has already been
+     received. This should finally mark the end of the "works for a while then
+     hangs" problems we were seeing.
+     [Geoff Thorpe]
+
+  *) Add a helper program, "dc_snoop", to act as a transparent proxy. When a
+     client connects, a corresponding peer connection is set up to the
+     configured back-end server and data is transparently proxied back and
+     forth - meanwhile it is analysed and various information can be displayed
+     to the console.
+     [Geoff Thorpe]
+  
+  *) Correct some comments, and make sure *all* code agrees on a fragmentation
+     size of 2048 for messages broken into fragments. This affects binary
+     compatibility with 0.2, but 0.2 was (in some cases) broken in this respect
+     anyway. In any case, the protocol version is bumped to ensure subsequent
+     versions don't try to talk to older versions.
+     [Geoff Thorpe]
+
+  *) A variety of changes to libnal
+     - get rid of unused (and horrible) NAL_***_move() functions,
+     - change a miniscule helper function to a more readable macro,
+     - re-organise the helper macros into their own section of code,
+     - Consolidate the malloc/free code with the init/finish code as
+       malloc/free is the only mechanism declared in the libnal API,
+     - improve parameter checking,
+     - improve some logic such that a structure's elements are only
+       changed if success of the function is guaranteed - makes error-handling
+       easier,
+     - regard accepted connections as automatically "established" even
+       if they are non-blocking.
+     [Geoff Thorpe]
+
+  *) Avoid more "statement will never be executed" and signed/unsigned
+     warnings. Use "do { ... } while(0)" bracings in the libnal typesafe
+     macros.
+     [Geoff Thorpe]
+
+  *) Fixed two nasty bugs caused by uninitialised structure elements in
+     sessclient. Thanks to valgrind.
+     [Geoff Thorpe]
+
+  *) Make some macros in libnal/common.h more robust against semi-colons, or
+     expressions being used as parameters. Also, clarify and simplify some
+     timeval handling in libnal/sys.c.
+     [Geoff Thorpe]
+
+  *) Fixed some "cached_idx" nastiness found in libdistcacheserver where -1,
+     which was used to indicate "nothing cached", was not being checked and
+     instead populated into an unsigned integer as a valid index. Also fixed
+     some weird-looking code found during the bug-hunt.
+     [Geoff Thorpe]
+
+  *) Fix the "ISO C89 compiler" warnings about string constants longer than 509
+     characters by re-declaring them as arrays of strings. This means the
+     utility programs display their usage messages by displaying each string in
+     the array separated by newlines.
+     [Geoff Thorpe]
+
+  *) Remove unexecutable code, and correct some more signed/unsigned
+     mismatches.
+     [Geoff Thorpe]
+
+  *) Indent #error directives (so "traditional" C pre-compilers ignore them)
+     and unindent any #define directives (so the same pre-compilers don't
+     ignore them).
+     [Geoff Thorpe]
+
+  *) Some signed/unsigned mismatches were causing integer variables, that use
+     -1 as a special case, to be munged and not treated as negative. This was
+     causing some array smashing and other weirdness.
+     [Geoff Thorpe]
+
+  *) Fixed include paths in automake so that any build directory, different to
+     the source-tree itself, can be used by running;
+         /path/to/distcache/configure --srcdir=/path/to/distcache ...
+     [Joe Orton <jorton@redhat.com>]
+
+  *) If the build system contains pkg-config, use that to establish compiler
+     and linker flags for building against OpenSSL.
+     [Joe Orton <jorton@redhat.com>]
+
+  *) Re-order some autoconf checks, eg. check library/linkage first so that
+     additional linker flags (such as "-lnsl -lsocket" on Solaris) are
+     available before we check for specific functions.
+     [Steve Robb]
+
+  *) Extend NAL_daemon() for platforms that don't provide the daemon(3)
+     function (eg. Solaris) by implementing our own fallback version.
+     [John Milton <john.milton@fxfn.com> and Steve Robb]
+
+  *) Upgrade the mod_ssl (apache 1.3.*) support to mod_ssl-2.8.12
+     [Steve Robb]
+
+  *) Change the name of the executables "sclient" and "sserver" to "dc_client"
+     and "dc_server" to avoid name-clashes with the Kerberos distribution.
+     [John Milton <john.milton@fxfn.com> and Geoff Thorpe]
+
+  *) Add a demo client certificate (taken from my "tunala" demo in OpenSSL) for
+     use in "test_session" when generating sample sessions containing peer-
+     certificates.
+     [Geoff Thorpe]
 
 Changes between 0.1-seed and 0.2
 --------------------------------
