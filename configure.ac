@@ -1,10 +1,10 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(distcache, 0.1, distcache-users@lists.sourceforge.net)
+AC_INIT(distcache, 0.4, distcache-users@lists.sourceforge.net)
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(sessserver/server.c)
 AM_CONFIG_HEADER(config/config.h)
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE(distcache, 0.4)
 
 # Checks for programs.
 AC_PROG_CC
