@@ -27,19 +27,16 @@ doc_DATA = $(dc_htmllist)
 
 SUFFIXES = .pod .1 .2 .8 .html
 
-# FIXME: "--release=0.3" should be replaced with something automatic
 .pod.1:
-	pod2man --section=1 --release=0.3 --center=distcache --date=`date +%Y.%m.%d` \
+	pod2man --section=1 --release=$(VERSION) --center=distcache --date=`date +%Y.%m.%d` \
 	$< $@
 
-# FIXME: "--release=0.3" should be replaced with something automatic
 .pod.2:
-	pod2man --section=2 --release=0.3 --center=distcache --date=`date +%Y.%m.%d` \
+	pod2man --section=2 --release=$(VERSION) --center=distcache --date=`date +%Y.%m.%d` \
 	$< $@
 
-# FIXME: "--release=0.3" should be replaced with something automatic
 .pod.8:
-	pod2man --section=8 --release=0.3 --center=distcache --date=`date +%Y.%m.%d` \
+	pod2man --section=8 --release=$(VERSION) --center=distcache --date=`date +%Y.%m.%d` \
 	$< $@
 
 .pod.html:
