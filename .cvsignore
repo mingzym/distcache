@@ -1,15 +1,3 @@
-ks_server
-ks_worker
-ks_admin
-ks_keystore
-kclient
-l_lock
 sclient
-test_client
-test_lock
-test_libclient
+sserver
 test_session
-u_admin
-u_details
-u_gen_session
-TODO
