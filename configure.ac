@@ -1,10 +1,14 @@
 # Process this file with autoconf to produce a configure script.
 AC_INIT(distcache, 0.1, distcache-users@lists.sourceforge.net)
-AC_CONFIG_AUX_DIR([config])
-AC_CONFIG_SRCDIR([sessserver/server.c])
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_AUX_DIR(config)
+AC_CONFIG_SRCDIR(sessserver/server.c)
+AM_CONFIG_HEADER(config/config.h)
 
 AM_INIT_AUTOMAKE
+
+# Make sure the top-level directory is available as an include path
+TOP_DIR=`pwd`
+CFLAGS="$CFLAGS -I$TOP_DIR"
 
 # Checks for programs.
 AC_PROG_CC
@@ -16,7 +20,10 @@ AM_PROG_LIBTOOL
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([assert.h errno.h fcntl.h netdb.h signal.h stdarg.h])
+AC_CHECK_HEADERS([stdio.h stdlib.h string.h unistd.h])
+AC_CHECK_HEADERS([netinet/in.h netinet/tcp.h])
+AC_CHECK_HEADERS([sys/socket.h sys/stat.h sys/time.h sys/types.h sys/un.h sys/wait.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
