@@ -75,3 +75,14 @@ you're looking for;
      Basic information about programming with the 'distcache' libraries until
      such time as there are better docs available (ie. man pages).
 
+For information about ongoing development, up-to-date source code, etc, please
+go the home page(s);
+
+    http://www.distcache.org/
+    http://distcache.sourceforge.net/
+
+The SourceForge.net-hosted development site has mail lists, a "Tracker" system
+for bug-reports, feature requests, etc, an online CVS browser system to view the
+history of source-code changes, and a variety of other information about the
+project.
+
