@@ -55,6 +55,12 @@ B<dc_server>). See L<dc_snoop(1)>.
 
 =head1 APIS
 
+The comments below provide a short summary of the APIs available in distcache.
+To view more details, consult the section 2 man pages these summaries refer to.
+If you are using a packaged version of distcache, you may need to ensure that a
+corresponding "devel" package is installed as the libraries, headers, and API
+documentation is often packaged independantly of the user tools.
+
 =head2 libnal
 
 This is the underlying Network Abstraction Library (hence "NAL") used by the
