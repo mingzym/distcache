@@ -410,14 +410,16 @@ static int do_waiting(pipe_task *task1, pipe_task *task2)
 {
 	NAL_SELECTOR *sel = NAL_SELECTOR_new();
 	if(!sel) return 1;
+	if((task1->child_pid != -1) && !NAL_CONNECTION_add_to_selector(
+			task1->umbilicus_conn, sel))
+		return 0;
+	if((task2->child_pid != -1) && !NAL_CONNECTION_add_to_selector(
+			task2->umbilicus_conn, sel))
+		return 0;
 	while(1) {
-		if(task1->child_pid != -1)
-			NAL_CONNECTION_add_to_selector(task1->umbilicus_conn, sel);
-		if(task2->child_pid != -1)
-			NAL_CONNECTION_add_to_selector(task2->umbilicus_conn, sel);
 		NAL_SELECTOR_select(sel, 0, 0);
 		if((task1->child_pid != -1) &&
-				!NAL_CONNECTION_io(task1->umbilicus_conn, sel)) {
+				!NAL_CONNECTION_io(task1->umbilicus_conn)) {
 			if(verbose)
 				SYS_fprintf(SYS_stderr,
 					"task1 lost contact, cleaning ...\n");
@@ -432,7 +434,7 @@ static int do_waiting(pipe_task *task1, pipe_task *task2)
 			task1->child_pid = -1;
 		}
 		if((task2->child_pid != -1) &&
-				!NAL_CONNECTION_io(task2->umbilicus_conn, sel)) {
+				!NAL_CONNECTION_io(task2->umbilicus_conn)) {
 			if(verbose)
 				SYS_fprintf(SYS_stderr,
 					"task2 lost contact, cleaning ...\n");
