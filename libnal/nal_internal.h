@@ -46,11 +46,38 @@
  * Anyway - it'll get changed if it's a problem ... for now it's a good check to
  * make sure the other code isn't too loose. */
 #define NAL_BUFFER_MAX_SIZE  32768
+#define int_check_buffer_size(sz) (((sz) > NAL_BUFFER_MAX_SIZE) ? 0 : 1)
 
 struct st_NAL_BUFFER {
-	unsigned char *_data;
-	unsigned int _used, _size;
+	unsigned char *data;
+	unsigned int used, size;
 };
+/* These functions used to be exposed but for encapsulation reasons have been
+ * made private. Pre-declaring them here makes the order of function
+ * implementations less restrictive. */
+void nal_buffer_init(NAL_BUFFER *list);
+int nal_buffer_close(NAL_BUFFER *list);
+
+/* Builtin transport types */
+typedef enum {
+	NAL_ADDRESS_TYPE_NULL = 0,/* invalid */
+	NAL_ADDRESS_TYPE_IP,	/* regular TCP/IP(v4) addressing */
+	NAL_ADDRESS_TYPE_IPv4 = NAL_ADDRESS_TYPE_IP,
+#if 0
+	NAL_ADDRESS_TYPE_IPv6,	/* For the new IPv6 protocol family */
+#endif
+#ifndef WIN32
+	NAL_ADDRESS_TYPE_UNIX,	/* For addressing in the file-system */
+	NAL_ADDRESS_TYPE_PAIR,	/* For socket-pairs where there is no
+				   real "address" as the end-points are
+				   created together. */
+#endif
+	NAL_ADDRESS_TYPE_DUMMY, /* For connections that have no file-
+				   descriptors and just read and write
+				   to the same buffer. */
+	NAL_ADDRESS_TYPE_LAST	/* so that "NAL_ADDRESS_TYPE_LAST-1" is the
+				   last valid type */
+} NAL_PROTOCOL_TYPE;
 
 /* A dummy type used to ensure our "sockaddr" is big enough to store whatever. I
  * previously assumed it was, but it turns out that;
@@ -69,25 +96,7 @@ struct st_NAL_ADDRESS {
 	 * if we decide to create a "canonical form", then, by definition, it
 	 * could be generated on the fly. :-) */
 	char str_form[NAL_ADDRESS_MAX_STR_LEN + 1];
-	enum {
-		NAL_ADDRESS_TYPE_NULL = 0,/* invalid */
-		NAL_ADDRESS_TYPE_IP,	/* regular TCP/IP(v4) addressing */
-		NAL_ADDRESS_TYPE_IPv4 = NAL_ADDRESS_TYPE_IP,
-#if 0
-		NAL_ADDRESS_TYPE_IPv6,	/* For the new IPv6 protocol family */
-#endif
-#ifndef WIN32
-		NAL_ADDRESS_TYPE_UNIX,	/* For addressing in the file-system */
-		NAL_ADDRESS_TYPE_PAIR,	/* For socket-pairs where there is no
-					   real "address" as the end-points are
-					   created together. */
-#endif
-		NAL_ADDRESS_TYPE_DUMMY, /* For connections that have no file-
-					 * descriptors and just read and write
-					 * to the same buffer. */
-		NAL_ADDRESS_TYPE_LAST	/* so that "NAL_ADDRESS_TYPE_LAST-1" is the
-					   last valid type */
-	} family;
+	NAL_PROTOCOL_TYPE family;
 	/* The "caps" flag is a OR'd combination of the following; */
 #define NAL_ADDRESS_CAN_LISTEN	(unsigned char)0x01
 #define NAL_ADDRESS_CAN_CONNECT	(unsigned char)0x02

@@ -49,8 +49,6 @@ static int sol_tcp = -1;
 /* Internal macros */
 /*******************/
 
-#define int_check_buffer_size(sz) (((sz) > NAL_BUFFER_MAX_SIZE) ? 0 : 1)
-
 /* Workaround signed/unsigned conflicts between real systems and windows */
 #ifndef WIN32
 #define FD_SET2(a,b) FD_SET((a),(b))
@@ -403,8 +401,6 @@ static void int_close(int *fd)
  * implementations less restrictive. */
 static void nal_address_init(NAL_ADDRESS *addr);
 static int nal_address_close(NAL_ADDRESS *addr);
-static void nal_buffer_init(NAL_BUFFER *list);
-static int nal_buffer_close(NAL_BUFFER *list);
 
 /*********************/
 /* ADDRESS FUNCTIONS */
@@ -1211,144 +1207,3 @@ int NAL_config_set_nagle(int enabled)
 	return 1;
 }
 
-/********************/
-/* BUFFER FUNCTIONS */
-/********************/
-
-static void nal_buffer_init(NAL_BUFFER *buf)
-{
-	SYS_zero(NAL_BUFFER, buf);
-}
-
-static int nal_buffer_close(NAL_BUFFER *buf)
-{
-	if(buf == NULL)
-		return 0;
-	/* Deallocate anything we allocated before zeroing the structure */
-	NAL_BUFFER_set_size(buf, 0);
-	nal_buffer_init(buf);
-	return 1;
-}
-
-NAL_BUFFER *NAL_BUFFER_new(void)
-{
-	NAL_BUFFER *b = SYS_malloc(NAL_BUFFER, 1);
-	if(b)
-		nal_buffer_init(b);
-	return b;
-}
-
-void NAL_BUFFER_free(NAL_BUFFER *a)
-{
-	nal_buffer_close(a);
-	SYS_free(NAL_BUFFER, a);
-}
-
-/* This is the one function that has no macro equivalent. It's too important to
- * check for errors in a way that would be too messy (and dangerous) in a macro.
- * Also, it's overhead is substantial enough to not bother inlining. */
-int NAL_BUFFER_set_size(NAL_BUFFER *buf, unsigned int size)
-{
-	unsigned char *next;
-
-	/* Saves time, and avoids the degenerate case that fails realloc -
-	 * namely when ptr is NULL (realloc becomes malloc) *and* size is 0
-	 * (realloc becomes free). */
-	if(size == buf->_size)
-		return 1;
-	if(size > NAL_BUFFER_MAX_SIZE) {
-#if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stderr, "Error, NAL_BUFFER_set_size() called with too "
-				"large a size\n");
-#endif
-		return 0;
-	}
-	next = SYS_realloc(unsigned char, buf->_data, size);
-	if(size && !next)
-		return 0;
-	buf->_data = next;
-	buf->_size = size;
-	buf->_used = 0;
-	return 1;
-}
-
-int NAL_BUFFER_empty(const NAL_BUFFER *buf)
-{
-	return (buf->_used == 0);
-}
-
-int NAL_BUFFER_full(const NAL_BUFFER *buf)
-{
-	return (buf->_used == buf->_size);
-}
-
-int NAL_BUFFER_notempty(const NAL_BUFFER *buf)
-{
-	return (buf->_used > 0);
-}
-
-int NAL_BUFFER_notfull(const NAL_BUFFER *buf)
-{
-	return (buf->_used < buf->_size);
-}
-
-unsigned int NAL_BUFFER_used(const NAL_BUFFER *buf)
-{
-	return buf->_used;
-}
-
-unsigned int NAL_BUFFER_unused(const NAL_BUFFER *buf)
-{
-	return (buf->_size - buf->_used);
-}
-
-const unsigned char *NAL_BUFFER_data(const NAL_BUFFER *buf)
-{
-	return buf->_data;
-}
-
-unsigned int NAL_BUFFER_size(const NAL_BUFFER *buf)
-{
-	return buf->_size;
-}
-
-unsigned int NAL_BUFFER_write(NAL_BUFFER *buf, const unsigned char *ptr,
-		                unsigned int size)
-{
-	unsigned int towrite = NAL_BUFFER_unused(buf);
-	if(towrite > size)
-		towrite = size;
-	if(towrite == 0)
-		return 0;
-	SYS_memcpy_n(unsigned char, buf->_data + buf->_used, ptr, towrite);
-	buf->_used += towrite;
-	return towrite;
-}
-
-unsigned int NAL_BUFFER_read(NAL_BUFFER *buf, unsigned char *ptr,
-		                unsigned int size)
-{
-	unsigned int toread = NAL_BUFFER_used(buf);
-	if(toread > size)
-		toread = size;
-	if(toread == 0)
-		return 0;
-	if(ptr)
-		SYS_memcpy_n(unsigned char, ptr, buf->_data, toread);
-	buf->_used -= toread;
-	if(buf->_used > 0)
-		SYS_memmove_n(unsigned char, buf->_data,
-				buf->_data + toread, buf->_used);
-	return toread;
-}
-
-unsigned char *NAL_BUFFER_write_ptr(NAL_BUFFER *buf)
-{
-	return (buf->_data + buf->_used);
-}
-
-void NAL_BUFFER_wrote(NAL_BUFFER *buf, unsigned int size)
-{
-	assert(size <= NAL_BUFFER_unused(buf));
-	buf->_used += size;
-}

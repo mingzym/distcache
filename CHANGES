@@ -19,6 +19,10 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Modularisation of libnal
+     - NAL_BUFFER implementation separated out from net.c into buffer.c
+     [Geoff Thorpe]
+
   *) Put libtool in charge of compilation and linking again and, by default,
      build shared libraries again. For development purposes, the bootstrap
      script uses "--disable-shared" when PRECONF is being used.
