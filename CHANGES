@@ -19,6 +19,16 @@ Current version: x.x.x
 Changes between 1.4.4 and x.x.x
 -------------------------------
 
+  *) Add two new test programs, "nal_echo" and "nal_ping". The former is a
+     simple server program that manages (up to) some configurable number of
+     incoming connections, echoing all received data back to the client. The
+     latter manages a configurable number of outgoing connections, in each one
+     looping a configurable number of times sending a configurably sized random
+     packet and waiting for an identical response. This is primarily for libnal
+     testing, but nal_echo in particular is a good illustration on programming
+     with the libnal API.
+     [Geoff Thorpe]
+
   *) A serious overhaul of the I/O model and the NAL_SELECTOR type that
      underpins it has been made. Previously this was a very select()-like
      storage object on which an application loop would; (a) add all listeners
