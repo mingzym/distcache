@@ -37,11 +37,10 @@ B<conn> is established, or that a non-blocking connect was successfully
 initiated but has not yet completed (it may still be rejected by the peer
 eventually). Typically, unix domain sockets connect or fail immediately, and
 usually TCP/IPv4 connect non-blocking, though this may not be true for some
-interfaces such as `localhost'. It should generally be assumed that the
-connection is in progress if this function succeeds. The size of the
-connection's underlying read and send B<NAL_BUFFER>s is initialised to the
-default that was created in B<addr>. See the L</NOTES> section for more
-discussion of connection semantics.
+interfaces such as `localhost'. NAL_CONNECTION_is_established() can be used to
+distinguish the difference. The size of the connection's underlying read and
+send B<NAL_BUFFER>s is initialised to the default that was created in B<addr>.
+See the L</NOTES> section for more discussion of connection semantics.
 
 NAL_CONNECTION_create_pair() will initialise B<conn1> and B<conn2> to be
 end-points of a single connection. This is typically implemented using the
@@ -91,9 +90,8 @@ accept or provide to B<conn>.
 NAL_CONNECTION_address() returns a pointer to B<conn>'s internal copy of the
 B<NAL_ADDRESS> object that it was created from.
 
-NAL_CONNECTION_is_established() is almost useful for determining when a
-non-blocking connect has completed, but the L</BUGS> section explains why it
-doesn't yet work in the general case.
+NAL_CONNECTION_is_established() is useful for determining when a non-blocking
+connect has completed. See the L</NOTES> section.
 
 NAL_CONNECTION_get_fd() returns the integer file-descriptor underlying B<conn>,
 or a negative value if B<conn> has no such thing.
@@ -134,9 +132,24 @@ writability if the the connection's send buffer is not empty, and if the
 selector indicates writability, the following I/O call will send as much of the
 send buffer's data as the network support will accept.
 
+The above is almost true, BTW :-) The special case is that of non-blocking
+connects. If NAL_CONNECTION_create() cannot immediately connect without
+blocking, it will return success but subsequent calls to
+NAL_CONNECTION_is_established() will reveal that the connection is not yet
+complete. Any connection that is not complete will request selection for
+sendability inside NAL_SELECTOR_add_conn(), whether the application has
+provided data to send or not. The completion (or failure) of the non-blocking
+connect will thus cause any subsequent NAL_SELECTOR_select() operation to
+break. As with all other semantics, it is the follow up call to
+NAL_CONNECTION_io() that changes the state of the connection object - if it
+returns failure, the non-blocking connect failed. If it returns success, you
+should still call NAL_CONNECTION_is_established() to determine if the
+connection is complete, as the selector could have broken because of signals or
+network events on other objects.
+
 It should be noted that the actual transport in use is virtualised to allow for
 multiple transports and, because of this, multiple semantics for how the
-network functionality behaves. For TCP/IPv4 and unix domain socket based
+network functionality behaves. TCP/IPv4 and unix domain socket based
 connections, as well as connection pairs from NAL_CONNECTION_create_pair(),
 operate very much as described here. The FIFO connection type, created by
 NAL_CONNECTION_create_dummy() is not yet consistent with this and is described
@@ -144,20 +157,12 @@ in the L</BUGS> section.
 
 =head1 BUGS
 
-In the current implementation, non-blocking connects are never genuinely
-checked for being successfully completed or not. Under sane systems, a
-non-blocking connect that fails is noticable by the fact that the connection
-will appear immediately readable and writable (so should return from any
-NAL_SELECTOR_select() call) and will fail any subsequent NAL_CONNECTION_io()
-call. Put another way, a failed non-blocking connect is indistinguishable from
-a non-blocking connect being accepted by the peer then immediately
-disconnected. This is not such a bad ambiguity.
-
-An issue that is less appealing is that a successful non-blocking connect
-triggers no event and the NAL_CONNECTION_is_established() function does not
-actually tell us this connection status, it continues to tell us the connection
-is not established until at least one byte of data has been successfully read
-from, or sent to, the connection.
+Dummy FIFO connections created using NAL_CONNECTION_create_dummy() should be
+trivially selectable if anyone's daft enough to try. Ie. if you add a dummy
+connection to a selector, the NAL_SELECTOR_select() should break instantly if
+the FIFO is non-empty otherwise the FIFO should have no influence at all on the
+real select(2). Right now, NAL_SELECTOR_add_conn() silently ignores dummy
+connections completely.
 
 =head1 EXAMPLES
 
