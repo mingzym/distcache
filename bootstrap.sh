@@ -42,17 +42,18 @@ if [ "x$PRECONF" = "x" ]; then
 	echo "To preconfigure, set PRECONF to one of the following;"
 	echo "   gcc-RELEASE"
 	echo "   gcc-DEBUG"
+	echo "Also PREFLAGS, if it is set, will be passed to ./configure"
 	echo ""
 else
 	if [ "$PRECONF" = "gcc-RELEASE" ]; then
 		CFLAGS="-Wall -O3 -fomit-frame-pointer -DNDEBUG" \
-		./configure || exit 1
+		./configure $PREFLAGS || exit 1
 	elif [ "$PRECONF" = "gcc-DEBUG" ]; then
 		CFLAGS="-Wall -pedantic -Wundef -Wshadow -Wpointer-arith \
 		-Wbad-function-cast -Wcast-qual -Wcast-align \
 		-Wsign-compare -Wstrict-prototypes -Wmissing-prototypes \
 		-Wmissing-declarations -Wredundant-decls -Wwrite-strings \
-		-g -ggdb3" ./configure || exit 1
+		-g -ggdb3" ./configure $PREFLAGS || exit 1
 	else
 		echo "Error, '$PRECONF' is not recognised as a value for PRECONF"
 		exit 1

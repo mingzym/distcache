@@ -19,6 +19,11 @@ Current version: x.x
 Changes between 0.4pre1 and x.x
 -------------------------------
 
+  *) Allow CVS users to pass settings to bootstrap.sh for use in ./configure if
+     it will be automatically run because of PRECONF. These settings can be
+     specified by the PREFLAGS environment variable.
+     [Geoff Thorpe]
+
   *) Documentation no longer builds or installs HTML files by default. These
      seem to have grief with cross-links and aren't much use. If someone
      decides to work on that at some point, we can always link it back in - but
