@@ -24,15 +24,14 @@
 /* We can't handle proxying of more than this many connections at a time */
 #define SNOOP_MAX_ITEMS		10
 
-/* Our NAL_CONNECTIONs are created with buffers of this size */
-#define SNOOP_BUF_SIZE		(3*DC_MSG_MAX_DATA)
-/* A connection's send buffer must have at least this much space free before its
- * peer connection will be allowed to select for readability. */
-#define SNOOP_BUF_WINDOW	DC_MSG_MAX_DATA
+/* When buffering traffic, we assume any serialised message will be no longer
+ * than this many bytes. A connection's send buffer must have at least this
+ * much space free before its peer connection will be allowed to select for
+ * readability. */
+#define SNOOP_BUF_WINDOW	sizeof(DC_MSG)
 
-/* When parsing messages, we won't tolerate anything with a 'data_len' greater
- * than this threadhold. */
-#define SNOOP_MAX_MSG_DATA	DC_MSG_MAX_DATA
+/* Our NAL_CONNECTIONs are created with buffers of this size */
+#define SNOOP_BUF_SIZE		(3*SNOOP_BUF_WINDOW)
 
 /********************/
 /* Debugging macros */
@@ -57,10 +56,10 @@ typedef struct st_snoop_item {
 	NAL_CONNECTION *server;
 	/* Before client->server traffic forwarding, we supplement this buffer
 	 * for tracing. */
-	unsigned char buf_client[DC_MSG_MAX_DATA];
+	unsigned char buf_client[SNOOP_BUF_WINDOW];
 	unsigned int buf_client_used;
 	/* Before server->client forwarding, we supplement this one. */
-	unsigned char buf_server[DC_MSG_MAX_DATA];
+	unsigned char buf_server[SNOOP_BUF_WINDOW];
 	unsigned int buf_server_used;
 } snoop_item;
 
@@ -225,12 +224,12 @@ static int snoop_item_to_sel(snoop_item *item, NAL_SELECTOR *sel)
 	/* Check 'server' has space in its send buffer before we allow 'client'
 	 * to do any reading. */
 	if((NAL_BUFFER_unused(NAL_CONNECTION_get_send(item->server)) >=
-							SNOOP_BUF_WINDOW) &&
+						SNOOP_BUF_WINDOW) &&
 			!NAL_SELECTOR_add_conn(sel, item->client))
 		return 0;
 	/* Ditto the other way around */
 	if((NAL_BUFFER_unused(NAL_CONNECTION_get_send(item->client)) >=
-							SNOOP_BUF_WINDOW) &&
+						SNOOP_BUF_WINDOW) &&
 			!NAL_SELECTOR_add_conn(sel, item->server))
 		return 0;
 	return 1;
@@ -281,9 +280,9 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 		 * should prevent anything jamming here. The testing lower down
 		 * should also catch jamming from corrupt wire-data, so this
 		 * assert should only catch bugs in snoop code. */
-		assert(*buf_used < DC_MSG_MAX_DATA);
+		assert(*buf_used < SNOOP_BUF_WINDOW);
 		moved = NAL_BUFFER_takedata(buf_in, buf + *buf_used,
-					DC_MSG_MAX_DATA - *buf_used);
+					SNOOP_BUF_WINDOW - *buf_used);
 		assert(moved > 0);
 		*buf_used += moved;
 		/* This is the single place where we catch the arrival of
@@ -307,7 +306,7 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 		moved = NAL_decode_uint16(&foop, &foolen, &m_data_len); assert(moved);
 		assert(foolen == 0);
 		}
-		if(m_data_len > SNOOP_MAX_MSG_DATA) {
+		if(m_data_len > DC_MSG_MAX_DATA) {
 #ifdef SNOOP_DBG_MSG
 			NAL_fprintf(NAL_stderr(), "SNOOP_DBG_MSG: connection %d, %s, "
 				"message has illegal 'data_len' (%d)\n",
@@ -324,8 +323,9 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 		/* YES, a message! */
 #ifdef SNOOP_DBG_MSG
 		NAL_fprintf(NAL_stdout(), "SNOOP_DBG_MSG: connection %d, %s, "
-			"message completed (request_uid = %d)\n",
-			item->uid, SNOOP_C2S(client_to_server), m_request_uid);
+			"message completed (request_uid = %d), total_len=%d\n",
+			item->uid, SNOOP_C2S(client_to_server), m_request_uid,
+			moved);
 #endif
 		/* Forward the data to 'dest' before pulling it out of 'buf' */
 		{
