@@ -140,6 +140,10 @@ the console and exit cleanly. Any other flags are ignored.
 
 Distributed cache server.
 
+=item L<dc_snoop(1)>
+
+Distcache protocol analyser and debugging tool.
+
 =item L<distcache(8)>
 
 Overview of the distcache architecture.

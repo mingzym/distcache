@@ -105,6 +105,10 @@ Distributed caching server.
 
 Distributed caching client proxy
 
+=item L<dc_snoop(1)>
+
+Distcache protocol analyser and debugging tool.
+
 =item F<http://www.distcache.org/>
 
 Distcache home page.
