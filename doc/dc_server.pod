@@ -5,7 +5,7 @@ dc_server - Distributed session cache server
 
 =head1 SYNOPSIS
 
-B<dc_server> [options]
+B<dc_server> -listen <address> [options]
 
 
 =head1 DESCRIPTION

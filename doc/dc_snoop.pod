@@ -5,7 +5,7 @@ dc_snoop - Distributed session cache traffic analysis
 
 =head1 SYNOPSIS
 
-B<dc_snoop> [options]
+B<dc_snoop> -listen <address> -server <address> [options]
 
 
 =head1 DESCRIPTION

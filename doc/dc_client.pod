@@ -5,7 +5,7 @@ dc_client - Distributed session cache client proxy
 
 =head1 SYNOPSIS
 
-B<dc_client> [options]
+B<dc_client> -server <address> [options]
 
 
 =head1 DESCRIPTION
@@ -49,6 +49,8 @@ are generally preferable to TCP/IPv4. Eg.
 
     # Listen on a unix domain socket in the /tmp directory
     dc_client -listen UNIX:/tmp/cacheclient
+
+The default value for this flag is: UNIX:/tmp/scache
 
 =item B<-server> address
 
