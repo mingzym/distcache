@@ -19,6 +19,10 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Fix up nal_echo's timing mechanisms and command-line processing for
+     "-units". It can now report (kilo/mega/giga) bits or bytes per second.
+     [Geoff Thorpe]
+
   *) Add a new test tool, "nal_hose", for use as an alternative to nal_ping.
      The new tool allows each connection to have more than one chunk of data in
      flight whilst waiting for responses from the echo server - this is

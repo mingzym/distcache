@@ -37,21 +37,22 @@
 /* To monitor the number of accepted connections, define this */
 #define ECHO_DEBUG_CLIENTS
 
-typedef enum {
-	UNITS_BYTES,
-	UNITS_KILO,
-	UNITS_MEGA,
-	UNITS_GIGA
-} UNITS;
-static const char *UNITS_str[] = {
-	"bits", "kbits", "Mbits", "Gbits" };
-
+typedef unsigned char UNITS;
+/* The bit mask for bits or bytes */
+#define UNITS_bits	(UNITS)0
+#define UNITS_bytes	(UNITS)4
+/* The bit mask for the scale */
+#define UNITS_kilo	(UNITS)1
+#define UNITS_mega	(UNITS)2
+#define UNITS_giga	(UNITS)3
+#define UNITS_mask	(UNITS)3
+static const char *UNITS_str[] = { "b", "Kb", "Mb", "Gb", "B", "KB", "MB", "GB" };
 #define UNITS2STR(u)		UNITS_str[(u)]
 
 #define DEF_SERVER_ADDRESS	"UNIX:/tmp/foo"
 #define BUFFER_SIZE		(32*1024)
 #define MAX_CONNS		64
-#define DEF_UNITS		UNITS_BYTES
+#define DEF_UNITS		UNITS_bits
 
 /* Only support "-update" if we have the goodies */
 #if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
@@ -62,15 +63,15 @@ static void usage(void)
 {
 	SYS_fprintf(SYS_stderr, "Usage:   nal_echo [options ...]\n");
 	SYS_fprintf(SYS_stderr, "where options include;\n");
-	SYS_fprintf(SYS_stderr, "   -accept <addr>    - default='%s'\n", DEF_SERVER_ADDRESS);
-	SYS_fprintf(SYS_stderr, "   -max <num>        - default=%d\n", MAX_CONNS);
-	SYS_fprintf(SYS_stderr, "   -errinject <num>  - default=<none>\n");
+	SYS_fprintf(SYS_stderr, "   -accept <addr>      - default='%s'\n", DEF_SERVER_ADDRESS);
+	SYS_fprintf(SYS_stderr, "   -max <num>          - default=%d\n", MAX_CONNS);
+	SYS_fprintf(SYS_stderr, "   -errinject <num>    - default=<none>\n");
 	SYS_fprintf(SYS_stderr, "   -dump\n");
 #ifdef SUPPORT_UPDATE
-	SYS_fprintf(SYS_stderr, "   -update <secs>    - default=<none>\n");
-	SYS_fprintf(SYS_stderr, "   -units <b,k,m,g>  - default='%s'\n", UNITS2STR(DEF_UNITS));
-	SYS_fprintf(SYS_stderr, "'units' displays traffic rates as bits, kilobits,\n");
-	SYS_fprintf(SYS_stderr, "megabits, or gigabits per second.\n");
+	SYS_fprintf(SYS_stderr, "   -update <secs>      - default=<none>\n");
+	SYS_fprintf(SYS_stderr, "   -units [k|m|g]<b|B> - default='%s'\n", UNITS2STR(DEF_UNITS));
+	SYS_fprintf(SYS_stderr, "'units' displays traffic rates as bits or bytes per second.\n");
+	SYS_fprintf(SYS_stderr, "An optional prefix can scale to kilo, mega, or giga bits/bytes.\n");
 #endif
 	SYS_fprintf(SYS_stderr, "'errinject' will insert 0xdeadbeef into output every\n");
 	SYS_fprintf(SYS_stderr, "<num> times the selector logic breaks.\n");
@@ -79,13 +80,26 @@ static void usage(void)
 #ifdef SUPPORT_UPDATE
 static int util_parseunits(const char *s, UNITS *u)
 {
-	if(strlen(s) != 1) goto err;
-	switch(*s) {
-	case 'b': *u = UNITS_BYTES; break;
-	case 'k': *u = UNITS_KILO; break;
-	case 'm': *u = UNITS_MEGA; break;
-	case 'g': *u = UNITS_GIGA; break;
-	default: goto err;
+	const char *foo = s;
+	*u = UNITS_bits;
+	switch(strlen(s)) {
+	case 2:
+		switch(*foo) {
+		case 'k': *u |= UNITS_kilo; break;
+		case 'm': *u |= UNITS_mega; break;
+		case 'g': *u |= UNITS_giga; break;
+		default: goto err;
+		}
+		foo++;
+	case 1:
+		switch(*foo) {
+		case 'b': *u |= UNITS_bits; break;
+		case 'B': *u |= UNITS_bytes; break;
+		default: goto err;
+		}
+		break;
+	default:
+		goto err;
 	}
 	return 1;
 err:
@@ -230,11 +244,13 @@ reselect:
 		muser = SYS_msecs_between(&ru1.ru_utime, &ru2.ru_utime);
 		msys = SYS_msecs_between(&ru1.ru_stime, &ru2.ru_stime);
 		rate = 2000.0 * traffic / (double)msecs;
-		switch(units) {
-		case UNITS_GIGA: rate /= 1024;
-		case UNITS_MEGA: rate /= 1024;
-		case UNITS_KILO: rate /= 1024;
-		case UNITS_BYTES: break;
+		if(!(units & UNITS_bytes))
+			rate *= 8;
+		switch(units & UNITS_mask) {
+		case UNITS_giga: rate /= 1024;
+		case UNITS_mega: rate /= 1024;
+		case UNITS_kilo: rate /= 1024;
+		case 0: break;
 		default: abort(); /* bug */
 		}
 		SYS_fprintf(SYS_stdout, "Update: %ld msecs elapsed, %.2f %s/s, "
