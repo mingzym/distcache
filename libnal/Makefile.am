@@ -5,6 +5,6 @@ libnal_la_SOURCES	= nal_internal.h \
 			  nal_address.c nal_listener.c nal_connection.c \
 			  nal_selector.c nal_buffer.c nal_codec.c \
 			  util_fd.c util_socket.c \
-			  proto_std.c proto_fd.c sel_select.c
+			  proto_std.c proto_fd.c sel_select.c sel_poll.c
 libnal_la_LDFLAGS	= -version-info 1:1:0
 
