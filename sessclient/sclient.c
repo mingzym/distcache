@@ -263,7 +263,7 @@ main_loop:
 		SYS_fprintf(SYS_stderr, "Error, connection couldn't be created!!\n");
 		goto end;
 	}
-	if(conn) NAL_SELECTOR_add_listener(sel, listener);
+	if(conn) NAL_LISTENER_add_to_selector(listener, sel);
 	clients_to_selector(clients, sel);
 	server_to_selector(server, sel, multiplexer, clients, &now);
 	if(NAL_SELECTOR_select(sel, timeout, 1) < 0) {

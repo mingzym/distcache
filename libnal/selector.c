@@ -64,7 +64,13 @@ static void nal_selector_item_init(NAL_SELECTOR_item *item)
 	item->max = 0;
 }
 
-static void nal_selector_fd_set(NAL_SELECTOR *sel, int fd, unsigned char flags)
+/************************************/
+/* Functions local to libnal source */
+/************************************/
+
+/* set/unset operate on "to_select */
+
+void nal_selector_fd_set(NAL_SELECTOR *sel, int fd, unsigned char flags)
 {
 	if(flags & SELECTOR_FLAG_READ)
 		FD_SET2(fd, &sel->to_select.reads);
@@ -76,19 +82,14 @@ static void nal_selector_fd_set(NAL_SELECTOR *sel, int fd, unsigned char flags)
 				(fd + 1) : sel->to_select.max);
 }
 
-static void nal_selector_fd_unset(NAL_SELECTOR *sel, int fd, unsigned char mask)
+void nal_selector_fd_unset(NAL_SELECTOR *sel, int fd)
 {
-	if(!(mask & SELECTOR_FLAG_READ))
-		FD_CLR2(fd, &sel->to_select.reads);
-	if(!(mask & SELECTOR_FLAG_SEND))
-		FD_CLR2(fd, &sel->to_select.sends);
-	if(!(mask & SELECTOR_FLAG_EXCEPT))
-		FD_CLR2(fd, &sel->to_select.excepts);
+	FD_CLR2(fd, &sel->to_select.reads);
+	FD_CLR2(fd, &sel->to_select.sends);
+	FD_CLR2(fd, &sel->to_select.excepts);
 }
 
-/************************************/
-/* Functions local to libnal source */
-/************************************/
+/* test/clear operate on "last_selected" */
 
 unsigned char nal_selector_fd_test(const NAL_SELECTOR *sel, int fd)
 {
@@ -102,14 +103,11 @@ unsigned char nal_selector_fd_test(const NAL_SELECTOR *sel, int fd)
 	return flags;
 }
 
-void nal_selector_fd_clear(NAL_SELECTOR *sel, int fd, unsigned char mask)
+void nal_selector_fd_clear(NAL_SELECTOR *sel, int fd)
 {
-	if(!(mask & SELECTOR_FLAG_READ))
-		FD_CLR2(fd, &sel->last_selected.reads);
-	if(!(mask & SELECTOR_FLAG_SEND))
-		FD_CLR2(fd, &sel->last_selected.sends);
-	if(!(mask & SELECTOR_FLAG_EXCEPT))
-		FD_CLR2(fd, &sel->last_selected.excepts);
+	FD_CLR2(fd, &sel->last_selected.reads);
+	FD_CLR2(fd, &sel->last_selected.sends);
+	FD_CLR2(fd, &sel->last_selected.excepts);
 }
 
 /**********************/
@@ -130,49 +128,6 @@ void NAL_SELECTOR_free(NAL_SELECTOR *a)
 {
 	/* No cleanup required */
 	SYS_free(NAL_SELECTOR, a);
-}
-
-void NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
-			unsigned int flags)
-{
-	unsigned char c_flags = SELECTOR_FLAG_EXCEPT;
-	int fd = NAL_CONNECTION_get_fd(conn);
-
-	if(fd < 0) return;
-
-	if((flags & NAL_SELECT_FLAG_READ) && NAL_BUFFER_notfull(
-				NAL_CONNECTION_get_read_c(conn)))
-		c_flags |= SELECTOR_FLAG_READ;
-	if((flags & NAL_SELECT_FLAG_SEND) && NAL_BUFFER_notempty(
-				NAL_CONNECTION_get_send_c(conn)))
-		c_flags |= SELECTOR_FLAG_SEND;
-	nal_selector_fd_set(sel, fd, c_flags);
-}
-
-void NAL_SELECTOR_add_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn)
-{
-	NAL_SELECTOR_add_conn_ex(sel, conn, NAL_SELECT_FLAG_RW);
-}
-
-void NAL_SELECTOR_del_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn)
-{
-	int fd = NAL_CONNECTION_get_fd(conn);
-	if(fd < 0) return;
-	nal_selector_fd_unset(sel, fd, 0);
-}
-
-void NAL_SELECTOR_add_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list)
-{
-	int fd = NAL_LISTENER_get_fd(list);
-	if(fd < 0) return;
-	nal_selector_fd_set(sel, fd, SELECTOR_FLAG_READ | SELECTOR_FLAG_EXCEPT);
-}
-
-void NAL_SELECTOR_del_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list)
-{
-	int fd = NAL_LISTENER_get_fd(list);
-	if(fd < 0) return;
-	nal_selector_fd_unset(sel, fd, 0);
 }
 
 int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
@@ -208,7 +163,7 @@ int NAL_SELECTOR_stdin_readable(NAL_SELECTOR *sel)
 	if(fd < 0) return 0;
 	ret = nal_selector_fd_test(sel, fd) & SELECTOR_FLAG_READ;
 	if(ret)
-		nal_selector_fd_clear(sel, fd, 0);
+		nal_selector_fd_clear(sel, fd);
 	return ret;
 }
 

@@ -53,6 +53,14 @@ int		NAL_ADDRESS_can_listen(NAL_ADDRESS *addr);
 const char *	NAL_ADDRESS_source_string(NAL_ADDRESS *addr);
 
 /**********************/
+/* Selector functions */
+NAL_SELECTOR *	NAL_SELECTOR_new(void);
+void		NAL_SELECTOR_free(NAL_SELECTOR *a);
+int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
+				unsigned long usec_timeout,
+				int use_timeout);
+
+/**********************/
 /* Listener functions */
 NAL_LISTENER *	NAL_LISTENER_new(void);
 void		NAL_LISTENER_free(NAL_LISTENER *a);
@@ -64,7 +72,10 @@ int		NAL_LISTENER_accept(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel,
 				NAL_CONNECTION *conn);
 const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list);
-int		NAL_LISTENER_get_fd(const NAL_LISTENER *list);
+void		NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
+				NAL_SELECTOR *sel);
+void		NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
+				NAL_SELECTOR *sel);
 
 /************************/
 /* Connection functions */
@@ -88,26 +99,10 @@ int		NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 				unsigned int max_read, unsigned int max_send);
 const NAL_ADDRESS *NAL_CONNECTION_address(const NAL_CONNECTION *conn);
 int		NAL_CONNECTION_is_established(const NAL_CONNECTION *conn);
-int		NAL_CONNECTION_get_fd(const NAL_CONNECTION *conn);
-
-/**********************/
-/* Selector functions */
-NAL_SELECTOR *	NAL_SELECTOR_new(void);
-void		NAL_SELECTOR_free(NAL_SELECTOR *a);
-void		NAL_SELECTOR_add_conn(NAL_SELECTOR *sel,
-				const NAL_CONNECTION *conn);
-void		NAL_SELECTOR_del_conn(NAL_SELECTOR *sel,
-				const NAL_CONNECTION *conn);
-void		NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel,
-				const NAL_CONNECTION *conn,
-				unsigned int flags);
-void		NAL_SELECTOR_add_listener(NAL_SELECTOR *sel,
-				const NAL_LISTENER *list);
-void		NAL_SELECTOR_del_listener(NAL_SELECTOR *sel,
-				const NAL_LISTENER *list);
-int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
-				unsigned long usec_timeout,
-				int use_timeout);
+void		NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
+				NAL_SELECTOR *sel);
+void		NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,
+				NAL_SELECTOR *sel);
 
 /* These are used by distcache utilities (excluding daemons) in one or two
  * places, and they were not worth explicitly hiding from the libnal

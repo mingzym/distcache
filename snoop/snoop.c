@@ -235,11 +235,11 @@ static void snoop_item_to_sel(snoop_item *item, NAL_SELECTOR *sel)
 	 * to do any reading. */
 	if(NAL_BUFFER_unused(NAL_CONNECTION_get_send(item->server)) >=
 						SNOOP_BUF_WINDOW)
-		NAL_SELECTOR_add_conn(sel, item->client);
+		NAL_CONNECTION_add_to_selector(item->client, sel);
 	/* Ditto the other way around */
 	if(NAL_BUFFER_unused(NAL_CONNECTION_get_send(item->client)) >=
 						SNOOP_BUF_WINDOW)
-		NAL_SELECTOR_add_conn(sel, item->server);
+		NAL_CONNECTION_add_to_selector(item->server, sel);
 }
 
 /*
@@ -429,7 +429,7 @@ static void snoop_ctx_to_sel(snoop_ctx *ctx)
 	unsigned int loop = 0;
 	snoop_item *i = ctx->items;
 	if(ctx->items_used < SNOOP_MAX_ITEMS)
-		NAL_SELECTOR_add_listener(ctx->sel, ctx->list);
+		NAL_LISTENER_add_to_selector(ctx->list, ctx->sel);
 	while(loop++ < ctx->items_used)
 		snoop_item_to_sel(i++, ctx->sel);
 }

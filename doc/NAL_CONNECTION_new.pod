@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_create_pair, NAL_CONNECTION_create_dummy, NAL_CONNECTION_set_size, NAL_CONNECTION_get_read, NAL_CONNECTION_get_send, NAL_CONNECTION_io, NAL_CONNECTION_io_cap, NAL_CONNECTION_address, NAL_CONNECTION_is_established, NAL_CONNECTION_get_fd - libnal connection functions
+NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_create_pair, NAL_CONNECTION_create_dummy, NAL_CONNECTION_set_size, NAL_CONNECTION_get_read, NAL_CONNECTION_get_send, NAL_CONNECTION_io, NAL_CONNECTION_io_cap, NAL_CONNECTION_address, NAL_CONNECTION_is_established, NAL_CONNECTION_add_to_selector, NAL_CONNECTION_del_from_selector - libnal connection functions
 
 =head1 SYNOPSIS
 
@@ -18,12 +18,17 @@ NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_c
  int NAL_CONNECTION_set_size(NAL_CONNECTION *conn, unsigned int size);
  NAL_BUFFER *NAL_CONNECTION_get_read(NAL_CONNECTION *conn);
  NAL_BUFFER *NAL_CONNECTION_get_send(NAL_CONNECTION *conn);
+ const NAL_BUFFER *NAL_CONNECTION_get_read(const NAL_CONNECTION *conn);
+ const NAL_BUFFER *NAL_CONNECTION_get_send(const NAL_CONNECTION *conn);
  int NAL_CONNECTION_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel);
  int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
                            unsigned int max_read, unsigned int max_send);
  const NAL_ADDRESS *NAL_CONNECTION_address(const NAL_CONNECTION *conn);
  int NAL_CONNECTION_is_established(const NAL_CONNECTION *conn);
- int NAL_CONNECTION_get_fd(const NAL_CONNECTION *conn);
+ void NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
+                                     NAL_SELECTOR *sel);
+ void NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,
+                                       NAL_SELECTOR *sel);
 
 =head1 DESCRIPTION
 
@@ -67,6 +72,9 @@ directly.
 NAL_CONNECTION_get_read() and NAL_CONNECTION_get_send() return the read and send
 buffers of B<conn>. This is how reading and writing is performed on B<conn>, as
 B<NAL_BUFFER> functions may be used on these buffers directly.
+NAL_CONNECTION_get_read_c() and NAL_CONNECTION_get_send_c() perform the same
+function but on a constant B<conn> parameter and returning constant pointers to
+the corresponding buffers.
 
 NAL_CONNECTION_io() will perform any network input/output that is possible
 given the state in B<sel>. Unless B<conn> had been added to B<sel> via
@@ -93,18 +101,21 @@ B<NAL_ADDRESS> object that it was created from.
 NAL_CONNECTION_is_established() is useful for determining when a non-blocking
 connect has completed. See the L</NOTES> section.
 
-NAL_CONNECTION_get_fd() returns the integer file-descriptor underlying B<conn>,
-or a negative value if B<conn> has no such thing.
+NAL_CONNECTION_add_to_selector() registers B<conn> with the selector B<sel> for
+any events relevant to it. NAL_CONNECTION_del_from_selector() can be used to
+reverse this if called before any subsequent call to NAL_SELECTOR_select().
 
 =head1 RETURN VALUES
 
 NAL_CONNECTION_new() returns a valid B<NAL_CONNECTION> object on success, NULL
 otherwise.
 
-NAL_CONNECTION_free() has no return value.
+NAL_CONNECTION_free(), NAL_CONNECTION_add_to_selector(), and
+NAL_CONNECTION_del_from_selector() have no return value.
 
-NAL_CONNECTION_get_read() and NAL_CONNECTION_get_send() return pointers to the
-connection's buffer objects or NULL for failure.
+NAL_CONNECTION_get_read(), NAL_CONNECTION_get_send(),
+NAL_CONNECTION_get_read_c(), and NAL_CONNECTION_get_send_c() return pointers to
+the connection's buffer objects or NULL for failure.
 
 NAL_CONNECTION_address() returns a pointer to B<conn>'s internal copy of the
 B<NAL_ADDRESS> object that it was created from (which should not be manipulated
@@ -120,27 +131,32 @@ non-blocking socket. Any data that has been read from the socket is placed in
 the read buffer, and applications write data into the send buffer for it to be
 (eventually) written out to the socket. The B<NAL_SELECTOR> type provides the
 ability to poll for any requested network events and then allow connections and
-listeners to perform their network input/output based on the results. The
-encapsulation provided by NAL_SELECTOR_add_conn() and NAL_CONNECTION_io() uses
-the following logic; the connection is always selected for exception events and
-if one occurs, the following call to NAL_CONNECTION_io() will fail. If the
-connection's read buffer is not full, the connection is selected for
-readability and if the selector indicates the connection is readable, the
-following I/O call will read any available incoming data up to the limit of the
-available space in the buffer.  Finally, the connection is selected for
-writability if the the connection's send buffer is not empty, and if the
-selector indicates writability, the following I/O call will send as much of the
-send buffer's data as the network support will accept.
+listeners to perform their network input/output based on the results.
+
+NAL_CONNECTION_add_to_selector() uses the following logic; the connection is
+always selected for exception events, and will be selected for readability if
+its read buffer is not full and writability if its send buffer is not empty.
+
+NAL_CONNECTION_io() is used after calling NAL_CONNECTION_add_to_selector() and
+a subsequent call to NAL_SELECTOR_select(). It observes the following logic; if
+an exception event has occured it returns failure, if readability is indicated
+it will read incoming data up to the limit of the available space in the read
+buffer, and if writability is indicated it will send as much of the send
+buffer's data as possible. If NAL_CONNECTION_io() returns failure, the
+connection is considered broken for some reason and no further I/O operations
+should be attempted (the behaviour is undefined). NB: The connection object is
+not automatically cleaned up so as to allow the caller to continue reading any
+data in the read buffer and/or examine any unsent data in the send buffer.
 
 The above is almost true, BTW :-) The special case is that of non-blocking
 connects. If NAL_CONNECTION_create() cannot immediately connect without
 blocking, it will return success but subsequent calls to
 NAL_CONNECTION_is_established() will reveal that the connection is not yet
 complete. Any connection that is not complete will request selection for
-sendability inside NAL_SELECTOR_add_conn(), whether the application has
-provided data to send or not. The completion (or failure) of the non-blocking
-connect will thus cause any subsequent NAL_SELECTOR_select() operation to
-break. As with all other semantics, it is the follow up call to
+sendability inside NAL_CONNECTION_add_to_selector(), whether the application
+has provided data to send or not. The completion (or failure) of the
+non-blocking connect will thus cause any subsequent NAL_SELECTOR_select()
+operation to break. As with all other semantics, it is the follow up call to
 NAL_CONNECTION_io() that changes the state of the connection object - if it
 returns failure, the non-blocking connect failed. If it returns success, you
 should still call NAL_CONNECTION_is_established() to determine if the
@@ -161,8 +177,8 @@ Dummy FIFO connections created using NAL_CONNECTION_create_dummy() should be
 trivially selectable if anyone's daft enough to try. Ie. if you add a dummy
 connection to a selector, the NAL_SELECTOR_select() should break instantly if
 the FIFO is non-empty otherwise the FIFO should have no influence at all on the
-real select(2). Right now, NAL_SELECTOR_add_conn() silently ignores dummy
-connections completely.
+real select(2). Right now, NAL_CONNECTION_add_to_selector() silently ignores
+dummy connections completely.
 
 =head1 EXAMPLES
 
@@ -181,13 +197,14 @@ here (without error-checking);
 
     /* Loop */
     do {
-	/* This is where the state-machine code should process as much data
-	 * from 'c_read' and produce as much output to 'c_send' as it can. */
+	/* This is where the state-machine code should process as much data as
+	 * possible from 'c_read' and/or produce as much output to 'c_send' as
+	 * it can. */
         ...
 	... user code
 	...
 	/* block on (relevant) network events for 'conn' */
-	NAL_SELECTOR_add_conn(sel, conn);
+	NAL_CONNECTION_add_to_selector(conn, sel);
 	NAL_SELECTOR_select(sel, 0, 0);
 	/* Do network I/O after the above blocking select and continue looping
 	 * only if the connection is still alive. */
@@ -208,17 +225,17 @@ error checking);
         case 0:
 	    /* Inside the child process, close our copy of the parent's side */
 	    NAL_CONNECTION_free(ipc_to_child);
-	    /* Do child process things using 'ipc_to_parent' to communicate
+	    /* Do child process things, and use 'ipc_to_parent' to communicate
 	     * with the parent. */
 	    do_child_logic(ipc_to_parent);
-	    ...
+	    exit(0);
 	default:
 	    /* Inside the parent process, close our copy of the child's side */
 	    NAL_CONNECTION_free(ipc_to_parent);
 	    break;
     }
-    /* Continue in the parent process using 'ipc_to_child' to communicate with
-     * the child */
+    /* Continue in the parent process, and use 'ipc_to_child' to communicate
+     * with the child. */
     do_parent_logic(ipc_to_child);
 
 Note that these connection pairs can also be a useful way of handling process

@@ -231,7 +231,7 @@ network_loop:
 		if(!conn)
 			goto err;
 	}
-	NAL_SELECTOR_add_listener(sel, listener);
+	NAL_LISTENER_add_to_selector(listener, sel);
 	if(!DC_SERVER_clients_to_sel(server, sel)) {
 		SYS_fprintf(SYS_stderr, "Error, selector error\n");
 		goto err;

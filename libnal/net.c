@@ -684,7 +684,7 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 	SYS_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
 	conn->fd = conn_fd;
 	conn->established = 1;
-	nal_selector_fd_clear(sel, list->fd, 0);
+	nal_selector_fd_clear(sel, list->fd);
 	return 1;
 err:
 	int_close(&conn_fd);
@@ -696,9 +696,16 @@ const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list)
 	return &list->addr;
 }
 
-int NAL_LISTENER_get_fd(const NAL_LISTENER *list)
+void NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
+				NAL_SELECTOR *sel)
 {
-	return list->fd;
+	nal_selector_fd_set(sel, list->fd, SELECTOR_FLAG_READ);
+}
+
+void NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
+				NAL_SELECTOR *sel)
+{
+	nal_selector_fd_unset(sel, list->fd);
 }
 
 /************************/
@@ -953,7 +960,7 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 ok:
 	/* Remove this connection from the select sets so a redundant call does
 	 * nothing. */
-	nal_selector_fd_clear(sel, conn->fd, 0);
+	nal_selector_fd_clear(sel, conn->fd);
 	/* Success! */
 	return 1;
 closing:
@@ -983,9 +990,21 @@ int NAL_CONNECTION_is_established(const NAL_CONNECTION *conn)
 	return conn->established;
 }
 
-int NAL_CONNECTION_get_fd(const NAL_CONNECTION *conn)
+void NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
+				NAL_SELECTOR *sel)
 {
-	return conn->fd;
+	if(conn->fd < 0) return;
+	nal_selector_fd_set(sel, conn->fd,
+		(NAL_BUFFER_notfull(&conn->read) ? SELECTOR_FLAG_READ : 0) |
+		(NAL_BUFFER_notempty(&conn->send) ? SELECTOR_FLAG_SEND : 0) |
+		SELECTOR_FLAG_EXCEPT);
+}
+
+void NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,
+				NAL_SELECTOR *sel)
+{
+	if(conn->fd < 0) return;
+	nal_selector_fd_unset(sel, conn->fd);
 }
 
 int NAL_stdin_set_non_blocking(int non_blocking)

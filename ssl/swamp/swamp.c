@@ -483,7 +483,7 @@ possible_reconnect:
 		 * course! */
 		if(item->conn) {
 			swamp_item_dirty_loop(item);
-			NAL_SELECTOR_add_conn(ctx->sel, item->conn);
+			NAL_CONNECTION_add_to_selector(item->conn, ctx->sel);
 		}
 		ctx->total_completed += item->total_completed;
 		ctx->total_failed += item->total_failed;

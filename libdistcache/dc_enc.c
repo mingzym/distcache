@@ -728,7 +728,7 @@ int DC_PLUG_free(DC_PLUG *plug)
 
 void DC_PLUG_to_select(DC_PLUG *plug, NAL_SELECTOR *sel)
 {
-	NAL_SELECTOR_add_conn(sel, plug->conn);
+	NAL_CONNECTION_add_to_selector(plug->conn, sel);
 }
 
 int DC_PLUG_io(DC_PLUG *plug, NAL_SELECTOR *sel)

@@ -15,6 +15,10 @@ NAL_LISTENER_new, NAL_LISTENER_free, NAL_LISTENER_create, NAL_LISTENER_accept_bl
  int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
                          NAL_CONNECTION *conn);
  const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list);
+ void NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
+                                   NAL_SELECTOR *sel);
+ void NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
+                                     NAL_SELECTOR *sel);
 
 =head1 DESCRIPTION
 
@@ -39,12 +43,17 @@ a previous call to NAL_SELECTOR_select(2) on B<sel>. See L</NOTES>.
 NAL_LISTENER_address() returns a pointer to B<list>'s internal copy of the
 B<NAL_ADDRESS> object that it was created from.
 
+NAL_LISTENER_add_to_selector() registers B<list> with the selector B<sel> for
+any events relevant to it. NAL_LISTENER_del_from_selector() can be used to
+reverse this if called before any subsequent call to NAL_SELECTOR_select().
+
 =head1 RETURN VALUES
 
 NAL_LISTENER_new() returns a valid B<NAL_LISTENER> object on success, NULL
 otherwise.
 
-NAL_LISTENER_free() has no return value.
+NAL_LISTENER_free(), NAL_LISTENER_add_to_selector(), and
+NAL_LISTENER_del_from_selector() have no return value.
 
 NAL_LISTENER_address() returns a pointer to B<conn>'s internal copy of the
 B<NAL_ADDRESS> object that it was created from (which should not be manipulated
@@ -65,10 +74,11 @@ function is interrupted by a signal before the arrival of any connection, or if
 there were any other kinds of networking/system errors.
 
 NAL_LISTENER_accept() will return immediately, and will only succeed if B<list>
-had already been added to the selector B<sel>, B<sel> had already been selected
-using NAL_SELECTOR_select(2), and there is already an incoming connection
-request waiting on B<list>. In non-blocking applications, this function is
-recommended over NAL_LISTENER_accept_block().
+had already been added to the selector B<sel> using
+NAL_LISTENER_add_to_select(), B<sel> had been subsequently selected using
+NAL_SELECTOR_select(2), and there is incoming connection request waiting on
+B<list>. In non-blocking applications, this function is recommended over
+NAL_LISTENER_accept_block().
 
 =head1 EXAMPLES
 
@@ -89,9 +99,9 @@ time from a listener is illustrated here (without error-checking);
 
  loop:
     /* select for active connections and 'list' if we aren't full */
-    if(conns_used < 10) NAL_SELECTOR_add_listener(sel, list);
+    if(conns_used < 10) NAL_LISTENER_add_to_selector(list, sel);
     for(loop = 0; loop < conns_used; loop++)
-        NAL_SELECTOR_add_conn(sel, conn[loop]);
+        NAL_CONNECTION_add_to_selector(conn[loop], sel);
     /* block on (relevant) network events */
     NAL_SELECTOR_select(sel);
     /* process active connections */
@@ -138,7 +148,7 @@ finishing;
 
     while(1) {
         if(!conn) conn = NAL_CONNECTION_new();
-        NAL_SELECTOR_add_listener(sel, list);
+        NAL_LISTENER_add_to_selector(list, sel);
         NAL_SELECTOR_select(sel);
         if(NAL_LISTENER_accept(list, sel, conn)) {
             /* start worker thread for 'conn' */

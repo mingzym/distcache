@@ -148,7 +148,11 @@ struct st_NAL_CONNECTION {
 #define SELECTOR_FLAG_SEND	0x02
 #define SELECTOR_FLAG_EXCEPT	0x04
 
+/* set/unset operate on "to_select */
+void nal_selector_fd_set(NAL_SELECTOR *sel, int fd, unsigned char flags);
+void nal_selector_fd_unset(NAL_SELECTOR *sel, int fd);
+/* test/clear operate on "last_selected" */
 unsigned char nal_selector_fd_test(const NAL_SELECTOR *sel, int fd);
-void nal_selector_fd_clear(NAL_SELECTOR *sel, int fd, unsigned char mask);
+void nal_selector_fd_clear(NAL_SELECTOR *sel, int fd);
 
 #endif /* !defined(HEADER_PRIVATE_NAL_INTERNAL_H) */

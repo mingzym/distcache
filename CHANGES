@@ -24,6 +24,15 @@ Changes between 1.4.1 and x.x
      - NAL_SELECTOR implementation separated out into selector.c
      - addition of NAL_LISTENER_get_fd()
      - addition of const versions of NAL_CONNECTION_get_[read|send]
+     - converted NAL_SELECTOR_[add|del]_[conn|listener] functions into
+       NAL_LISTENER_*** and NAL_CONNECTION_*** equivalents.
+     - removed NAL_[CONNECTION|LISTENER]_get_fd() functions as these don't
+       help me to preserve opacity and weren't used (except to work around
+       the problem now solved by the previous change in this list).
+     - removed unused "mask"ing from the libnal-internal "unset/clear"
+       functions - unecessary complexity.
+     - updated documentation for the above changes and tried to improve
+       clarity in the process.
      - minor tidy-ups
      [Geoff Thorpe]
 
