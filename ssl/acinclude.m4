@@ -2,9 +2,6 @@ dnl
 dnl TODO:
 dnl - Checks for further dependencies required by libssl.a or libcrypto.a
 dnl   (e.g. -ldl)
-dnl - Support shared libraries when specifying --with-ssl. This is only
-dnl   supported when looking through system directories (i.e. when --with-ssl
-dnl   is omitted).
 dnl
 AC_DEFUN([DISTCACHE_WITH_SSL],[
 AH_TEMPLATE(HAVE_ENGINE, [Define to 1 if your OpenSSL has ENGINE support])
