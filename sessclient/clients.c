@@ -137,10 +137,10 @@ static void client_ctx_free(client_ctx *c)
 	NAL_free(client_ctx, c);
 }
 
-static int client_ctx_to_selector(client_ctx *c, NAL_SELECTOR *sel)
+static void client_ctx_to_selector(client_ctx *c, NAL_SELECTOR *sel)
 {
 	assert(c->plug != NULL);
-	return DC_PLUG_to_select(c->plug, sel);
+	DC_PLUG_to_select(c->plug, sel);
 }
 
 static int client_ctx_io(client_ctx *c, NAL_SELECTOR *sel)
@@ -289,17 +289,13 @@ static void clients_delete(clients_t *c, unsigned int idx, multiplexer_t *m)
 	priority_removed(c, idx);
 }
 
-int clients_to_selector(clients_t *c, NAL_SELECTOR *sel)
+void clients_to_selector(clients_t *c, NAL_SELECTOR *sel)
 {
 	unsigned int pos = 0;
 	while(pos < c->used) {
-		if(!client_ctx_to_selector(c->items[pos], sel)) {
-			NAL_fprintf(NAL_stderr(), "Error, client/selector error\n");
-			return 0;
-		}
+		client_ctx_to_selector(c->items[pos], sel);
 		pos++;
 	}
-	return 1;
 }
 
 int clients_io(clients_t *c, NAL_SELECTOR *sel, multiplexer_t *m,

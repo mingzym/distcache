@@ -92,16 +92,16 @@ int		NAL_CONNECTION_get_fd(const NAL_CONNECTION *conn);
 /* Selector functions */
 NAL_SELECTOR *	NAL_SELECTOR_new(void);
 void		NAL_SELECTOR_free(NAL_SELECTOR *a);
-int		NAL_SELECTOR_add_conn(NAL_SELECTOR *sel,
+void		NAL_SELECTOR_add_conn(NAL_SELECTOR *sel,
 				const NAL_CONNECTION *conn);
-int		NAL_SELECTOR_del_conn(NAL_SELECTOR *sel,
+void		NAL_SELECTOR_del_conn(NAL_SELECTOR *sel,
 				const NAL_CONNECTION *conn);
-int		NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel,
+void		NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel,
 				const NAL_CONNECTION *conn,
 				unsigned int flags);
-int		NAL_SELECTOR_add_listener(NAL_SELECTOR *sel,
+void		NAL_SELECTOR_add_listener(NAL_SELECTOR *sel,
 				const NAL_LISTENER *list);
-int		NAL_SELECTOR_del_listener(NAL_SELECTOR *sel,
+void		NAL_SELECTOR_del_listener(NAL_SELECTOR *sel,
 				const NAL_LISTENER *list);
 int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
 				unsigned long usec_timeout,

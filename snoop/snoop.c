@@ -224,20 +224,17 @@ static void snoop_item_finish(snoop_item *item)
 	NAL_CONNECTION_free(item->server);
 }
 
-static int snoop_item_to_sel(snoop_item *item, NAL_SELECTOR *sel)
+static void snoop_item_to_sel(snoop_item *item, NAL_SELECTOR *sel)
 {
 	/* Check 'server' has space in its send buffer before we allow 'client'
 	 * to do any reading. */
-	if((NAL_BUFFER_unused(NAL_CONNECTION_get_send(item->server)) >=
-						SNOOP_BUF_WINDOW) &&
-			!NAL_SELECTOR_add_conn(sel, item->client))
-		return 0;
+	if(NAL_BUFFER_unused(NAL_CONNECTION_get_send(item->server)) >=
+						SNOOP_BUF_WINDOW)
+		NAL_SELECTOR_add_conn(sel, item->client);
 	/* Ditto the other way around */
-	if((NAL_BUFFER_unused(NAL_CONNECTION_get_send(item->client)) >=
-						SNOOP_BUF_WINDOW) &&
-			!NAL_SELECTOR_add_conn(sel, item->server))
-		return 0;
-	return 1;
+	if(NAL_BUFFER_unused(NAL_CONNECTION_get_send(item->client)) >=
+						SNOOP_BUF_WINDOW)
+		NAL_SELECTOR_add_conn(sel, item->server);
 }
 
 /*
@@ -419,17 +416,14 @@ static void snoop_ctx_finish(snoop_ctx *ctx)
 		snoop_item_finish(i++);
 }
 
-static int snoop_ctx_to_sel(snoop_ctx *ctx)
+static void snoop_ctx_to_sel(snoop_ctx *ctx)
 {
 	unsigned int loop = 0;
 	snoop_item *i = ctx->items;
-	if((ctx->items_used < SNOOP_MAX_ITEMS) && !NAL_SELECTOR_add_listener(
-			ctx->sel, ctx->list))
-		return 0;
+	if(ctx->items_used < SNOOP_MAX_ITEMS)
+		NAL_SELECTOR_add_listener(ctx->sel, ctx->list);
 	while(loop++ < ctx->items_used)
-		if(!snoop_item_to_sel(i++, ctx->sel))
-			return 0;
-	return 1;
+		snoop_item_to_sel(i++, ctx->sel);
 }
 
 static int snoop_ctx_io(snoop_ctx *ctx)
@@ -489,7 +483,7 @@ static int snoop_ctx_io(snoop_ctx *ctx)
 static int snoop_ctx_loop(snoop_ctx *ctx)
 {
 	int sel_res;
-	if(!snoop_ctx_to_sel(ctx)) return 0;
+	snoop_ctx_to_sel(ctx);
 #ifdef SNOOP_DBG_SELECT
 	NAL_fprintf(NAL_stdout(), "SNOOP_DBG_SELECT: selecting ...");
 	fflush(NAL_stdout());

@@ -10,7 +10,7 @@ DC_PLUG_new, DC_PLUG_free, DC_PLUG_to_select, DC_PLUG_io - basic DC_PLUG functio
 
  DC_PLUG *DC_PLUG_new(NAL_CONNECTION *conn, unsigned int flags);
  int DC_PLUG_free(DC_PLUG *plug);
- int DC_PLUG_to_select(DC_PLUG *plug, NAL_SELECTOR *sel);
+ void DC_PLUG_to_select(DC_PLUG *plug, NAL_SELECTOR *sel);
  int DC_PLUG_io(DC_PLUG *plug, NAL_SELECTOR *sel);
 
 =head1 DESCRIPTION
@@ -48,8 +48,9 @@ failure.
 
 DC_PLUG_free() should never fail and should only return non-zero results.
 
-DC_PLUG_to_select() and DC_PLUG_io() return zero on an error, otherwise
-non-zero.
+DC_PLUG_to_select() has no return value.
+
+DC_PLUG_io() return zero on an error, otherwise non-zero.
 
 None of the B<DC_PLUG> functions sets (or clears) B<errno> because it is
 implemented on top of the I<libnal> library which in turn is an abstraction

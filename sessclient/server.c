@@ -116,13 +116,12 @@ void server_free(server_t *s)
 	NAL_free(server_t, s);
 }
 
-int server_to_selector(server_t *s, NAL_SELECTOR *sel, multiplexer_t *m,
+void server_to_selector(server_t *s, NAL_SELECTOR *sel, multiplexer_t *m,
 			clients_t *c, const struct timeval *now)
 {
 	server_retry_util(s, now);
-	if(server_is_active(s) && !DC_PLUG_to_select(s->plug, sel))
-		server_dead_util(s, m, c, now);
-	return 1;
+	if(server_is_active(s))
+		DC_PLUG_to_select(s->plug, sel);
 }
 
 int server_io(server_t *s, NAL_SELECTOR *sel, multiplexer_t *m,

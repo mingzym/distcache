@@ -80,8 +80,7 @@ static int int_connect(DC_CTX *ctx)
 static int int_netloop(DC_PLUG *plug, NAL_SELECTOR *sel)
 {
 	int ret;
-	if(!DC_PLUG_to_select(plug, sel))
-		return 0;
+	DC_PLUG_to_select(plug, sel);
 reselect:
 	ret = NAL_SELECTOR_select(sel, 0, 0);
 	if((ret < 0) && (errno != EINTR))

@@ -226,8 +226,8 @@ network_loop:
 		if(!conn)
 			goto err;
 	}
-	if(!NAL_SELECTOR_add_listener(sel, listener) ||
-			!DC_SERVER_clients_to_sel(server, sel)) {
+	NAL_SELECTOR_add_listener(sel, listener);
+	if(!DC_SERVER_clients_to_sel(server, sel)) {
 		NAL_fprintf(NAL_stderr(), "Error, selector error\n");
 		goto err;
 	}

@@ -19,6 +19,17 @@ Current version: x.x
 Changes between 0.4pre1 and x.x
 -------------------------------
 
+  *) Many libnal functions had a return value merely to allow soft failure if a
+     required parameter was NULL. This policy has been changed as a hard
+     failure is guaranteed in such circumstances anyway and easier to diagnose
+     at run-time. To simplify code and remove these unnecessary tests, the soft
+     parameter checks have been removed and where appropriate, return types
+     converted to void. These changes have propogated back through various
+     dependant parts of the code and where appropriate, other functions have
+     lost their return type if they are now guaranteed to succeed. Documents
+     have also been changed where necessary.
+     [Geoff Thorpe]
+
   *) The type-safe wrappers for malloc/realloc/free and memset/memcpy/memmove,
      as well as their replacement functions (only created during debug builds
      to verify that the raw functions aren't called), have been re-organised

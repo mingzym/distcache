@@ -266,13 +266,9 @@ main_loop:
 		NAL_fprintf(NAL_stderr(), "Error, connection couldn't be created!!\n");
 		goto end;
 	}
-	if((conn && !NAL_SELECTOR_add_listener(sel, listener)) ||
-			!clients_to_selector(clients, sel) ||
-			!server_to_selector(server, sel, multiplexer,
-					clients, &now)) {
-		NAL_fprintf(NAL_stderr(), "Error, selector error\n");
-		goto end;
-	}
+	if(conn) NAL_SELECTOR_add_listener(sel, listener);
+	clients_to_selector(clients, sel);
+	server_to_selector(server, sel, multiplexer, clients, &now);
 	if(NAL_SELECTOR_select(sel, timeout, 1) < 0) {
 		/* We try to be resistant against signal interruptions */
 		if(errno != EINTR)

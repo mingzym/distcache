@@ -396,11 +396,9 @@ int DC_SERVER_clients_to_sel(DC_SERVER *ctx, NAL_SELECTOR *sel)
 	DC_CLIENT *client;
 	while(idx < ctx->clients_used) {
 		client = ctx->clients[idx];
-		if((client->flags & DC_CLIENT_FLAG_IN_SERVER) &&
-				!DC_PLUG_to_select(client->plug, sel))
-			int_server_del_client(ctx, idx);
-		else
-			idx++;
+		if(client->flags & DC_CLIENT_FLAG_IN_SERVER)
+			DC_PLUG_to_select(client->plug, sel);
+		idx++;
 	}
 	return 1;
 }

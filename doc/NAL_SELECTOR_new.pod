@@ -10,12 +10,12 @@ NAL_SELECTOR_new, NAL_SELECTOR_free, NAL_SELECTOR_add_conn, NAL_SELECTOR_del_con
 
  NAL_SELECTOR *NAL_SELECTOR_new(void);
  void NAL_SELECTOR_free(NAL_SELECTOR *a);
- int NAL_SELECTOR_add_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn);
- int NAL_SELECTOR_del_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn);
- int NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
+ void NAL_SELECTOR_add_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn);
+ void NAL_SELECTOR_del_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn);
+ void NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
                               unsigned int flags);
- int NAL_SELECTOR_add_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list);
- int NAL_SELECTOR_del_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list);
+ void NAL_SELECTOR_add_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list);
+ void NAL_SELECTOR_del_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list);
  int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
                          int use_timeout);
 
@@ -43,15 +43,13 @@ B<usec_timeout> microseconds have passed. See L</NOTES>.
 NAL_SELECTOR_new() returns a valid B<NAL_SELECTOR> object on success, NULL
 otherwise.
 
-NAL_SELECTOR_free() has no return value.
+NAL_SELECTOR_free(), NAL_SELECTOR_add_conn(), NAL_SELECTOR_del_conn(),
+NAL_SELECTOR_add_conn_ex(), NAL_SELECTOR_add_listener(), and
+NAL_SELECTOR_del_listener() has no return value.
 
 NAL_SELECTOR_select() returns negative for an error, otherwise it returns the
 number of connections and/or listeners that the selector has detected have
 network events waiting (which can be zero).
-
-All other B<NAL_SELECTOR> functions should only return non-zero values as
-failure is only possible if a parameter is NULL (this behaviour will also be
-removed in a future release - so functions are always assumed to succeed).
 
 =head1 NOTES
 

@@ -436,7 +436,7 @@ void NAL_ADDRESS_free(NAL_ADDRESS *a)
 int NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
 		unsigned int def_buffer_size)
 {
-	if((addr == NULL) || !int_check_buffer_size(def_buffer_size))
+	if(!int_check_buffer_size(def_buffer_size))
 		return 0;
 	addr->def_buffer_size = def_buffer_size;
 	return 1;
@@ -454,9 +454,6 @@ int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 	struct hostent *ip_lookup;
 	int no_ip = 0;
 
-	if((addr == NULL) || (addr_string == NULL))
-		/* should *never* happen */
-		abort();
 	/* Try to catch any cases of being called with a used 'addr' */
 	assert(addr->family == NAL_ADDRESS_TYPE_NULL);
 	if(addr->family != NAL_ADDRESS_TYPE_NULL)
@@ -624,9 +621,6 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 {
 	int listen_fd = -1;
 
-	if((list == NULL) || (addr == NULL))
-		/* should *never* happen */
-		abort();
 	if(addr->family == NAL_ADDRESS_TYPE_NULL)
 		/* also should never happen */
 		abort();
@@ -670,9 +664,6 @@ int NAL_LISTENER_accept_block(const NAL_LISTENER *list, NAL_CONNECTION *conn)
 {
 	int conn_fd = -1;
 
-	if((list == NULL) || (conn == NULL))
-		/* should never happen */
-		abort();
 	/* Try to catch any cases of being called with a used 'conn' */
 	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) &&
 			(conn->fd == -1));
@@ -704,8 +695,6 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 	unsigned char flags;
 	int conn_fd = -1;
 
-	if((list == NULL) || (sel == NULL) || (conn == NULL))
-		abort();
 	/* Try to catch any cases of being called with a used 'conn' */
 	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) &&
 			(conn->fd == -1));
@@ -780,9 +769,6 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 	int established;
 	int fd = -1;
 
-	if((conn == NULL) || (addr == NULL))
-		/* should *never* happen */
-		abort();
 	/* Try to catch any cases of being called with a used 'conn' */
 	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn->fd == -1));
 	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
@@ -823,9 +809,6 @@ int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1, NAL_CONNECTION *conn2,
 #ifndef WIN32
 	int sv[2] = {-1,-1};
 
-	if((conn1 == NULL) || (conn2 == NULL))
-		/* should *never* happen */
-		abort();
 	if(!int_check_buffer_size(def_buffer_size))
 		return 0;
 	/* Try to catch any cases of being called with used 'conns' */
@@ -859,9 +842,6 @@ err:
 int NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 			unsigned int def_buffer_size)
 {
-	if(conn == NULL)
-		/* should *never* happen */
-		abort();
 	if(!int_check_buffer_size(def_buffer_size))
 		return 0;
 	/* Try to catch any cases of being called with used a 'conn' */
@@ -883,7 +863,7 @@ int NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 
 int NAL_CONNECTION_set_size(NAL_CONNECTION *conn, unsigned int size)
 {
-	if((conn == NULL) || !int_check_buffer_size(size))
+	if(!int_check_buffer_size(size))
 		return 0;
 	if(!NAL_BUFFER_set_size(&conn->read, size) ||
 			!NAL_BUFFER_set_size(&conn->send, size)) {
@@ -897,15 +877,11 @@ int NAL_CONNECTION_set_size(NAL_CONNECTION *conn, unsigned int size)
 
 NAL_BUFFER *NAL_CONNECTION_get_read(NAL_CONNECTION *conn)
 {
-	if(conn == NULL)
-		return NULL;
 	return &conn->read;
 }
 
 NAL_BUFFER *NAL_CONNECTION_get_send(NAL_CONNECTION *conn)
 {
-	if(conn == NULL)
-		return NULL;
 	/* A "dummy" connection reads and writes into the same buffer, so handle
 	 * this special case. */
 	if(conn->fd == -2)
@@ -1033,14 +1009,12 @@ void NAL_SELECTOR_free(NAL_SELECTOR *a)
 	NAL_free(NAL_SELECTOR, a);
 }
 
-int NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
+void NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
 			unsigned int flags)
 {
-	if((sel == NULL) || (conn == NULL))
-		return 0;
 	/* If we're a "dummy" connection, our file-descriptor is -2! */
 	if(conn->fd == -2)
-		return 1;
+		return;
 	/* We always select for excepts, but reads and sends depend on the
 	 * buffers and the flags. */
 	FD_SET2(conn->fd, &sel->to_select.excepts);
@@ -1051,42 +1025,32 @@ int NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
 	/* We need to adjust the max for the select() call */
 	sel->to_select.max = ((sel->to_select.max <= (conn->fd + 1)) ?
 				(conn->fd + 1) : sel->to_select.max);
-	return 1;
 }
 
-int NAL_SELECTOR_add_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn)
+void NAL_SELECTOR_add_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn)
 {
-	return NAL_SELECTOR_add_conn_ex(sel, conn, NAL_SELECT_FLAG_RW);
+	NAL_SELECTOR_add_conn_ex(sel, conn, NAL_SELECT_FLAG_RW);
 }
 
-int NAL_SELECTOR_del_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn)
+void NAL_SELECTOR_del_conn(NAL_SELECTOR *sel, const NAL_CONNECTION *conn)
 {
-	if((sel == NULL) || (conn == NULL))
-		return 0;
 	FD_CLR2(conn->fd, &sel->to_select.reads);
 	FD_CLR2(conn->fd, &sel->to_select.sends);
 	FD_CLR2(conn->fd, &sel->to_select.excepts);
-	return 1;
 }
 
-int NAL_SELECTOR_add_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list)
+void NAL_SELECTOR_add_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list)
 {
-	if((sel == NULL) || (list == NULL))
-		return 0;
 	FD_SET2(list->fd, &sel->to_select.excepts);
 	FD_SET2(list->fd, &sel->to_select.reads);
 	sel->to_select.max = ((sel->to_select.max <= (list->fd + 1)) ?
 				(list->fd + 1) : sel->to_select.max);
-	return 1;
 }
 
-int NAL_SELECTOR_del_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list)
+void NAL_SELECTOR_del_listener(NAL_SELECTOR *sel, const NAL_LISTENER *list)
 {
-	if((sel == NULL) || (list == NULL))
-		return 0;
 	FD_CLR2(list->fd, &sel->to_select.reads);
 	FD_CLR2(list->fd, &sel->to_select.excepts);
-	return 1;
 }
 
 /* This function is now static and only used internally. It's predeclared up
@@ -1097,9 +1061,6 @@ static void int_selector_get_conn(const NAL_SELECTOR *sel,
 			const NAL_CONNECTION *conn,
 			unsigned char *flags)
 {
-	if((sel == NULL) || (conn == NULL) || (flags == NULL))
-		/* This should *never* happen */
-		abort();
 	*flags = 0;
 	/* If it's a dummy connection go quietly */
 	if(conn->fd == -2)
@@ -1117,9 +1078,6 @@ static void int_selector_get_list(const NAL_SELECTOR *sel,
 			const NAL_LISTENER *list,
 			unsigned char *flags)
 {
-	if((sel == NULL) || (list == NULL) || (flags == NULL))
-		/* This should *never* happen */
-		abort();
 	*flags = 0;
 	if(FD_ISSET(list->fd, &sel->last_selected.reads))
 		*flags |= SELECTOR_FLAG_READ;
@@ -1155,8 +1113,6 @@ int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
 {
 	struct timeval timeout;
 
-	if(sel == NULL)
-		return 0;
 	timeout.tv_sec = usec_timeout / 1000000;
 	timeout.tv_usec = usec_timeout % 1000000;
 	/* Migrate to_select over to last_selected */
@@ -1185,9 +1141,6 @@ int NAL_stdin_set_non_blocking(int non_blocking)
 int NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel)
 {
 	int fd = fileno(NAL_stdin());
-
-	if(sel == NULL)
-		return 0;
 
 	/* We always select for excepts, but reads and sends depend on the
 	 * buffers. */
