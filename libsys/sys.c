@@ -75,7 +75,7 @@ int SYS_daemon(int nochdir)
        return 1;
 #else
        /* The system has no daemon() function, so we have to duplicate
-	* the functiosysity.  */
+	* the functionality.  */
 	pid_t pid;
 
 	if ( (pid = fork()) < 0)
