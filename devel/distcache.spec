@@ -1,8 +1,8 @@
-#####################################################################
+###############################################################################
 #
-# To build RPMs from this spec file, you need some basic RPM stuff set
-# up in your account. Do not do any of this stuff as root, and consider
-# even setting up an account for nothing other than making RPMs...
+# To build RPMs from this spec file, you need some basic RPM stuff set up in
+# your account. Do not do any of this stuff as root, and consider even setting
+# up an account for nothing other than making RPMs...
 #
 # You need to create the following directories;
 #   mkdir -p ~/rpm/{BUILD,RPMS/noarch,SOURCES,SRPMS,SPECS,tmp}
@@ -10,10 +10,49 @@
 # On x86 machines, you also need;
 #   mkdir -p ~/rpm/RPMS/i586
 #
-# [FIXME: continue this spiel ... useful URLs are at;
-#   http://www.linux-mandrake.com/en/howtos/mdk-rpm/
-#   http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/SPECS/
-# ...]
+# You then need two config files setup in your account (ignore the asterisk and
+# space at the beginning of each line);
+#
+# cat > ~/.rpmrc << EOF
+# buildarchtranslate: i386: i586
+# buildarchtranslate: i486: i586
+# buildarchtranslate: i586: i586
+# buildarchtranslate: i686: i586
+# EOF
+#
+# cat > ~/.rpmmacros << EOF
+# %_topdir               $HOME/rpm
+# %_tmppath              $HOME/rpm/tmp
+# %distribution          Mandrake Linux
+# %vendor                MandrakeSoft
+# EOF
+#
+# Once all that's done you're almost ready to go. The main step-by-step
+# instructions will apply to a released distcache 'bz2' tarball. If you're
+# working from a fresh CVS checkout, do the following to create such a tarball;
+#
+# (1) run ./bootstrap.sh to generate "./configure" and Makefile.in files
+# (2) remove CVS crud using the command;
+#         find . -type d -name "CVS" | xargs rm -rf
+# (3) change to the parent directory and rename this directory to match the
+#     values of the 'name'/'version' directives in this spec file. Eg. if
+#     'name' is distcache and 'version' is 0.4dev;
+#         cd .. ; mv distcache distcache-0.4dev
+# (4) create the bz2 tarball;
+#         tar jcf distcache-0.4dev.tar.bz2 distcache-0.4dev/
+#
+# Now you have a 'bz2' tarball, the steps to building the RPMs are relatively
+# straightforward;
+#
+# (1) copy the tarball to the RPM 'SOURCES' directory;
+#         mv distcache-0.4dev.tar.bz2 ~/rpm/SOURCES/
+# (2) point directly to this spec file when running the rpm build command;
+#         rpm -ba distcache-0.4dev/devel/distcache.spec
+#
+# If all goes well, the last line of output should mention "exit 0" and there
+# should be new RPMs living in ~/rpm/RPMS/i586 and ~/rpm/SRPMS.
+#
+
 
 #############
 # Setup stuff
