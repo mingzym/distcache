@@ -257,7 +257,7 @@ reselect:
 			 * injections *OR* transfers unless there's at least 4
 			 * bytes available. */
 			if(NAL_BUFFER_unused(buf_send) >= sizeof(deadbeef)) {
-				if(++inject == errinject) {
+				if(errinject && (++inject == errinject)) {
 					NAL_BUFFER_write(buf_send, deadbeef,
 						sizeof(deadbeef));
 					inject = 0;
