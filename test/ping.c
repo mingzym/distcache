@@ -118,11 +118,11 @@ static void bindump(const unsigned char *data, unsigned int len)
 	ARG_INC
 
 typedef struct st_pingctx {
-	unsigned char packet[MAX_PING_SIZE], response[MAX_PING_SIZE];
 	int connected, id, done, peek, quiet;
 	pingmode_t pingmode;
 	NAL_CONNECTION *conn;
 	unsigned int loop, counter, num_repeat, num_size;
+	unsigned char packet[MAX_PING_SIZE], response[MAX_PING_SIZE];
 } pingctx;
 
 static int pingctx_io(pingctx *ctx);
