@@ -1,13 +1,13 @@
 dc_manpagelist = \
 		 dc_server.1 dc_client.1 dc_snoop.1 dc_test.1 \
-		 DC_PLUG_new.2 DC_PLUG_read.2 DC_CTX_new.2 \
+		 DC_PLUG_new.2 DC_PLUG_read.2 DC_CTX_new.2 DC_SERVER_new.2 \
 		 NAL_ADDRESS_new.2 NAL_CONNECTION_new.2 NAL_LISTENER_new.2 \
 		 NAL_SELECTOR_new.2 NAL_BUFFER_new.2 NAL_decode_uint32.2 \
 		 distcache.8
 # Keep this maintained by copying the manpagelist and running s/[0-9]/pod/g
 dc_podlist = \
 		 dc_server.pod dc_client.pod dc_snoop.pod dc_test.pod \
-		 DC_PLUG_new.pod DC_PLUG_read.pod DC_CTX_new.pod \
+		 DC_PLUG_new.pod DC_PLUG_read.pod DC_CTX_new.pod DC_SERVER_new.pod \
 		 NAL_ADDRESS_new.pod NAL_CONNECTION_new.pod NAL_LISTENER_new.pod \
 		 NAL_SELECTOR_new.pod NAL_BUFFER_new.pod NAL_decode_uint32.pod \
 		 distcache.pod
@@ -16,7 +16,7 @@ dc_podlist = \
 ## Keep this maintained by copying the manpagelist and running s/[0-9]/html/g
 #dc_htmllist = \
 #		 dc_server.html dc_client.html dc_snoop.html dc_test.html \
-#		 DC_PLUG_new.html DC_PLUG_read.html DC_CTX_new.html \
+#		 DC_PLUG_new.html DC_PLUG_read.html DC_CTX_new.html DC_SERVER_new.html \
 #		 NAL_ADDRESS_new.html NAL_CONNECTION_new.html NAL_LISTENER_new.html \
 #		 NAL_SELECTOR_new.html NAL_BUFFER_new.html NAL_decode_uint32.html \
 #		 distcache.html
@@ -34,15 +34,15 @@ docdir = $(datadir)/doc/distcache
 SUFFIXES = .pod .1 .2 .8 .html
 
 .pod.1:
-	pod2man --section=1 --release=$(VERSION) --center=distcache --date=`date +%Y.%m.%d` \
+	pod2man --section=1 --release=@VERSION@ --center=distcache --date=`date +%Y.%m.%d` \
 	$< $@
 
 .pod.2:
-	pod2man --section=2 --release=$(VERSION) --center=distcache --date=`date +%Y.%m.%d` \
+	pod2man --section=2 --release=@VERSION@ --center=distcache --date=`date +%Y.%m.%d` \
 	$< $@
 
 .pod.8:
-	pod2man --section=8 --release=$(VERSION) --center=distcache --date=`date +%Y.%m.%d` \
+	pod2man --section=8 --release=@VERSION@ --center=distcache --date=`date +%Y.%m.%d` \
 	$< $@
 
 #.pod.html:

@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(distcache, 0.4pre1, distcache-users@lists.sourceforge.net)
+AC_INIT(distcache, 0.4pre2, distcache-users@lists.sourceforge.net)
 #AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR(sessserver/server.c)
 #AM_CONFIG_HEADER(config/config.h)
@@ -41,6 +41,12 @@ AC_CHECK_FUNCS([daemon])
 
 # Find out where OpenSSL is
 #DISTCACHE_WITH_SSL
+
+# This makes sure "@VERSION@" can be used in Makefile.am's for things like
+# pod2man. I've noticed that some versions of autoconf (or automake?) don't
+# define this, the following trick seems to fix that.
+VERSION=$PACKAGE_VERSION
+AC_SUBST(VERSION)
 
 AC_CONFIG_FILES([Makefile
 		 libdistcache/Makefile

@@ -19,6 +19,12 @@ Current version: x.x
 Changes between 0.4pre1 and x.x
 -------------------------------
 
+  *) Forced "VERSION" to be defined by autoconf/automake by hacking inside
+     configure.ac, and in such a way that "@VERSION@" is usable by Makefile.am
+     files (eg. for pod2man, etc). This previously only worked reliably for the
+     particular combination of autotool versions on my system.
+     [Geoff Thorpe]
+
   *) The "targetgroup" replacement trick in the RPM spec was broken, so it has
      been ironed out and header comments have been expanded to note how to
      customise this for non-Mandrake RPM systems.
@@ -74,6 +80,7 @@ Changes between 0.4pre1 and x.x
      - NAL_SELECTOR_new.pod (all NAL_SELECTOR functions)
      - NAL_BUFFER_new.pod (all NAL_BUFFER functions)
      - NAL_decode_uint32.pod (all NAL_encode_*** and NAL_decode_*** functions)
+     - DC_SERVER_new.pod (all DC_SERVER functions)
      [Geoff Thorpe]
 
 Changes between 0.3 and 0.4pre1

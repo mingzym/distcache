@@ -1,0 +1,161 @@
+=pod
+
+=head1 NAME
+
+DC_SERVER_set_default_cache, DC_SERVER_set_cache, DC_SERVER_new, DC_SERVER_free, DC_SERVER_items_stored, DC_SERVER_reset_operations, DC_SERVER_num_operations, DC_SERVER_new_client, DC_SERVER_del_client, DC_SERVER_process_client, DC_SERVER_clients_to_sel, DC_SERVER_clients_io - distcache server API
+
+=head1 SYNOPSIS
+
+ #include <distcache/dc_server.h>
+
+ DC_SERVER *DC_SERVER_new(unsigned int max_sessions);
+ void DC_SERVER_free(DC_SERVER *ctx);
+ int DC_SERVER_set_default_cache(void);
+ int DC_SERVER_set_cache(const DC_CACHE_cb *impl);
+ unsigned int DC_SERVER_items_stored(DC_SERVER *ctx,
+                                     const struct timeval *now);
+ void DC_SERVER_reset_operations(DC_SERVER *ctx);
+ unsigned long DC_SERVER_num_operations(DC_SERVER *ctx);
+ DC_CLIENT *DC_SERVER_new_client(DC_SERVER *ctx, NAL_CONNECTION *conn,
+                                 unsigned int flags);
+ int DC_SERVER_del_client(DC_CLIENT *clnt);
+ int DC_SERVER_process_client(DC_CLIENT *clnt,
+                              const struct timeval *now);
+ int DC_SERVER_clients_to_sel(DC_SERVER *ctx, NAL_SELECTOR *sel);
+ int DC_SERVER_clients_io(DC_SERVER *ctx, NAL_SELECTOR *sel,
+                          const struct timeval *now);
+
+=head1 RETURN VALUES
+
+DC_SERVER_new() returns an initialised B<DC_SERVER> object, or NULL for
+failure.
+
+DC_SERVER_free() and DC_SERVER_reset_operations() have no return value.
+
+DC_SERVER_items_stored() returns the number of cached sessions in a cache
+(after any session expiry is performed).
+
+DC_SERVER_num_operations() indicates how many operations the cache object has
+performed.
+
+DC_SERVER_new_client() returns a new B<DC_CLIENT> object, or NULL for failure.
+
+The remaining functions return non-zero for success or zero for failure.
+
+=head1 DESCRIPTION and NOTES
+
+These functions facilitate the implementation a session cache server to be
+compatible with the distcache protocol. The source code to dc_server(1)
+provides an example of using this API, and is probably the ideal reference (a
+single C file of 304 lines). The storage of the cache is provided by a table of
+handler functions defined by the B<DC_CACHE_cb> structure;
+
+ typedef struct st_DC_CACHE_cb {
+         DC_CACHE *   (*cache_new)(unsigned int max_sessions);
+         void         (*cache_free)(DC_CACHE *cache);
+         int          (*cache_add)(DC_CACHE *cache,
+                                   const struct timeval *now,
+                                   unsigned long timeout_msecs,
+                                   const unsigned char *session_id,
+                                   unsigned int session_id_len,
+                                   const unsigned char *data,
+                                   unsigned int data_len);
+         unsigned int (*cache_get)(DC_CACHE *cache,
+                                   const struct timeval *now,
+                                   const unsigned char *session_id,
+                                   unsigned int session_id_len,
+                                   unsigned char *store,
+                                   unsigned int store_size);
+         int          (*cache_remove)(DC_CACHE *cache,
+                                      const struct timeval *now,
+                                      const unsigned char *session_id,
+                                      unsigned int session_id_len);
+         int          (*cache_have)(DC_CACHE *cache,
+                                    const struct timeval *now,
+                                    const unsigned char *session_id,
+                                    unsigned int session_id_len);
+         unsigned int (*cache_num_items)(DC_CACHE *cache,
+                                         const struct timeval *now);
+ } DC_CACHE_cb;
+
+libdistcacheserver provides a default implementation that can be enabled by
+calling DC_SERVER_set_default_cache() prior to DC_SERVER_new(). Alternatively,
+a customised cache implementation can be specified by DC_SERVER_set_cache().
+The reason that one or the other I<must> be specified is so that custom
+implementations will not need to have the default implementation linked in
+because they won't explicitly call DC_SERVER_set_default_cache().
+
+The choice of B<DC_CACHE_cb> implementation will control all manipulations and
+queries on the session cache. Each handler is passed a B<struct timeval> value
+to allow it to implicitly handle expiry of old sessions without having to
+repeatedly query the time on each invokation.
+
+Outside the actual cache implementation, the other subject covered by
+I<libdistcacheserver> is that of managing client connections and processing their
+requests. It is assumed that the caller will use I<libnal> to handle the network
+aspects of the cache server - otherwise the application would be better to use
+the lower-level B<DC_PLUG> API (see DC_PLUG_new(2)), and the implementation of
+I<libdistcacheserver> would provide a good reference for this.
+
+New clients of the cache server are created by DC_SERVER_new_client() using the
+supplied connection object B<conn>. The behaviour of the returned B<DC_CLIENT>
+object depends on the B<flags> parameter, which is zero or a bitwise
+combination of the following values;
+
+ #define DC_CLIENT_FLAG_NOFREE_CONN   (unsigned int)0x0001
+ #define DC_CLIENT_FLAG_IN_SERVER     (unsigned int)0x0002
+
+If B<DC_CLIENT_FLAG_NOFREE_CONN> is set, then B<conn> will not be destroyed
+when the B<DC_CLIENT> object is destroyed by DC_SERVER_new_client(). Note, the
+B<DC_CLIENT> object encapsulates the provided B<conn> object and does not copy
+it.
+
+If B<DC_CLIENT_FLAG_IN_SERVER> is set, then network traffic and request
+processing for the client will be implicit in the DC_SERVER_clients_to_sel()
+and DC_SERVER_clients_io() functions. This includes destroying any clients that
+have disconnected at the network level or had corruption errors at the data level.
+
+If B<DC_CLIENT_FLAG_IN_SERVER> is not set, then selecting and performing
+network I/O should be handled by the caller directly using the original B<conn>
+object, and checking for (and processing of) requests should be handled
+directly by DC_SERVER_process_client(). A zero return value from this function
+indicates an error in the client's processing, and would then require the
+caller to destroy the client object via DC_SERVER_del_client(). This allows network handling
+and logical cache handling to be explicitly separated by the implementation if
+required.
+
+Note that the dc_server(1) implementation is greatly simplified by using
+B<DC_CLIENT_FLAG_IN_SERVER> and not setting B<DC_CLIENT_FLAG_NOFREE_CONN>. This
+allows it to forget about B<NAL_CONNECTION> objects after they have been
+successfully converted into B<DC_CLIENT> objects, and in fact can forget about
+the resulting B<DC_CLIENT> objects too as they become completely controlled by
+the B<DC_SERVER> object. If the client is closed, the underlying connection
+object is destroyed also. If the cache server itself is destroyed, then any
+remaining clients will likewise be properly cleaned up.
+
+DC_SERVER_clients_to_sel() and DC_SERVER_clients_io() only operate on cache
+clients that are created with the B<DC_CLIENT_FLAG_IN_SERVER> flag.
+
+=head1 SEE ALSO
+
+L<DC_PLUG_new(2)>, L<DC_PLUG_read(2)> - Lower-level asynchronous implementation
+of the distcache protocol, useful for client and server operation.
+
+L<dc_server(1)> - Runs a cache server listening on a configurable network
+address.
+
+L<distcache(8)> - Overview of the distcache architecture.
+
+F<http://www.distcache.org/> - Distcache home page.
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
+
+Home Page: F<http://www.distcache.org>
+
