@@ -38,8 +38,9 @@
 /* Debugging macros */
 /********************/
 
-#define SNOOP_DBG_SELECT
-#define SNOOP_DBG_CONNS
+/* #define SNOOP_DBG_SELECT */
+/* #define SNOOP_DBG_CONNS */
+#define SNOOP_DBG_MSG
 
 /* snoop_data_arriving will use this as a return type */
 typedef enum {
@@ -49,6 +50,8 @@ typedef enum {
 } snoop_parse_t;
 
 typedef struct st_snoop_item {
+	/* unique ID */
+	unsigned int uid;
 	/* Our traffic proxying is always direct between these two */
 	NAL_CONNECTION *client;
 	NAL_CONNECTION *server;
@@ -190,6 +193,9 @@ int main(int argc, char *argv[])
 /* snoop_item functions */
 /************************/
 
+/* Each new snoop_item gets a unique id by incrementing this global */
+static unsigned int uid_seed = 0;
+
 static int snoop_item_init(snoop_item *item, NAL_CONNECTION *accepted,
 			const NAL_ADDRESS *addr_connect)
 {
@@ -197,6 +203,7 @@ static int snoop_item_init(snoop_item *item, NAL_CONNECTION *accepted,
 	if((item->server = NAL_CONNECTION_malloc()) == NULL) goto err;
 	if(!NAL_CONNECTION_create(item->server, addr_connect)) goto err;
 	/* Success */
+	item->uid = uid_seed++;
 	item->client = accepted;
 	item->buf_client_used = item->buf_server_used = 0;
 	ret = 1;
@@ -242,14 +249,33 @@ static int snoop_item_to_sel(snoop_item *item, NAL_SELECTOR *sel)
 #define BUF_HEADER_SIZE		(4+1+4+1+1+1+2)
 #define BUF_HEADER_COMPLETE(n)	((n) < BUF_HEADER_SIZE)
 
-static snoop_parse_t snoop_data_arriving(NAL_CONNECTION *src, NAL_CONNECTION *dest,
-			unsigned char *buf, unsigned int *buf_used)
+static const char c2s_1[] = "client->server";
+static const char c2s_2[] = "server->client";
+#define SNOOP_C2S(n) ((n) ? c2s_1 : c2s_2)
+
+static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 {
+	NAL_CONNECTION *src = (client_to_server ?
+			item->client : item->server);
+	NAL_CONNECTION *dest = (client_to_server ?
+			item->server : item->client);
+	unsigned char *buf = (client_to_server ?
+			item->buf_client : item->buf_server);
+	unsigned int *buf_used = (client_to_server ?
+			&item->buf_client_used : &item->buf_server_used);
 	NAL_BUFFER *buf_in = NAL_CONNECTION_get_read(src);
 	NAL_BUFFER *buf_out = NAL_CONNECTION_get_send(dest);
 	while((NAL_BUFFER_unused(buf_out) >= SNOOP_BUF_WINDOW) &&
 			NAL_BUFFER_notempty(buf_in)) {
 		unsigned int moved;
+		/* Fields we pull out of the message header */
+		unsigned long m_proto_level;
+		unsigned char m_is_response;
+		unsigned long m_request_uid;
+		unsigned char m_op_class;
+		unsigned char m_operation;
+		unsigned char m_complete;
+		unsigned int m_data_len;
 		/* This shouldn't happen as we keep our "state-machine"
 		 * advanced as far as possible and our SNOOP_BUF_WINDOW logic
 		 * should prevent anything jamming here. The testing lower down
@@ -268,29 +294,39 @@ static snoop_parse_t snoop_data_arriving(NAL_CONNECTION *src, NAL_CONNECTION *de
 			/* We don't have enough data to parse the header */
 			return SNOOP_PARSE_INCOMPLETE;
 		{
-		/* Use the NAL serialisation code to pull out the data_len
-		 * element of the header in network-byte-order. */
-		const unsigned char *foop = buf + (BUF_HEADER_SIZE - 2);
-		const unsigned char **fooptr = &foop;
-		unsigned int foolen = 2;
-		unsigned int fooval;
-		moved = NAL_decode_uint16(fooptr, &foolen, &fooval);
-		assert(moved && (foolen == 0));
-		moved = (unsigned int)fooval;
+		/* Use the NAL serialisation code to pull out the various
+		 * elements of the header (from network to host byte-order). */
+		const unsigned char *foop = buf;
+		unsigned int foolen = BUF_HEADER_SIZE;
+		moved = NAL_decode_uint32(&foop, &foolen, &m_proto_level); assert(moved);
+		moved = NAL_decode_char(&foop, &foolen, &m_is_response); assert(moved);
+		moved = NAL_decode_uint32(&foop, &foolen, &m_request_uid); assert(moved);
+		moved = NAL_decode_char(&foop, &foolen, &m_op_class); assert(moved);
+		moved = NAL_decode_char(&foop, &foolen, &m_operation); assert(moved);
+		moved = NAL_decode_char(&foop, &foolen, &m_complete); assert(moved);
+		moved = NAL_decode_uint16(&foop, &foolen, &m_data_len); assert(moved);
+		assert(foolen == 0);
 		}
-		if(moved > SNOOP_MAX_MSG_DATA) {
-			NAL_fprintf(NAL_stderr(), "[TODO: change me] bad message,"
-					" data_len=%d\n", moved);
+		if(m_data_len > SNOOP_MAX_MSG_DATA) {
+#ifdef SNOOP_DBG_MSG
+			NAL_fprintf(NAL_stderr(), "SNOOP_DBG_MSG: connection %d, %s, "
+				"message has illegal 'data_len' (%d)\n",
+				item->uid, SNOOP_C2S(client_to_server), m_data_len);
+#endif
 			return SNOOP_PARSE_ERR;
 		}
 		/* Make moved the length of the whole message, header included */
-		moved += BUF_HEADER_SIZE;
+		moved = m_data_len + BUF_HEADER_SIZE;
 		if(*buf_used < moved)
 			/* everything seems ok but the data hasn't finished
 			 * arriving. */
 			return SNOOP_PARSE_INCOMPLETE;
 		/* YES, a message! */
-		NAL_fprintf(NAL_stdout(), "[TODO: change me] complete message!\n");
+#ifdef SNOOP_DBG_MSG
+		NAL_fprintf(NAL_stdout(), "SNOOP_DBG_MSG: connection %d, %s, "
+			"message completed (request_uid = %d)\n",
+			item->uid, SNOOP_C2S(client_to_server), m_request_uid);
+#endif
 		/* Forward the data to 'dest' before pulling it out of 'buf' */
 		{
 		unsigned int foo = NAL_BUFFER_write(buf_out, buf, moved);
@@ -313,8 +349,7 @@ static int snoop_item_io(snoop_item *item, NAL_SELECTOR *sel)
 		return 0;
 	/* Handle client data arriving */
 	do {
-		res = snoop_data_arriving(item->client, item->server, item->buf_client,
-				&item->buf_client_used);
+		res = snoop_data_arriving(item, 1);
 		if(res == SNOOP_PARSE_ERR) {
 			NAL_fprintf(NAL_stderr(), "[TODO: change me] client->server error\n");
 			return 0;
@@ -322,8 +357,7 @@ static int snoop_item_io(snoop_item *item, NAL_SELECTOR *sel)
 	} while(res == SNOOP_PARSE_COMPLETE);
 	/* And server data arriving */
 	do {
-		res = snoop_data_arriving(item->server, item->client, item->buf_server,
-				&item->buf_server_used);
+		res = snoop_data_arriving(item, 0);
 		if(res == SNOOP_PARSE_ERR) {
 			NAL_fprintf(NAL_stderr(), "[TODO: change me] server->client error\n");
 			return 0;
@@ -398,21 +432,27 @@ static int snoop_ctx_io(snoop_ctx *ctx)
 	unsigned int loop = 0;
 	snoop_item *i = ctx->items;
 	if(NAL_LISTENER_accept(ctx->list, ctx->sel, ctx->newclient)) {
-#ifdef SNOOP_DBG_CONNS
-		NAL_fprintf(NAL_stdout(), "SNOOP_DBG_CONNS: connection accepted\n");
-#endif
 		/* This assert is justified by the fact we don't add the
 		 * listener to the selector unless this is already true. */
 		assert(ctx->items_used < SNOOP_MAX_ITEMS);
 		if(!snoop_item_init(ctx->items + ctx->items_used,
-				ctx->newclient, ctx->addr))
+				ctx->newclient, ctx->addr)) {
 			/* The error could be an inability to connect to the
 			 * backend server, so we just destroy the
 			 * "can't-help-you-right-now" connection and hope for
 			 * better luck next time. */
+#ifdef SNOOP_DBG_CONNS
+			NAL_fprintf(NAL_stdout(), "SNOOP_DBG_CONNS: failed "
+					"incoming connection\n");
+#endif
 			NAL_CONNECTION_free(ctx->newclient);
-		else
+		} else {
+#ifdef SNOOP_DBG_CONNS
+			NAL_fprintf(NAL_stdout(), "SNOOP_DBG_CONNS: connection "
+				"%d accepted\n", ctx->items[ctx->items_used].uid);
+#endif
 			ctx->items_used++;
+		}
 		ctx->newclient = NAL_CONNECTION_malloc();
 		if(!ctx->newclient)
 			/* The failure here is malloc and not anything network
@@ -425,7 +465,8 @@ static int snoop_ctx_io(snoop_ctx *ctx)
 	while(loop < ctx->items_used) {
 		if(!snoop_item_io(i, ctx->sel)) {
 #ifdef SNOOP_DBG_CONNS
-			NAL_fprintf(NAL_stdout(), "SNOOP_DBG_CONNS: connection dropped\n");
+			NAL_fprintf(NAL_stdout(), "SNOOP_DBG_CONNS: connection "
+					"%d dropped\n", i->uid);
 #endif
 			snoop_item_finish(i);
 			if(loop + 1 < ctx->items_used)
