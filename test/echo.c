@@ -65,6 +65,7 @@ static void usage(void)
 	SYS_fprintf(SYS_stderr, "   -accept <addr>    - default='%s'\n", DEF_SERVER_ADDRESS);
 	SYS_fprintf(SYS_stderr, "   -max <num>        - default=%d\n", MAX_CONNS);
 	SYS_fprintf(SYS_stderr, "   -errinject <num>  - default=<none>\n");
+	SYS_fprintf(SYS_stderr, "   -dump\n");
 #ifdef SUPPORT_UPDATE
 	SYS_fprintf(SYS_stderr, "   -update <secs>    - default=<none>\n");
 	SYS_fprintf(SYS_stderr, "   -units <b,k,m,g>  - default='%s'\n", UNITS2STR(DEF_UNITS));
@@ -126,6 +127,9 @@ static int err_unknown(const char *s)
 		return err_noarg(a); \
 	ARG_INC
 
+/* helper wrapper for NAL_BUFFER_transfer() */
+static unsigned int my_transfer(NAL_BUFFER *dest, NAL_BUFFER *src, int dump);
+
 int main(int argc, char *argv[])
 {
 	int tmp;
@@ -135,6 +139,7 @@ int main(int argc, char *argv[])
 	const char *str_addr = DEF_SERVER_ADDRESS;
 	unsigned int num_conns = MAX_CONNS;
 	unsigned int errinject = 0;
+	int dump = 0;
 	NAL_ADDRESS *addr;
 	NAL_LISTENER *listener;
 	NAL_SELECTOR *sel;
@@ -162,7 +167,9 @@ int main(int argc, char *argv[])
 					"for -max\n", num_conns);
 				return 1;
 			}
-		} else if(strcmp(*argv, "-errinject") == 0) {
+		} else if(strcmp(*argv, "-dump") == 0)
+			dump = 1;
+		else if(strcmp(*argv, "-errinject") == 0) {
 			ARG_CHECK("-errinject");
 			if(!util_parsenum(*argv, &errinject))
 				return 1;
@@ -202,7 +209,7 @@ int main(int argc, char *argv[])
 "are based on transfers between user-space fifo buffers. As such, they should\n"
 "only be considered accurate \"on average\". Also, the traffic measured is\n"
 "two-way, identical traffic is passing in both directions so you can consider\n"
-"each direction to be half the advertised value.\n"
+"each direction to be half the advertised throughput value.\n"
 "\n");
 #endif
 	}
@@ -283,7 +290,7 @@ reselect:
 						sizeof(deadbeef));
 					inject = 0;
 				}
-				traffic += NAL_BUFFER_transfer(buf_send, buf_read, 0);
+				traffic += my_transfer(buf_send, buf_read, dump);
 			}
 			loop++;
 		}
@@ -296,3 +303,42 @@ reselect:
 	}
 	goto reselect;
 }
+
+static void bindump(const unsigned char *data, unsigned int len)
+{
+#define LINEWIDTH 16
+	unsigned int tot = 0, pos = 0;
+	while(len--) {
+		if(!pos)
+			SYS_fprintf(SYS_stdout, "%04d: ", tot);
+		SYS_fprintf(SYS_stdout, "0x%02x ", *(data++));
+		if(++pos == LINEWIDTH) {
+			SYS_fprintf(SYS_stdout, "\n");
+			pos = 0;
+		}
+		tot++;
+	}
+	if(pos)
+		SYS_fprintf(SYS_stdout, "\n");
+}
+
+static unsigned int my_transfer(NAL_BUFFER *dest, NAL_BUFFER *src, int dump)
+{
+	const unsigned char *sptr;
+	unsigned int len;
+	if(!dump) return NAL_BUFFER_transfer(dest, src, 0);
+	/* ... otherwise, we implement our own for debugging ... */
+	len = NAL_BUFFER_used(src);
+	if(len > NAL_BUFFER_unused(dest)) len = NAL_BUFFER_unused(dest);
+	if(!len) return 0;
+	sptr = NAL_BUFFER_data(src);
+	SYS_fprintf(SYS_stderr, "transferring data (%d bytes):\n", len);
+	bindump(sptr, len);
+	if((NAL_BUFFER_write(dest, sptr, len) != len) ||
+			(NAL_BUFFER_read(src, NULL, len) != len)) {
+		SYS_fprintf(SYS_stderr, "Error, internal bug!\n");
+		abort();
+	}
+	return len;
+}
+
