@@ -102,50 +102,14 @@ int sys_fprintf(FILE *fp, const char *fmt, ...);
 /* TYPESAFE WRAPPERS */
 /*********************/
 
-/* We always (for now) use type-safe macro wrappers for malloc, realloc, free,
- * memset, memcpy, and memmove. However to verify that the origisys versions
- * aren't being used as well, define SYS_DEBUG_LEVEL to something greater than
- * 2; */
-
-#if SYS_DEBUG_LEVEL > 2
-
-/* Declare replacement functions for those we will #undef. */
-void *sys_malloc(size_t size);
-void *sys_realloc(void *ptr, size_t size);
-void sys_free(void *ptr);
-void *sys_memset(void *s, int c, size_t n);
-void *sys_memcpy(void *dest, const void *src, size_t n);
-void *sys_memmove(void *dest, const void *src, size_t n);
-#ifndef IN_MEM_C /* and #undef the versions we want * code to avoid. */
-#undef malloc
-#undef realloc
-#undef free
-#undef memset
-#undef memcpy
-#undef memmove
-#undef strncpy
-#undef strdup
-#define malloc dont_use_malloc
-#define realloc dont_use_realloc
-#define free dont_use_free
-#define memset dont_use_memset
-#define memcpy dont_use_memcpy
-#define memmove dont_use_memmove
-#define strncpy dont_use_strncpy
-#define strdup dont_use_strdup
-#endif
-
-#else
-
-/* We use the system functions directly from our macros */
+/* We use the system functions directly from our macros, but this permits more
+ * indirection later on. */
 #define sys_malloc	malloc
 #define sys_realloc	realloc
 #define sys_free	free
 #define sys_memset	memset
 #define sys_memcpy	memcpy
 #define sys_memmove	memmove
-
-#endif
 
 /* We use our type-safe macro wrappers always for now, but if we notice any
  * speed differences we can put these back. Note, a decent compiler should boil

@@ -19,6 +19,11 @@ Current version: x.x.x
 Changes between 1.4.4 and x.x.x
 -------------------------------
 
+  *) The memory functions used in the case SYS_DEBUG_LEVEL is set high were
+     violating the linker rules I'd put in place, so I'm ditching this needless
+     indirection. I have another way to sanitise the code coming up :-)
+     [Geoff Thorpe]
+
   *) Connections and listeners now have both pre and post hooks for binding
      to and unbinding from selectors.
      [Geoff Thorpe]
