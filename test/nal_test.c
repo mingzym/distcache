@@ -128,7 +128,7 @@ static void int_preamble(const char *s)
 	fflush(SYS_stdout);
 }
 #ifdef HAVE_GETRUSAGE
-#define LOOP(num, info, code) do { \
+#define _LOOP(num, info, code) do { \
 	unsigned long loop; \
 	unsigned long msecs_all, msecs_system; \
 	unsigned int perc; \
@@ -148,7 +148,7 @@ static void int_preamble(const char *s)
 		(msecs_all ? (float)num / (float)msecs_all : -1), perc); \
 } while(0)
 #else
-#define LOOP(num, info, code) do { \
+#define _LOOP(num, info, code) do { \
 	unsigned long loop; \
 	unsigned long msecs; \
 	struct timeval tv_start, tv_finish; \
@@ -164,6 +164,18 @@ static void int_preamble(const char *s)
 		(msecs ? (float)num / (float)msecs : -1)); \
 } while(0)
 #endif
+
+/* Either way, we put a front-end on _LOOP that allows us to run in a valgrind
+ * environment without taking 4 days to complete. Also, some tests can incur
+ * first-time overhead (eg. on linux/glibc, the first DNS lookup dlopens
+ * libnss) so we use this hook to pre-run the "code" before we invoke the loop.
+ * */
+#define LOOP(num, info, code) do { \
+	char *vg = getenv("VG"); \
+	{code} \
+	if(vg) _LOOP((num) / 50, (info), {code}); \
+	else _LOOP((num), (info), {code}); \
+} while(0)
 
 static int do_alloc_timings(void)
 {
@@ -234,6 +246,7 @@ static int do_create_timings(void)
 		if(!n_var || !NAL_LISTENER_create(n_var, address))
 			goto err;
 		NAL_LISTENER_free(n_var););
+	NAL_ADDRESS_free(address);
 	return 1;
 err:
 	SYS_fprintf(SYS_stdout, "\nerror!\n");
