@@ -37,7 +37,8 @@ Features
  o Transparently supports IPv4 and unix domain sockets in a single namespace
    (IPv6 yet to come).
  o Includes useful implementations of a session cache server and proxy.
- o Already integrated for use with Apache/mod_ssl.
+ o Includes self-testing and traffic-analysis tools (dc_test, dc_snoop).
+ o Already integrated for use with Apache/mod_ssl and Stunnel.
  o Builds/runs without any dependancies on Apache, mod_ssl, OpenSSL, etc.
  o probably much, much more ...
 
