@@ -1,0 +1,164 @@
+=head1 NAME
+
+dc_client - Distributed session cache client proxy
+
+
+=head1 SYNOPSIS
+
+B<dc_client> [options]
+
+
+=head1 DESCRIPTION
+
+B<dc_client> runs a client proxy to provide access to a remote cache server
+(typically over TCP/IPv4) by providing a local service (typically over unix
+domain sockets). It starts listening on a configurable network address for
+connections and establishes a persistent connection to an instance of
+B<dc_server> for proxying cache operations to. Incoming connections are
+expected to communicate using the L<distcache(8)> protocol, and would typically
+be applications using one of the distcache APIs in I<libdistcache> to
+encapsulate these communications.
+
+The common use of B<dc_client> is to run as a local agent on each host machine
+that requires use of the distributed cache, as the listening address should
+probably use unix domain sockets which are better suited to frequent (and
+temporary) connections being used for individual cache operations. Likewise,
+the connection B<dc_client> makes to the cache server (B<dc_server>) for
+proxying cache operations is typically over a genuine network to remote
+machine, using TCP/IPv4.
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-daemon>
+
+After initialising, B<dc_client> will detach from the parent process, close
+standard file-descriptors, etc. If this flag is not set, B<dc_client> will run in
+the foreground. It is recommended to use this flag in combination with the
+I<pidfile> flag to simplify stopping and restarting services.
+
+=item B<-listen> address
+
+Configures the address on which B<dc_client> should listen for incoming
+connections.  The syntax is that defined by the I<libnal> API. Though this can
+listen on any supported network transport, B<dc_client> should be expected to
+receive a lot of short-lived (and frequest) connections, so unix domain sockets
+are generally preferable to TCP/IPv4. Eg.
+
+    # Listen on a unix domain socket in the /tmp directory
+    dc_client -listen UNIX:/tmp/cacheclient
+
+=item B<-server> address
+
+=item B<-connect> address
+
+These flags are identical, and specify the address of the cache server
+B<dc_client> should connect to. Cache operations requested by clients of
+B<dc_client> (using short-lived local connections to the service address
+specified by B<-listen>) are multiplexed to/from the cache server over this
+persistent connection. The syntax is that defined by the I<libnal> API and
+would typically be over TCP/IPv4, particularly if the cache server is running
+on a remote machine. Eg.
+
+    # Connect to a remote cache server listening on port 9001
+    dc_client -listen UNIX:/tmp/cacheclient \
+              -server IP:cacheserver.localnet:9001
+
+=item B<-retry> msecs
+
+Distcache is designed to be as fault-tolerant as possible, and part of this
+approach is to have B<dc_client> manage the possible disappearance and
+subsequent reappearance of the remote instance of B<dc_server> it proxies to.
+In actuality, this could happen for a variety of reasons including the cache
+server being restarted, or a network error at any point in between the two
+programs. During any period in which B<dc_client> has lost communications with
+the cache server, any/all local connections and corresponding cache operation
+requests will be responded to directly by B<dc_client> itself. The consequence
+is that cache operations return as failures during this time, so the
+application requesting the operations must make do without (eg. in SSL/TLS
+session caching, this means that attempts to resume SSL/TLS sessions fail and
+so full handshakes are required).
+
+The default behaviour of B<dc_client> when losing communications with the
+instance of B<dc_server> (as specified by B<-server> or B<-connect>) is to try
+to reestablish communications every 5 seconds. This flag allows the retry
+period to be configured to any number of milliseconds. Note: confusing
+milliseconds with seconds can cause emotional disturbance and should be avoided
+at all costs.
+
+=item B<-idle> msecs
+
+Normal behaviour with B<dc_client> is to have its clients (applications using
+B<distcache(8)> APIs for communication) use temporary connections for each
+cache operation. However, there are modes of operation in those APIs that allow
+persistent connections to be used together with various associated options.
+This is especially important for any platforms that (for whatever reason) can't
+use unix domain sockets and don't want to bloat file-descriptor tables with
+IPv4 sockets sitting in TIME_WAIT state. For this reason, as well as resilience
+against client applications that hang, it useful to configure B<dc_client> to
+automatically drop client connections that have been idle for some configurable
+period of time.
+
+This flag specifies the period of idle time after which client connections will
+be dropped, and is in units of milliseconds and B<not> seconds. The default
+value is zero, and this means that client connections are never intentionally
+dropped.
+
+Note, provided client applications are appropriately configured they need not
+necessarily be vulnerable to race conditions when B<dc_client> configures this
+flag. The B<distcache(8)> I<DC_CTX> API provides additional persistence options
+such as fork(2)-checking and resistance against idle timeouts. Ie. if a request
+is commenced on a client connection that is in the process of being timed-out
+by B<dc_client>, the I<DC_CTX> will allow one retry with an immediate
+re-connection before considering the operation to have failed.
+
+=item B<-pidfile> path
+
+This is a standard flag for many programs, and most useful in combination with
+B<-daemon>. When B<-pidfile> is specified B<dc_client> will write its process
+ID to a file at the specified path upon successful initialisation. To use this
+path file to later kill the running B<dc_client> instance, use something like
+(where B<pidfile.pid> is whatever B<path> was);
+
+    kill `cat pidfile.pid`
+
+=item B<-h>, B<-help>, B<-?>
+
+Any of these flags will cause B<dc_client> to display a brief usage summary to
+the console and exit cleanly. Any other flags are ignored.
+
+=back
+
+
+=head1 SEE ALSO
+
+=over 4
+
+=item L<dc_server(1)>
+
+Distributed cache server.
+
+=item L<distcache(8)>
+
+Overview of the distcache architecture.
+
+=item F<http://www.distcache.org/>
+
+Distcache home page.
+
+=back
+
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
+
+Home Page: F<http://www.distcache.org>
+

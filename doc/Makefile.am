@@ -1,9 +1,13 @@
-EXTRA_DIST = distcache.pod distcache.8 dc_server.1 # dc_client.1
+EXTRA_DIST = distcache.pod \
+	     distcache.8 \
+	     dc_server.1 dc_client.1 dc_snoop.1
 
-man_MANS = distcache.8 dc_server.1 # dc_client.1
+man_MANS = distcache.8 \
+	   dc_server.1 dc_client.1 dc_snoop.1
 
 docdir = $(datadir)/doc/distcache
-doc_DATA = distcache.html dc_server.html # dc_client.html
+doc_DATA = distcache.html \
+	   dc_server.html dc_client.html dc_snoop.html
 
 SUFFIXES = .pod .1 .8 .html
 
