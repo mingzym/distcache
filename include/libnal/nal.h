@@ -62,6 +62,7 @@ int		NAL_ADDRESS_can_listen(const NAL_ADDRESS *addr);
 
 NAL_SELECTOR *	NAL_SELECTOR_new(void);
 void		NAL_SELECTOR_free(NAL_SELECTOR *sel);
+void		NAL_SELECTOR_reset(NAL_SELECTOR *sel);
 int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
 				unsigned long usec_timeout,
 				int use_timeout);

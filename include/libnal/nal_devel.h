@@ -28,6 +28,7 @@
 typedef struct st_NAL_ADDRESS_vtable NAL_ADDRESS_vtable;
 typedef struct st_NAL_LISTENER_vtable NAL_LISTENER_vtable;
 typedef struct st_NAL_CONNECTION_vtable NAL_CONNECTION_vtable;
+typedef struct st_NAL_SELECTOR_vtable NAL_SELECTOR_vtable;
 
 /***************/
 /* NAL_ADDRESS */
@@ -135,10 +136,38 @@ void NAL_ADDRESS_vtable_link(NAL_ADDRESS_vtable *vt);
 #define SELECTOR_FLAG_SEND	0x02
 #define SELECTOR_FLAG_EXCEPT	0x04
 
-/* set/unset operate on "to_select" */
+typedef enum {
+	/* Invalid/uninitialised place-holder */
+	NAL_SELECTOR_TYPE_ERROR = 0,
+	/* Standard BSD(4.4) select */
+	NAL_SELECTOR_TYPE_FDSELECT,
+	/* Custom implementation types start here */
+	NAL_SELECTOR_TYPE_CUSTOM = 100
+} NAL_SELECTOR_TYPE;
+
+struct st_NAL_SELECTOR_vtable {
+	/* The size of "vtdata" the NAL_SELECTOR should provide */
+	size_t vtdata_size;
+	/* (De)Initialisations */
+	int (*on_create)(NAL_SELECTOR *sel);
+	void (*on_destroy)(NAL_SELECTOR *sel);
+	void (*on_reset)(NAL_SELECTOR *sel);
+	/* Handlers for NAL_SELECTOR functionality */
+	NAL_SELECTOR_TYPE (*get_type)(const NAL_SELECTOR *sel);
+	void (*fd_set)(NAL_SELECTOR *sel, int fd, unsigned char flags);
+	void (*fd_unset)(NAL_SELECTOR *sel, int fd);
+	unsigned char (*fd_test)(const NAL_SELECTOR *sel, int fd);
+	void (*fd_clear)(NAL_SELECTOR *sel, int fd);
+	int (*select)(NAL_SELECTOR *sel, unsigned long usec_timeout, int use_timeout);
+};
+/* used from NAL_SELECTOR API */
+int nal_selector_set_vtable(NAL_SELECTOR *sel, const NAL_SELECTOR_vtable *vtable);
+const NAL_SELECTOR_vtable *nal_selector_get_vtable(const NAL_SELECTOR *sel);
+void *nal_selector_get_vtdata(const NAL_SELECTOR *sel);
+/* used from inside NAL_CONNECTION/NAL_LISTENER implementations */
+NAL_SELECTOR_TYPE nal_selector_get_type(const NAL_SELECTOR *sel);
 void nal_selector_fd_set(NAL_SELECTOR *sel, int fd, unsigned char flags);
 void nal_selector_fd_unset(NAL_SELECTOR *sel, int fd);
-/* test/clear operate on "last_selected" */
 unsigned char nal_selector_fd_test(const NAL_SELECTOR *sel, int fd);
 void nal_selector_fd_clear(NAL_SELECTOR *sel, int fd);
 

@@ -19,6 +19,15 @@ Current version: x.x.x
 Changes between 1.4.4 and x.x.x
 -------------------------------
 
+  *) Make NAL_SELECTOR vtable-based like NAL_ADDRESS, NAL_LISTENER, [etc]. The
+     main difference between the others is that there is no "create()" step
+     after allocating the structure with NAL_SELECTOR_new() - a default vtable
+     is automatically chosen. This allows existing code to compile and run as
+     before, but facilitates the side-use of alternative selectors by using
+     different constructors.
+     This also adds NAL_SELECTOR_reset() to the API.
+     [Geoff Thorpe]
+
   *) Created CVS branch "BRANCH_1_4", this is the first commit to the CVS head
      since then. Some libnal development and rewirings are in the works to
      support alternative I/O models, so BRANCH_1_4 exists for maintenance

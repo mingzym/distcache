@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-NAL_SELECTOR_new, NAL_SELECTOR_free, NAL_SELECTOR_select - libnal selector functions
+NAL_SELECTOR_new, NAL_SELECTOR_free, NAL_SELECTOR_reset, NAL_SELECTOR_select - libnal selector functions
 
 =head1 SYNOPSIS
 
@@ -10,6 +10,7 @@ NAL_SELECTOR_new, NAL_SELECTOR_free, NAL_SELECTOR_select - libnal selector funct
 
  NAL_SELECTOR *NAL_SELECTOR_new(void);
  void NAL_SELECTOR_free(NAL_SELECTOR *sel);
+ void NAL_SELECTOR_reset(NAL_SELECTOR *sel);
  int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
                          int use_timeout);
 
@@ -18,6 +19,9 @@ NAL_SELECTOR_new, NAL_SELECTOR_free, NAL_SELECTOR_select - libnal selector funct
 NAL_SELECTOR_new() allocates and initialises a new B<NAL_SELECTOR> object.
 
 NAL_SELECTOR_free() destroys a B<NAL_SELECTOR> object.
+
+NAL_SELECTOR_reset() will, if necessary, cleanup any prior state in B<sel>. The
+resulting object will be in the same state returned from NAL_SELECTOR_new().
 
 NAL_SELECTOR_select() blocks until the selector B<sel> receives notification of
 network events for which it has registered interest. This function blocks

@@ -92,6 +92,12 @@ int nal_sockaddr_chown(const nal_sockaddr *addr, const char *username,
 int nal_sockaddr_chmod(const nal_sockaddr *addr, const char *octal_string);
 
 /****************/
+/* NAL_SELECTOR */
+/****************/
+
+extern const NAL_SELECTOR_vtable sel_fdselect_vtable;
+
+/****************/
 /* NAL_LISTENER */
 /****************/
 
