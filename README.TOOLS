@@ -18,8 +18,8 @@ Using the 'distcache' utilities
 
 At the time of writing, the 'distcache' source package would build three
 libraries (libnal, libdistcache, libdistcacheserver) and three programs
-(dc_client, dc_server, test_session). For information on the libraries and the
-APIs they implement, please see README.API - this document will discuss only the
+(dc_client, dc_server, dc_test). For information on the libraries and the APIs
+they implement, please see README.API - this document will discuss only the
 basic usage instructions for the 'distcache' programs.
 
 It is worth mentioning from the outset that "dc_client" and "dc_server" are the
@@ -33,10 +33,10 @@ writing) coupled with a unique binary key (up to a limit of 64 bytes). It so
 happens that this works very nicely with SSL/TLS, but that should come as no
 surprise to those who know why 'distcache' exists in the first place :-)
 
-"test_session" on the other hand is usually very much SSL/TLS specific - or to
-be more exact, it is usually very much OpenSSL specific. If OpenSSL support is
-detected by the "configure" script (and it hasn't been disabled by building with
-"--with-ssl=no" or "--without-ssl") then test_session will generate sample
+"dc_test" on the other hand is usually very much SSL/TLS specific - or to be
+more exact, it is usually very much OpenSSL specific. If OpenSSL support is
+detected by the "configure" script (and it hasn't been disabled by building
+with "--with-ssl=no" or "--without-ssl") then dc_test will generate sample
 SSL/TLS sessions that are compatible with the OpenSSL API functions;
   * i2d_SSL_SESSION() - encoding to binary data for storage in 'distcache'
   * d2i_SSL_SESSION() - decoding from binary data retrieved from 'distcache'
@@ -46,10 +46,10 @@ proxy) implementation you wish to test operates only at the distcache protocol
 level, this should not matter at all (eg. the bundled dc_client and dc_server
 programs are like this). However if the implementation(s) attempt to decode and
 inspect protocol data assuming it to contain OpenSSL-compatible SSL/TLS session
-data, then you should only expect successful operations when using a
-test_session built with OpenSSL support. On the other hand, throwing random data
-at an SSL/TLS-specific cache server may also provide a good stability test of
-the SSL/TLS encoding code! :-)
+data, then you should only expect successful operations when using a dc_test
+built with OpenSSL support. On the other hand, throwing random data at an
+SSL/TLS-specific cache server may also provide a good stability test of the
+SSL/TLS encoding code! :-)
 
 Fortunately, the SSL/TLS functionality in most open source server applications
 is provided by OpenSSL and for those applications, plugging in session cache
@@ -126,31 +126,30 @@ idea come from understanding some of the subtler issues of performance.
 A standard session cache server ("dc_server") running on standard hardware can
 theoretically process thousands of cache operations per second. However, unless
 the server is running locally on the same machine as the client (eg.
-"test_session"), the server will have to listen on a non-local network address
-which rules out the use of unix domain sockets. A very simple example can show
-why;
+"dc_test"), the server will have to listen on a non-local network address which
+rules out the use of unix domain sockets. A very simple example can show why;
 
    # Execute this first in its own shell
    dc_server -listen IP:9001
 
    # Execute this in another shell once the above is running
-   test_session -connect IP:localhost:9001 -ops 500000
+   dc_test -connect IP:localhost:9001 -ops 500000
 
-In all likelihood the "test_session" failed after a few thousand operations due
-to the kernel's internal socket tables filling up with TIME_WAIT descriptors
-(eg. run "netstat -a"). For reasons like this, it makes sense for session cache
+In all likelihood the "dc_test" failed after a few thousand operations due to
+the kernel's internal socket tables filling up with TIME_WAIT descriptors (eg.
+run "netstat -a"). For reasons like this, it makes sense for session cache
 server to be accessed using a smaller number of persistent connections that can
 each carry multiple requests and responses for multiple operations. Whilst
 client applications can theoretically do this directly, eg. using
-DC_CTX_PERSISTENT with the libdistcache/dc_client.h API, it suffers a problem of
-scalability and performance. Eg. how does this allow client applications to
-scale, and for the number of machines in the distributed cache framework to grow
-linearly? Also, each new client process/thread needs to create its own such
-connection to the server and the latency and scalability problems are
+DC_CTX_PERSISTENT with the libdistcache/dc_client.h API, it suffers a problem
+of scalability and performance. Eg. how does this allow client applications to
+scale, and for the number of machines in the distributed cache framework to
+grow linearly? Also, each new client process/thread needs to create its own
+such connection to the server and the latency and scalability problems are
 immediately evident. From a stability point of view, what happens in client
-applications if cache servers experience sporadic service interruptions? Or vice
-versa, how is server performance affected if it has to deal with hundreds of
-connections coming and going from each client machine?
+applications if cache servers experience sporadic service interruptions? Or
+vice versa, how is server performance affected if it has to deal with hundreds
+of connections coming and going from each client machine?
 
 By deploying "dc_client" on each machine that needs access to the distributed
 cache, many of these questions can be addressed.
@@ -224,9 +223,9 @@ does not from its point of view see that "dc_client" is acting on behalf of
 multiple Apache/mod_ssl processes.
 
 
---- test_session, test/benchmark utility ---
+--- dc_test, test/benchmark utility ---
 
-The purpose of "test_session" is to simulate a very heavily loaded (and very
+The purpose of "dc_test" is to simulate a very heavily loaded (and very
 badly-behaved) OpenSSL-based SSL/TLS server application. This avoids having to
 actually benchmark the SSL/TLS application itself to test (and evaluate) the
 performance of the session caching components - in particular the other
@@ -234,25 +233,24 @@ overheads of the SSL/TLS protocol, *especially* the public-key cryptography,
 would make it quite impossible to stress the distributed session caching tools
 to the limits it should be able to attain.
 
-Upon startup, "test_session" creates a number of random/fake OpenSSL SSL_SESSION
+Upon startup, "dc_test" creates a number of random/fake OpenSSL SSL_SESSION
 objects and pre-serialises them into binary data ready for use in testing
 distributed session caching programs. The number of uniquely different sessions
 created can be controlled using the "-sessions" command-line switch. SSL/TLS
 sessions encoded by OpenSSL are typically a little more than a hundred bytes of
 binary data - however, administrators of SSL/TLS websites that use client
-certificate authentication will know well that client-authenticated SSL/TLS sessions
-encode *much* larger (the encoding has to include a copy of the client
-certificate!). To generate some or all of the SSL/TLS sessions of this form, use
-the "-withcert" command-line switch.
+certificate authentication will know well that client-authenticated SSL/TLS
+sessions encode *much* larger (the encoding has to include a copy of the client
+certificate!). To generate some or all of the SSL/TLS sessions of this form,
+use the "-withcert" command-line switch.
 
 IMPORTANT NOTE: If distcache is built with OpenSSL-support, the above is
-strictly true. If not, test_session will actually just generate random binary
-data for session-IDs and session-data. This can be useful for testing the
-correct behaviour of servers (and proxies) that do not care about SSL/TLS
-specifics (such as dc_server and dc_client). It can also be useful for testing
-the stability of servers/proxies that *do* care about SSL/TLS specifics and
-could have SSL/TLS encoding/decoding bugs that this kind of testing would
-highlight.
+strictly true. If not, dc_test will actually just generate random binary data
+for session-IDs and session-data. This can be useful for testing the correct
+behaviour of servers (and proxies) that do not care about SSL/TLS specifics
+(such as dc_server and dc_client). It can also be useful for testing the
+stability of servers/proxies that *do* care about SSL/TLS specifics and could
+have SSL/TLS encoding/decoding bugs that this kind of testing would highlight.
 
 Note, a question that might have occurred to perceptive users is why bother
 using genuine SSL/TLS sessions at all if the entire protocol and framework work
@@ -264,43 +262,43 @@ reference implementations of the protocol, and real-world users may write their
 own implementations - in which case it's possible they may also be interpreting
 the data (either at the proxy level and/or at the server) *as* SSL/TLS session
 data. Finally, (3) as mentioned - building distcache without OpenSSL support
-will in fact case test_session *not* to generate genuine SSL/TLS sessions
-anyway. In any case, test_session could be modified or forked to create
-different kinds of tests if required, eg. occasionally corrupting the SSL/TLS
-data in random ways to catch bugs in custom implementations. On the other hand,
-if people develop their own SSL/TLS-specific caching programs, test_session is
-likely to be useful as-is without requiring complicated re-engineering (a glance
-at "int_new_ssl_session()" would explain why this might be a relief).
+will in fact case dc_test *not* to generate genuine SSL/TLS sessions anyway. In
+any case, dc_test could be modified or forked to create different kinds of
+tests if required, eg. occasionally corrupting the SSL/TLS data in random ways
+to catch bugs in custom implementations. On the other hand, if people develop
+their own SSL/TLS-specific caching programs, dc_test is likely to be useful
+as-is without requiring complicated re-engineering (a glance at
+"int_new_ssl_session()" would explain why this might be a relief).
 
 After creating and encoding the test SSL/TLS sessions for use in testing the
-distributed caching, test_session will proceed to hit the cache server (or 
-proxy) specified with the obligatory "-connect" command-line switch. If the
-"-persistent" switch is specified, then "test_session" will try to perform
+distributed caching, dc_test will proceed to hit the cache server (or proxy)
+specified with the obligatory "-connect" command-line switch. If the
+"-persistent" switch is specified, then "dc_test" will try to perform
 operations over a single persistent connection rather than opening and closing
 connections for each operation (eg. the IPv4 example shown in the "dc_client"
 documentation above behaves much better with this switch!).
 
-It is worth describing *what* operations "test_session" sends to the destination
+It is worth describing *what* operations "dc_test" sends to the destination
 service (whether it's a proxy or server is largely irrelevant). Each operation
 will be randomly selected from the set {add,remove,have,get} and for each
 operation type selected, one of the pre-generated sessions will also be chosen
-at random. At that point, "test_session" will know whether it expects the
-operation to succeed or fail - if the corresponding session had never been
-"add"ed to the cache (or not since it was last "remove"d) then it would expect
-all operation types to fail except "add". If the session is supposed to be in
-the cache, then "add" should be the only operation to fail. If any operation
-that should succeed fails, or any operation that should fail succeeds,
-"test_session" will automatically stop with an error message.
+at random. At that point, "dc_test" will know whether it expects the operation
+to succeed or fail - if the corresponding session had never been "add"ed to the
+cache (or not since it was last "remove"d) then it would expect all operation
+types to fail except "add". If the session is supposed to be in the cache, then
+"add" should be the only operation to fail. If any operation that should
+succeed fails, or any operation that should fail succeeds, "dc_test" will
+automatically stop with an error message.
 
-There are other tweaks that can be specified on the "test_session" command-line.
-The timeout is perhaps the most important to understand. Each session added into
-a distributed cache must at the same time specify a number of milliseconds after
-which the cache should regard the session as "stale" or "expired". After a
-stored session has past this "used-by" time, it will (as far as clients are
+There are other tweaks that can be specified on the "dc_test" command-line.
+The timeout is perhaps the most important to understand. Each session added
+into a distributed cache must at the same time specify a number of milliseconds
+after which the cache should regard the session as "stale" or "expired". After
+a stored session has past this "used-by" time, it will (as far as clients are
 concerned anyway) disappear from the cache. It is possible that tweaking of
-timeout handling could cause "test_session" to stop on false-positive errors.
-Eg. expecting an "add" to fail because the session is already supposed to be in
-the cache, when in fact it succeeds because the session had since expired!
+timeout handling could cause "dc_test" to stop on false-positive errors.  Eg.
+expecting an "add" to fail because the session is already supposed to be in the
+cache, when in fact it succeeds because the session had since expired!
 Likewise removes that should succeed might fail for the same reason.
 
 Timeouts are only specified in an "add" operation, after which the distributed
@@ -308,15 +306,15 @@ cache itself maintains an "expiry" time attached to each session object and
 ensures that that object, for all intents and purposes, disappears after the
 expiry time. Using the "-timeout" and "-timevar" command-line switches allows
 the user to control what timeout values will be provided each time an "add"
-operation takes place in test_session. By default "-timevar" is zero, in which
-case each "add" operation specifies a timeout of exactly "-timeout" seconds
-(default 60 seconds). If "-timevar" is non-zero, then each add operation will
-randomly generate a timeout in the range [timeout-timevar,timeout+timevar]. The
-main use for this functionality is to stress the ordering logic and processing
-of the cache server implementation - the easiest way to handle expiry logic
-efficiently in a cache is to order sessions according to their expiry time - ie.
-not by their timeout value or in the order they arrive, but by the order they
-will be *removed*. By using a "-timevar" switch, it's possible to generate
+operation takes place in dc_test. By default "-timevar" is zero, in which case
+each "add" operation specifies a timeout of exactly "-timeout" seconds (default
+60 seconds). If "-timevar" is non-zero, then each add operation will randomly
+generate a timeout in the range [timeout-timevar,timeout+timevar]. The main use
+for this functionality is to stress the ordering logic and processing of the
+cache server implementation - the easiest way to handle expiry logic
+efficiently in a cache is to order sessions according to their expiry time -
+ie.  not by their timeout value or in the order they arrive, but by the order
+they will be *removed*. By using a "-timevar" switch, it's possible to generate
 operation requests that cause sessions to be added in a different order to the
 order in which they will be expired.
 
