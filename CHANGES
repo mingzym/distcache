@@ -19,6 +19,16 @@ Current version: x.x
 Changes between 0.4 and x.x
 ---------------------------
 
+  *) I will be creating a sub-tree for building SSL/TLS-dependant applications
+     and this will start with the import of "swamp", a benchmarking program I
+     want to unify with libnal. As part of this move, I'm bumping up the
+     versioning system so that the next release will be 1.5 instead of 0.5. The
+     reason for this is that swamp is currently at 1.1 and I want to avoid the
+     inevitable confusion had swamp's version gone *down*. With this in mind,
+     I've changed the autoconf script to set the version at 1.4.1dev and any
+     pre-releases of 1.5 will be of the form 1.4.x (without the "dev" suffix).
+     [Geoff Thorpe]
+
   *) I discovered a rather annoying bug in the 0.4 release just as I was
      updating apache-2 support. The s/NAL_/SYS_/ changes I made leading up to
      the 0.4 release caused some linker dependencies in our installed libraries
