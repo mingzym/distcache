@@ -95,7 +95,38 @@ int nal_sockaddr_chmod(const nal_sockaddr *addr, const char *octal_string);
 /* NAL_SELECTOR */
 /****************/
 
-extern const NAL_SELECTOR_vtable sel_fdselect_vtable;
+const NAL_SELECTOR_vtable *sel_fdselect(void);
+const NAL_SELECTOR_vtable *sel_fdpoll(void);
+
+/* This symbol controls what implementation NAL_SELECTOR_new() uses. Note, that
+ * NAL_SELECTOR_reset() will revert to the vtable it was initially created with
+ * (this makes more sense when alternative constructors are made for other
+ * vtables). */
+#ifdef HAVE_SELECT
+#ifdef HAVE_POLL
+/* Decide between the two */
+#ifdef PREFER_POLL
+#define NAL_SELECTOR_VT_DEFAULT		sel_fdpoll
+#else
+#define NAL_SELECTOR_VT_DEFAULT		sel_fdselect
+#endif
+#else
+/* Only select() */
+#define NAL_SELECTOR_VT_DEFAULT		sel_fdselect
+#endif
+#else
+/* No select() */
+#ifdef HAVE_POLL
+#define NAL_SELECTOR_VT_DEFAULT		sel_fdpoll
+#else
+#error "Neither HAVE_SELECT nor HAVE_POLL are defined"
+#endif
+#endif
+
+NAL_SELECTOR_TOKEN nal_selector_add_listener(NAL_SELECTOR *, NAL_LISTENER *);
+NAL_SELECTOR_TOKEN nal_selector_add_connection(NAL_SELECTOR *, NAL_CONNECTION *);
+void nal_selector_del_listener(NAL_SELECTOR *, NAL_LISTENER *, NAL_SELECTOR_TOKEN);
+void nal_selector_del_connection(NAL_SELECTOR *, NAL_CONNECTION *, NAL_SELECTOR_TOKEN);
 
 /****************/
 /* NAL_LISTENER */
