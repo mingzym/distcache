@@ -267,13 +267,6 @@ int main(int argc, char *argv[])
 	if(sockperms && !NAL_LISTENER_set_fs_perms(listener, sockperms))
 		SYS_fprintf(SYS_stderr, "Warning, can't set socket permissions "
 				"to '%s', continuing anyway\n", sockperms);
-	if(user) {
-		if(!SYS_setuid(user)) {
-			SYS_fprintf(SYS_stderr, "Error, couldn't become user "
-				    "'%s'.\n", user);
-			return 1;
-		}
-	}
 #endif
 
 	/* Define a "now" value that can be used during initialisation and
@@ -311,6 +304,13 @@ int main(int argc, char *argv[])
 		}
 		SYS_fprintf(fp, "%lu", (unsigned long)SYS_getpid());
 		fclose(fp);
+	}
+	if(user) {
+		if(!SYS_setuid(user)) {
+			SYS_fprintf(SYS_stderr, "Error, couldn't become user "
+				    "'%s'.\n", user);
+			return 1;
+		}
 	}
 #endif
 

@@ -19,6 +19,9 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Fix dc_client to call setuid() after it has written its pid file.
+     [Joe Orton]
+
   *) Fix a bug in the poll() wrapper to not "detect" errors at the same time as
      a data read or write event. Otherwise we can lose incoming data by seeing
      the disconnection that's behind it.
