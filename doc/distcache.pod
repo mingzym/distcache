@@ -103,6 +103,11 @@ representing the read and send parts of a NAL_CONNECTION object.
 
 =back
 
+There are also some helper functions to assist in serialising data,
+particularly with respect to putting integral data into network byte order
+(allowing interoperability between platforms with differing byte-order). These
+functions are documented in NAL_decode_uint32(2).
+
 =head2 libdistcache
 
 There are two APIs implemented by the B<libdistcache> library;

@@ -50,6 +50,7 @@ Changes between 0.4pre1 and x.x
      - NAL_LISTENER_new.pod (all NAL_LISTENER functions)
      - NAL_SELECTOR_new.pod (all NAL_SELECTOR functions)
      - NAL_BUFFER_new.pod (all NAL_BUFFER functions)
+     - NAL_decode_uint32.pod (all NAL_encode_*** and NAL_decode_*** functions)
      [Geoff Thorpe]
 
 Changes between 0.3 and 0.4pre1

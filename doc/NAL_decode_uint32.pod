@@ -1,0 +1,155 @@
+=pod
+
+=head1 NAME
+
+NAL_decode_uint32, NAL_decode_uint16, NAL_decode_char, NAL_decode_bin, NAL_encode_uint32, NAL_encode_uint16, NAL_encode_char, NAL_encode_bin - libnal serialisation functions
+
+=head1 SYNOPSIS
+
+ #include <libnal/nal.h>
+
+ int NAL_decode_uint32(const unsigned char **bin, unsigned int *bin_len,
+                       unsigned long *val);
+ int NAL_decode_uint16(const unsigned char **bin, unsigned int *bin_len,
+                       unsigned int *val);
+ int NAL_decode_char(const unsigned char **bin, unsigned int *bin_len,
+                     unsigned char *val);
+ int NAL_decode_bin(const unsigned char **bin, unsigned int *bin_len,
+                    unsigned char *val, unsigned int val_len);
+
+ int NAL_encode_uint32(unsigned char **bin, unsigned int *bin_len,
+                       const unsigned long val);
+ int NAL_encode_uint16(unsigned char **bin, unsigned int *bin_len,
+                       const unsigned int val);
+ int NAL_encode_char(unsigned char **bin, unsigned int *bin_len,
+                     const unsigned char val);
+ int NAL_encode_bin(unsigned char **bin, unsigned int *bin_len,
+                    const unsigned char *val, const unsigned int val_len);
+
+=head1 DESCRIPTION
+
+NAL_decode_uint32(), NAL_decode_uint16(), and NAL_decode_char() attempt to
+parse different sized integer values from the data pointed to by B<*bin> (both
+B<bin> and B<bin_len> are passed by reference). If B<bin_len> indicates there is
+sufficient data to successfully parse a value, then the value will be stored in
+B<val>, B<*bin> will be incremented to point to the next unparsed byte of data,
+and B<*bin_len> will be decremented to indicate how much unparsed data remains.
+
+NAL_decode_bin() follows the semantics of the other decode functions except that
+it decodes a block of binary data of length B<val_len>.
+
+NAL_encode_uint32(), NAL_encode_uint16(), and NAL_encode_char() attempt to
+encode different sized integer values to the located pointed to by B<*bin>
+(again, both B<bin> and B<bin_len> are passed by reference). If B<bin_len> indicates
+there is sufficient room to successfully encode a value, B<val> will be stored
+at B<*bin>, B<*bin> will be incremented to point to the next unused byte of
+storage, and B<*bin_len> will be decremented to indicate how much unused
+storage remains.
+
+NAL_encode_bin() follows the semantics of the other encode functions except that
+it encodes a block of binary data of length B<val_len>.
+
+=head1 RETURN VALUES
+
+All the encode and decode functions return non-zero for success or zero for
+failure. On failure, B<bin> and B<bin_len> are left unchanged.
+
+=head1 NOTES
+
+The reason for passing B<bin> and B<bin_len> by reference to all these functions is
+to allow (de)serialisation of complex structures to be built up more easily without
+unnecessary work by the caller. The return value still indicates whether an encoding
+or decoding was successful, but the caller will not need to increment B<bin> nor
+decrement B<bin_len> after success before continuing to encode or decode further
+data.
+
+=head1 EXAMPLES
+
+Assume we wish to pass a data structure between applications running on
+different machines (and potentially on different architectures), and the data structure
+is defined as follows;
+
+ #define MAX_DATA_SIZE 4096
+ typedef struct st_some_data_t {
+     unsigned char is_active;      /* boolean */
+     unsigned char buffer[MAX_DATA_SIZE];
+     unsigned int buffer_used;
+ } some_data_t;
+
+We could define two functions for encoding and decoding an object of this type
+such that they could be serialised and transferred over a connection. The most
+elegant way to build serialisation of objects is to create functions that use
+the same form of prototype as the libnal serialisation functions, this way
+serialisation of complex objects can be performed recursively by serialisation
+of aggregated types. Although the built-in libnal serialisation functions leave
+B<bin> and B<bin_len> unchanged on failure, it is generally not worth bothering
+to preserve this property at higher-levels - these examples do not attempt
+this.
+
+An encoding function would thus look like;
+
+ int encode_some_data(unsigned char **bin, unsigned int *bin_len,
+                      const some_data_t *val)
+ {
+     if(
+             /* Encode the "is_active" boolean */
+             !NAL_encode_char(bin, bin_len, val->is_active) ||
+             /* Encode the used data */
+             !NAL_encode_uint16(bin, bin_len, val->buffer_used) ||
+             ((val->buffer_used > 0) &&
+             !NAL_encode_bin(bin, bin_len, val->buffer, val->buffer_used)))
+         return 0;
+     return 1;
+ }
+
+Note that other types that include I<some_data_t> objects could implement
+serialisation using encode_some_data() in the same way that encode_some_data()
+uses the lower-level libnal functions. A corresponding decode function follows.
+
+ int decode_some_data(const unsigned char **bin, unsigned int *bin_len,
+                      some_data_t *val)
+ {
+     if(
+             /* Decode the "is_active" boolean */
+             !NAL_decode_char(bin, bin_len, &val->is_active) ||
+             /* Decode the used data */
+             !NAL_decode_uint16(bin, bin_len, &val->buffer_used) ||
+             /* [TODO: check 'val->buffer_used' is acceptable here] */
+             ((val->buffer_used > 0) &&
+             !NAL_decode_bin(bin, bin_len, val->buffer, val->buffer_used)))
+         return 0;
+     return 1;
+ }
+
+The above examples would be simpler still if a wrapper function were first
+written to serialise length-prefixed blocks of data. Such functions are not
+included in libnal because they can vary on what range of sizes are
+appropriate, what size encoding to use for a length-prefix, whether dynamic
+allocation should be used on decoding, etc. The above examples use a static
+buffer and encode the length prefix as 16-bits.
+
+=head1 SEE ALSO
+
+L<NAL_ADDRESS_new(2)> - Functions for the NAL_ADDRESS type.
+
+L<NAL_CONNECTION_new(2)> - Functions for the NAL_CONNECTION type.
+
+L<NAL_LISTENER_new(2)> - Functions for the NAL_LISTENER type.
+
+L<NAL_SELECTOR_new(2)> - Functions for the NAL_SELECTOR type.
+
+L<distcache(8)> - Overview of the distcache architecture.
+
+F<http://www.distcache.org/> - Distcache home page.
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
+
+Home Page: F<http://www.distcache.org>
+
