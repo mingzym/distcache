@@ -6,7 +6,7 @@
 # changes to the metafiles (Makefile.am, configure.in, etc) should be
 # automatically handled by the generated Makefile anyway.
 
-set -x
+#set -x
 
 if [ ! -d config ]; then
 	mkdir config
@@ -32,19 +32,27 @@ autoconf
 # regenerate stuff, it can recreate the cache directory itself.
 rm -rf autom4te*
 
-# Even more finally, if building on my desktop, run my own "configure" with
-# various gcc switches to improve compiler sanity-checking.
-if [ "`hostname`" = "grumpy.geoffnet" ]; then
-	echo "running Geoff's own configure line"
-	# NB: "-Wconversion" can't be used because it will warn any time you
-	# call a function with a smaller-than-32-bit parameter, even when the
-	# parameter is properly typed. <grumble> gcc maintainers seem to think
-	# this is OK?!
-	# NB: "-Wtraditional" can't be used because it doesn't like "#elif" and
-	# I do.
-	CFLAGS="-Wall -pedantic -Wundef -Wshadow -Wpointer-arith \
+if [ "x$PRECONF" = "x" ]; then
+	echo ""
+	echo "No PRECONF environment variable set, will not run ./configure"
+	echo ""
+	echo "To preconfigure, set PRECONF to one of the following;"
+	echo "   gcc-RELEASE"
+	echo "   gcc-DEBUG"
+	echo ""
+else
+	if [ "$PRECONF" = "gcc-RELEASE" ]; then
+		CFLAGS="-Wall -O3 -fomit-frame-pointer -DNDEBUG" \
+		./configure || exit 1
+	elif [ "$PRECONF" = "gcc-DEBUG" ]; then
+		CFLAGS="-Wall -pedantic -Wundef -Wshadow -Wpointer-arith \
 		-Wbad-function-cast -Wcast-qual -Wcast-align \
 		-Wsign-compare -Wstrict-prototypes -Wmissing-prototypes \
 		-Wmissing-declarations -Wredundant-decls \
-		-Wunreachable-code -g" CC=gcc-2.96 ./configure
+		-Wunreachable-code -g -ggdb3" ./configure || exit 1
+	else
+		echo "Error, '$PRECONF' is not recognised as a value for PRECONF"
+		exit 1
+	fi
 fi
+
