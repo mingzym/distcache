@@ -1,25 +1,25 @@
 INCLUDES		= -I$(top_srcdir)/../include -I$(top_builddir)
 
-bin_PROGRAMS		= swamp
-swamp_SOURCES		= swamp.c text_msg.c utils.c swamp_conf.c \
+bin_PROGRAMS		= sslswamp
+sslswamp_SOURCES	= swamp.c text_msg.c utils.c swamp_conf.c \
 		 	  dist_pattern.c serv_iterator.c
-swamp_LDADD		= $(top_builddir)/../libsys/libsys.a \
+sslswamp_LDADD		= $(top_builddir)/../libsys/libsys.a \
 			  $(top_builddir)/../libnal/libnal.a
 
-swamp_manpagelist	= swamp.1
-swamp_podlist		= swamp.pod
+sslswamp_manpagelist	= sslswamp.1
+sslswamp_podlist	= sslswamp.pod
 # FIXME: Disabling HTML builds for the same reason as in ../../doc/Makefile.am
-#swamp_htmllist		= swamp.html
+#swamp_htmllist		= sslswamp.html
 #
-#EXTRA_DIST		= $(swamp_manpagelist) $(swamp_htmllist) $(swamp_podlist)
-EXTRA_DIST		= $(swamp_manpagelist) $(swamp_podlist)
+#EXTRA_DIST		= $(sslswamp_manpagelist) $(sslswamp_htmllist) $(sslswamp_podlist)
+EXTRA_DIST		= $(sslswamp_manpagelist) $(sslswamp_podlist)
 
 CLEANFILES		= *.1 *.html
 
-man_MANS		= $(swamp_manpagelist)
+man_MANS		= $(sslswamp_manpagelist)
 
-docdir			= $(datadir)/doc/swamp
-#doc_DATA		= $(swamp_htmllist)
+docdir			= $(datadir)/doc/sslswamp
+#doc_DATA		= $(sslswamp_htmllist)
 
 SUFFIXES		= .pod .1 .html
 
