@@ -20,6 +20,12 @@
 #ifndef HEADER_LIBDISTCACHE_DC_ENC_H
 #define HEADER_LIBDISTCACHE_DC_ENC_H
 
+/* These define the version of distcache corresponding to these versions of the
+ * headers. */
+#define DISTCACHE_VERSION_MAJOR		0
+#define DISTCACHE_VERSION_MINOR		3
+#define DISTCACHE_VERSION_PATCH		0
+
 /* These two macros extract the "protocol version" and "patch level" from a
  * 32-bit "protocol level" value. */
 #define DISTCACHE_GET_PROTO_VER(a)	((a) >> 16)
