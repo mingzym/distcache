@@ -19,6 +19,17 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Add a new address/listener/connection family based on arbitrary
+     file-descriptors. The syntax for these types are FD:<num> for a single
+     descriptor for reads and writes, or FD:<n1>:<n2> for different read and
+     write descriptors. The semantics are that connections work immediately
+     without opening anything, but close the corresponding descriptors when
+     cleaning up (this should be configurable in the syntax at some point).
+     Listeners of this form accept a connection on the first given chance, but
+     thereafter are marked "finished", as noticed by NAL_LISTENER_finished().
+     [Geoff Thorpe]
+
+
   *) To support a more general class of network abstractions, is makes sense to
      consider the possibility of a listener terminating. The pressing example
      that I'm working on is a file-descriptor address type that would support,
