@@ -33,40 +33,20 @@
  * algorithm turned off (by setting TCP_NODELAY). */
 static int gb_use_nagle = 1;
 
-/* These functions used to be exposed but for encapsulation reasons have been
- * made private. Pre-declaring them here makes the order of function
- * implementations less restrictive. */
-static void nal_address_init(NAL_ADDRESS *addr);
-static int nal_address_close(NAL_ADDRESS *addr);
-
 /*********************/
 /* ADDRESS FUNCTIONS */
 /*********************/
-
-static void nal_address_init(NAL_ADDRESS *addr)
-{
-	/* Fortunately, zero is fine for this structure! */
-	SYS_zero(NAL_ADDRESS, addr);
-}
-
-static int nal_address_close(NAL_ADDRESS *addr)
-{
-	/* So far "address" is completely static, so there's no real cleanup
-	 * required, just reinitialisation. */
-	return 1;
-}
 
 NAL_ADDRESS *NAL_ADDRESS_new(void)
 {
 	NAL_ADDRESS *a = SYS_malloc(NAL_ADDRESS, 1);
 	if(a)
-		nal_address_init(a);
+		SYS_zero(NAL_ADDRESS, a);
 	return a;
 }
 
 void NAL_ADDRESS_free(NAL_ADDRESS *a)
 {
-	nal_address_close(a);
 	SYS_free(NAL_ADDRESS, a);
 }
 
@@ -158,7 +138,6 @@ err:
 			addr_string);
 #endif
 	/* Reverse any progress made up until the point of failure */
-	nal_address_close(addr);
 	return 0;
 }
 
