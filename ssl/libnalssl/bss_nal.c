@@ -26,6 +26,7 @@
 
 /* Source OpenSSL */
 #include <openssl/bio.h>
+#include <openssl/ssl.h>
 
 #include <libnal/nal_ssl.h>
 #include <libsys/post.h>

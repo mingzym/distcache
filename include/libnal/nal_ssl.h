@@ -26,6 +26,9 @@
 #ifndef HEADER_BIO_H
 	#error "Must include openssl/bio.h prior to libnal/nal_ssl.h"
 #endif
+#ifndef HEADER_SSL_H
+	#error "Must include openssl/ssl.h prior to libnal/nal_ssl.h"
+#endif
 
 /********************/
 /* "libnal" SSL API */
