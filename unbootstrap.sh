@@ -16,13 +16,13 @@ rm -f configure
 
 # Zilch miscellaneous generated files
 find . -type f -name "aclocal.m4*" | xargs rm -f
+rm -f aclocal.m4
+rm -rf autom4te*.cache
 rm -f config.*
 rm -f conftest*
 rm -f depcomp
 rm -f install-sh ltmain.sh missing mkinstalldirs
 rm -f stamp-h.in
-rm -f aclocal.m4
-rm -rf autom4te*.cache
 
 # If the config/ directory exists, blow it away
 #if [ -d config ]; then
@@ -37,6 +37,7 @@ find . -type f -name ".#*" | xargs rm -f
 # Get rid of packaging byproducts
 rm -f .packagelist
 rm -rf .temppackagedir
+rm -f distcache-*.tar.*
 
 # Clean autoconf stuff that autoconf itself doesn't clean
 rm -f config.status
