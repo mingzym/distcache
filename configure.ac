@@ -70,8 +70,7 @@ AC_CONFIG_FILES([Makefile
 		 include/distcache/Makefile
 		 include/libnal/Makefile
 		 include/libsys/Makefile
-		 devel/Makefile
-		 devel/mandrake.spec])
+		 devel/Makefile])
 
 AC_OUTPUT
 
