@@ -264,6 +264,7 @@ void clients_free(clients_t *c)
 {
 	while(c->used > 0)
 		client_ctx_free(c->items[--c->used]);
+	SYS_free(clients_t, c);
 }
 
 static void clients_delete(clients_t *c, unsigned int idx, multiplexer_t *m)
