@@ -19,6 +19,11 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Add "-update" and "-units" command-line switches to nal_echo to allow
+     traffic and CPU usage to be monitored. See the usage output for more
+     details ("nal_echo -?").
+     [Geoff Thorpe]
+
   *) Add a return code to the (previously void) API function
      NAL_BUFFER_transfer() to return the amount of data transfered.
      [Geoff Thorpe]
