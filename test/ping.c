@@ -64,13 +64,15 @@ DEF_SERVER_ADDRESS, DEF_NUM_CONNS, DEF_PING_SIZE, DEF_PING_NUM);
 "alternative styles for '-mode' are;\n"
 "   zero    - all packets are zero\n"
 "   block   - each packet set to a different byte\n"
-"   noise   - messy data\n");
+"   noise   - messy data\n"
+"   speed   - initialised once only and responses aren't checked\n");
 }
 
 typedef enum {
 	pingmode_zero,
 	pingmode_block,
-	pingmode_noise
+	pingmode_noise,
+	pingmode_speed
 } pingmode_t;
 
 static int util_parsemode(const char *s, pingmode_t *mode)
@@ -81,6 +83,8 @@ static int util_parsemode(const char *s, pingmode_t *mode)
 		*mode = pingmode_block;
 	else if(strcmp(s, "noise") == 0)
 		*mode = pingmode_noise;
+	else if(strcmp(s, "speed") == 0)
+		*mode = pingmode_speed;
 	else {
 		SYS_fprintf(SYS_stderr, "Error, '%s' is not a recognised mode\n", s);
 		return 0;
@@ -147,6 +151,90 @@ typedef struct st_pingctx {
 	unsigned char packet[MAX_PING_SIZE], response[MAX_PING_SIZE];
 } pingctx;
 
+static void pingctx_newpacket(pingctx *ctx)
+{
+	switch(ctx->pingmode) {
+	case pingmode_zero:
+		SYS_zero_n(unsigned char, ctx->packet, ctx->num_size);
+		break;
+	case pingmode_block:
+		SYS_cover_n(ctx->counter + time(NULL), unsigned char,
+			ctx->packet, ctx->num_size);
+		break;
+	case pingmode_speed:
+		/* Only initialise once, by falling through to noise. NB,
+		 * pingmode_speed has a special hook in pingctx_new() to force
+		 * this prior to timing. */
+		if(ctx->counter) break;
+	case pingmode_noise:
+	{
+		unsigned int loop = ctx->num_size;
+		unsigned char *p = ctx->packet;
+		/* nb: base and mult are initialised to avoid gcc
+		 * warnings, it's not smart enough to realise the
+		 * (!duration) branch executes immediately. */
+		unsigned int base = 0, mult = 0, duration = 0;
+		srand(ctx->counter + time(NULL));
+		do {
+			if(!duration) {
+				/* refresh */
+				base = (int)(65536.0 * rand() /
+					(RAND_MAX+1.0));
+				mult = 1 + (int)(65536.0 * rand() /
+					(RAND_MAX+1.0));
+				duration = 1 + (int)(100.0 * rand() /
+					(RAND_MAX+1.0));
+			}
+			base *= mult;
+			base += mult;
+			*(p++) = (base >> 24) ^ (base & 0xFF);
+		} while(duration--, loop--);
+	}
+		break;
+	default:
+		/* bug */
+		abort();
+	}
+	ctx->counter++;
+	if(ctx->peek)
+		SYS_fprintf(SYS_stdout,
+"peek: I sent 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x [...]\n",
+		ctx->packet[0], ctx->packet[1], ctx->packet[2],
+		ctx->packet[3], ctx->packet[4], ctx->packet[5],
+		ctx->packet[6], ctx->packet[7]);
+}
+
+static int pingctx_checkpacket(pingctx *ctx)
+{
+	if(ctx->peek)
+		SYS_fprintf(SYS_stdout,
+"peek: I read 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x [...]\n",
+		ctx->response[0], ctx->response[1], ctx->response[2],
+		ctx->response[3], ctx->response[4], ctx->response[5],
+		ctx->response[6], ctx->response[7]);
+	if((ctx->pingmode != pingmode_speed) && (memcmp(ctx->packet,
+				ctx->response, ctx->num_size) != 0)) {
+		unsigned int loop = 0;
+		while(ctx->packet[loop] == ctx->response[loop])
+			loop++;
+		SYS_fprintf(SYS_stderr,
+"(%d) Read error: bad match at offset %d\n",
+			ctx->id, loop);
+		if(!ctx->quiet) {
+			SYS_fprintf(SYS_stdout, "output packet was;\n");
+			bindump(ctx->packet, ctx->num_size);
+			SYS_fprintf(SYS_stdout, "response packet was;\n");
+			bindump(ctx->response, ctx->num_size);
+		}
+		return 0;
+	}
+	ctx->loop++;
+	if(!ctx->quiet)
+		SYS_fprintf(SYS_stdout, "(%d) Packet %d ok\n", ctx->id,
+			ctx->loop);
+	return 1;
+}
+
 static int pingctx_io(pingctx *ctx);
 
 static pingctx *pingctx_new(const NAL_ADDRESS *addr, NAL_SELECTOR *sel, int id,
@@ -169,6 +257,11 @@ static pingctx *pingctx_new(const NAL_ADDRESS *addr, NAL_SELECTOR *sel, int id,
 	ret->pingmode = pingmode;
 	ret->peek = peek;
 	ret->quiet = quiet;
+	/* If we're in speed mode, generate garbage *once* in advance of any
+	 * timing. */
+	if(ret->pingmode == pingmode_speed)
+		pingctx_newpacket(ret);
+	/* Needed in case the connect is already complete (eg. unix domain). */
 	if(pingctx_io(ret) < 0) goto err;
 	return ret;
 err:
@@ -217,31 +310,8 @@ static int pingctx_io(pingctx *ctx)
 				ctx->id);
 			return -1;
 		}
-		if(ctx->peek)
-			SYS_fprintf(SYS_stdout,
-"peek: I read 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x [...]\n",
-			ctx->response[0], ctx->response[1], ctx->response[2],
-			ctx->response[3], ctx->response[4], ctx->response[5],
-			ctx->response[6], ctx->response[7]);
-		if(memcmp(ctx->packet, ctx->response, ctx->num_size) != 0) {
-			unsigned int loop = 0;
-			while(ctx->packet[loop] == ctx->response[loop])
-				loop++;
-			SYS_fprintf(SYS_stderr,
-"(%d) Read error: bad match at offset %d\n",
-				ctx->id, loop);
-			if(!ctx->quiet) {
-				SYS_fprintf(SYS_stdout, "output packet was;\n");
-				bindump(ctx->packet, ctx->num_size);
-				SYS_fprintf(SYS_stdout, "response packet was;\n");
-				bindump(ctx->response, ctx->num_size);
-			}
+		if(!pingctx_checkpacket(ctx))
 			return -1;
-		}
-		ctx->loop++;
-		if(!ctx->quiet)
-			SYS_fprintf(SYS_stdout, "(%d) Packet %d ok\n", ctx->id,
-				ctx->loop);
 		ret += ctx->num_size;
 		ctx->inread = 0;
 	case 0:
@@ -254,55 +324,12 @@ static int pingctx_io(pingctx *ctx)
 		if(NAL_BUFFER_unused(NAL_CONNECTION_get_send(ctx->conn)) <
 						ctx->num_size)
 			return ret;
-		switch(ctx->pingmode) {
-		case pingmode_zero:
-			SYS_zero_n(unsigned char, ctx->packet, ctx->num_size);
-			break;
-		case pingmode_block:
-			SYS_cover_n(ctx->counter + time(NULL), unsigned char,
-				ctx->packet, ctx->num_size);
-			break;
-		case pingmode_noise:
-		{
-			unsigned int loop = ctx->num_size;
-			unsigned char *p = ctx->packet;
-			/* nb: base and mult are initialised to avoid gcc
-			 * warnings, it's not smart enough to realise the
-			 * (!duration) branch executes immediately. */
-			unsigned int base = 0, mult = 0, duration = 0;
-			srand(ctx->counter + time(NULL));
-			do {
-				if(!duration) {
-					/* refresh */
-					base = (int)(65536.0 * rand() /
-						(RAND_MAX+1.0));
-					mult = 1 + (int)(65536.0 * rand() /
-						(RAND_MAX+1.0));
-					duration = 1 + (int)(100.0 * rand() /
-						(RAND_MAX+1.0));
-				}
-				base *= mult;
-				base += mult;
-				*(p++) = (base >> 24) ^ (base & 0xFF);
-			} while(duration--, loop--);
-		}
-			break;
-		default:
-			/* bug */
-			abort();
-		}
-		ctx->counter++;
+		pingctx_newpacket(ctx);
 		if(NAL_BUFFER_write(NAL_CONNECTION_get_send(ctx->conn),
 				ctx->packet, ctx->num_size) != ctx->num_size) {
 			SYS_fprintf(SYS_stderr, "(%d) Write error\n", ctx->id);
 			return -1;
 		}
-		if(ctx->peek)
-			SYS_fprintf(SYS_stdout,
-"peek: I sent 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x [...]\n",
-			ctx->packet[0], ctx->packet[1], ctx->packet[2],
-			ctx->packet[3], ctx->packet[4], ctx->packet[5],
-			ctx->packet[6], ctx->packet[7]);
 		ctx->inread = 1;
 		break;
 	default:

@@ -19,6 +19,10 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Add a "speed" mode to nal_ping that initialises an outgoing packet once
+     only and doesn't memcmp() any responses.
+     [Geoff Thorpe]
+
   *) Factor out nal_echo's timing code into a header, timing.h, and add the
      same support to the nal_ping client.
      [Geoff Thorpe]
