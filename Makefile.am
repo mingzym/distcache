@@ -1,3 +1,3 @@
 SUBDIRS		= libnal libdistcache libdistcacheserver \
-		  sessclient sessserver snoop test
+		  sessclient sessserver snoop test doc
 

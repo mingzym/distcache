@@ -48,6 +48,7 @@ AC_CONFIG_FILES([Makefile
 		 sessclient/Makefile
 		 sessserver/Makefile
 		 snoop/Makefile
-		 test/Makefile])
+		 test/Makefile
+		 doc/Makefile])
 AC_OUTPUT
 

@@ -19,7 +19,12 @@ Current version: 0.4-dev
 Changes between 0.3 and 0.xx
 ----------------------------
 
-  *)
+  *) Started creating 'pod' documentation. This work is incomple
+     [Geoff Thorpe]
+
+  *) Pre-empty failure on HPUX by testing for "-ldld" as needed by OpenSSL's
+     DSO code.
+     [Geoff Thorpe]
 
 Changes between 0.2 and 0.3
 ---------------------------
