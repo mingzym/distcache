@@ -187,7 +187,7 @@ static void int_expire(DC_CACHE *cache, const struct timeval *now)
 static int int_find_DC_ITEM(DC_CACHE *cache, const unsigned char *ptr,
 				unsigned int len, const struct timeval *now)
 {
-	unsigned int idx = 0;
+	int idx = 0;
 	DC_ITEM *item = cache->items;
 	/* First flush out expired entries */
 	int_expire(cache, now);
@@ -354,7 +354,7 @@ static unsigned int cache_get_session(DC_CACHE *cache,
 			unsigned int store_len)
 {
 	DC_ITEM *item;
-	unsigned int idx = int_find_DC_ITEM(cache,
+	int idx = int_find_DC_ITEM(cache,
 			session_id, session_id_len, now);
 	if(idx < 0)
 		return 0;
