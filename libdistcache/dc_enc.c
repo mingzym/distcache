@@ -49,9 +49,10 @@ static int proto_level_test(unsigned long pl)
 		 * because of protocol incompatibilities and not
 		 * misconfigurations or network problems. */
 #ifndef DISTCACHE_NO_PROTOCOL_STDERR
-		NAL_fprintf(NAL_stderr(), "libdistcache(pid=%u) protocol "
+		NAL_fprintf(NAL_stderr, "libdistcache(pid=%u) protocol "
 			"incompatibility; my level is %08x, the peer's is %08x\n",
-			(unsigned int)getpid(), DISTCACHE_PROTO_LEVEL, pl);
+			(unsigned int)getpid(), DISTCACHE_PROTO_LEVEL,
+			(unsigned int)pl);
 #endif
 		abort();
 		/* return 0; */

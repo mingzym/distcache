@@ -84,7 +84,7 @@ int NAL_encode_uint32(unsigned char **bin, unsigned int *cnt,
 {
 	if(*cnt < 4) {
 #if NAL_DEBUG_LEVEL > 3
-		if(NAL_stderr()) NAL_fprintf(NAL_stderr(), "encode_uint32: overflow\n");
+		if(NAL_stderr) NAL_fprintf(NAL_stderr, "encode_uint32: overflow\n");
 #endif
 		return 0;
 	}
@@ -101,7 +101,7 @@ int NAL_encode_uint16(unsigned char **bin, unsigned int *cnt,
 {
 	if(*cnt < 2) {
 #if NAL_DEBUG_LEVEL > 3
-		if(NAL_stderr()) NAL_fprintf(NAL_stderr(), "encode_uint16: overflow\n");
+		if(NAL_stderr) NAL_fprintf(NAL_stderr, "encode_uint16: overflow\n");
 #endif
 		return 0;
 	}
@@ -116,7 +116,7 @@ int NAL_encode_char(unsigned char **bin, unsigned int *cnt,
 {
 	if(*cnt < 1) {
 #if NAL_DEBUG_LEVEL > 3
-		if(NAL_stderr()) NAL_fprintf(NAL_stderr(), "encode_char: overflow\n");
+		if(NAL_stderr) NAL_fprintf(NAL_stderr, "encode_char: overflow\n");
 #endif
 		return 0;
 	}
@@ -130,7 +130,7 @@ int NAL_encode_bin(unsigned char **bin, unsigned int *cnt,
 {
 	if(*cnt < len) {
 #if NAL_DEBUG_LEVEL > 3
-		if(NAL_stderr()) NAL_fprintf(NAL_stderr(), "encode_bin: overflow\n");
+		if(NAL_stderr) NAL_fprintf(NAL_stderr, "encode_bin: overflow\n");
 #endif
 		return 0;
 	}

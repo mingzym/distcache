@@ -19,6 +19,14 @@ Current version: x.x
 Changes between 0.4pre2 and x.x
 -------------------------------
 
+  *) Remove unnused stream-hacking functions from libnal, this should have been
+     done when libnal first became a separately-installed library. I've also
+     defined the NAL_fprintf and NAL_std[in|out|err] symbols directly to their
+     stdio.h counterparts - they are only implemented when running debug
+     builds, and this is so that we can undefine the raw stdio.h versions to
+     verify our code isn't using them directly.
+     [Geoff Thorpe]
+
   *) Force the use of alternative wrappers for strncpy and strdup because
      these may be defined as macros by the system that use memcpy and malloc
      and our debugging code shuts those off. As an added check, our strncpy

@@ -23,6 +23,8 @@
 
 #include <libnal/common.h>
 
+#if NAL_DEBUG_LEVEL > 2
+
 typedef struct st_int_stream_t {
 	/* null -> hasn't been set yet.
 	 * disabled -> return NULL for file pointer, don't do I/O.
@@ -70,22 +72,18 @@ static FILE *int_get_stream(int_stream_t *s, FILE *normal)
 	default:
 		break;
 	}
-#if NAL_DEBUG_LEVEL > 1
 	/* This should never happen! */
 	abort();
-#else
-	return NULL;
-#endif
 }
 
-FILE *NAL_stdin(void) {
+FILE *nal_stdin(void) {
 	return int_get_stream(&int_stdin, stdin);
 }
-FILE *NAL_stdout(void) {
+FILE *nal_stdout(void) {
 	int_stdout_check();
 	return int_get_stream(&int_stdout, stdout);
 }
-FILE *NAL_stderr(void) {
+FILE *nal_stderr(void) {
 	int_stderr_check();
 	return int_get_stream(&int_stderr, stderr);
 }
@@ -104,3 +102,4 @@ int NAL_fprintf(FILE *fp, const char *fmt, ...)
 	return res;
 }
 
+#endif

@@ -94,7 +94,7 @@ static int int_make_non_blocking(int fd, int non_blocking)
 			(fcntl(fd, F_SETFL, (non_blocking ?
 			(flags | O_NONBLOCK) : (flags & ~O_NONBLOCK))) < 0)) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, couldn't make socket non-blocking.\n");
+		NAL_fprintf(NAL_stderr, "Error, couldn't make socket non-blocking.\n");
 #endif
 		return 0;
 	}
@@ -112,7 +112,7 @@ static int int_set_nagle(int fd)
 		struct protoent *p = getprotobyname("tcp");
 		if(!p) {
 #if NAL_DEBUG_LEVEL > 1
-			NAL_fprintf(NAL_stderr(), "Error, couldn't obtain SOL_TCP\n");
+			NAL_fprintf(NAL_stderr, "Error, couldn't obtain SOL_TCP\n");
 #endif
 			return 0;
 		}
@@ -122,7 +122,7 @@ static int int_set_nagle(int fd)
 	if(setsockopt(fd, sol_tcp, TCP_NODELAY, &int_always_one,
 			sizeof(int_always_one)) != 0) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, couldn't disable Nagle algorithm\n");
+		NAL_fprintf(NAL_stderr, "Error, couldn't disable Nagle algorithm\n");
 #endif
 		return 0;
 	}
@@ -167,7 +167,7 @@ static int int_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send)
 		/* Scroll the buffer forward */
 		NAL_BUFFER_read(buf, NULL, uret);
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stdout(), "Debug: net.c (fd=%d) sent %lu bytes\n",
+		NAL_fprintf(NAL_stdout, "Debug: net.c (fd=%d) sent %lu bytes\n",
 			fd, (unsigned long)uret);
 #endif
 	}
@@ -207,7 +207,7 @@ static int int_buffer_from_fd(NAL_BUFFER *buf, int fd, unsigned int max_read)
 		unsigned int uret = (unsigned int)ret;
 		NAL_BUFFER_wrote(buf, uret);
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stdout(), "Debug: net.c (fd=%d) received %lu bytes\n",
+		NAL_fprintf(NAL_stdout, "Debug: net.c (fd=%d) received %lu bytes\n",
 			fd, (unsigned long)uret);
 #endif
 	}
@@ -265,7 +265,7 @@ static int int_create_socket(int *fd, int type)
 	}
 	if(*fd  == -1) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, can't create socket\n\n");
+		NAL_fprintf(NAL_stderr, "Error, can't create socket\n\n");
 #endif
 		return 0;
 	}
@@ -277,7 +277,7 @@ static int int_create_unix_pair(int sv[2])
 {
 	if(socketpair(PF_UNIX, SOCK_STREAM, 0, sv) != 0) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, can't create socketpair\n\n");
+		NAL_fprintf(NAL_stderr, "Error, can't create socketpair\n\n");
 #endif
 		return 0;
 	}
@@ -292,7 +292,7 @@ static int int_set_reuse(int fd)
 	if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
 			(char *)(&reuseVal), sizeof(reuseVal)) != 0) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, couldn't set SO_REUSEADDR\n\n");
+		NAL_fprintf(NAL_stderr, "Error, couldn't set SO_REUSEADDR\n\n");
 #endif
 		return 0;
 	}
@@ -325,7 +325,7 @@ static int int_bind(int fd, const sockaddr_safe *addr, int address_type)
 	NAL_memcpy(sockaddr_safe, &tmp, addr);
 	if(bind(fd, (struct sockaddr *)&tmp, addr_size) != 0) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, couldn't bind to the IP/Port\n\n");
+		NAL_fprintf(NAL_stderr, "Error, couldn't bind to the IP/Port\n\n");
 #endif
 		return 0;
 	}
@@ -347,7 +347,7 @@ static int int_connect(int fd, const sockaddr_safe *addr, int address_type,
 #endif
 		{
 #if NAL_DEBUG_LEVEL > 1
-			NAL_fprintf(NAL_stderr(), "Error, couldn't connect\n\n");
+			NAL_fprintf(NAL_stderr, "Error, couldn't connect\n\n");
 #endif
 			return 0;
 		}
@@ -363,7 +363,7 @@ static int int_listen(int fd)
 {
 	if(listen(fd, NAL_LISTENER_BACKLOG) != 0) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, couldn't listen on that IP/Port\n\n");
+		NAL_fprintf(NAL_stderr, "Error, couldn't listen on that IP/Port\n\n");
 #endif
 		return 0;
         }
@@ -374,7 +374,7 @@ static int int_accept(int listen_fd, int *conn)
 {
 	if((*conn = accept(listen_fd, NULL, NULL)) == -1) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, accept failed\n\n");
+		NAL_fprintf(NAL_stderr, "Error, accept failed\n\n");
 #endif
 		return 0;
 	}
@@ -546,7 +546,7 @@ ipv4_port:
 	addr->family = NAL_ADDRESS_TYPE_IP;
 
 #if NAL_DEBUG_LEVEL > 2
-	NAL_fprintf(NAL_stderr(), "Info, successfully parsed '%s' as an IPv4 listen "
+	NAL_fprintf(NAL_stderr, "Info, successfully parsed '%s' as an IPv4 listen "
 			"address\n", addr_string);
 #endif
 	return 1;
@@ -565,7 +565,7 @@ do_unix:
 	addr->caps = NAL_ADDRESS_CAN_LISTEN | NAL_ADDRESS_CAN_CONNECT;
 	addr->family = NAL_ADDRESS_TYPE_UNIX;
 #if NAL_DEBUG_LEVEL > 2
-	NAL_fprintf(NAL_stderr(), "Info, successfully parsed '%s' as a unix domain listen"
+	NAL_fprintf(NAL_stderr, "Info, successfully parsed '%s' as a unix domain listen"
 			" address\n", addr_string);
 #endif
 	return 1;
@@ -573,7 +573,7 @@ do_unix:
 
 err:
 #if NAL_DEBUG_LEVEL > 1
-	NAL_fprintf(NAL_stderr(), "Error, '%s' is an invalid address\n\n",
+	NAL_fprintf(NAL_stderr, "Error, '%s' is an invalid address\n\n",
 			addr_string);
 #endif
 	/* Reverse any progress made up until the point of failure */
@@ -631,7 +631,7 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 	if((addr->caps & NAL_ADDRESS_CAN_LISTEN) == 0) {
 		/* Perhaps the string for the address was invalid? */
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, '%s' can't listen\n", addr->str_form);
+		NAL_fprintf(NAL_stderr, "Error, '%s' can't listen\n", addr->str_form);
 #endif
 		goto err;
 	}
@@ -703,7 +703,7 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 	int_selector_get_list(sel, list, &flags);
 	if(flags & SELECTOR_FLAG_EXCEPT) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Warn, listener has exception flag set\n\n");
+		NAL_fprintf(NAL_stderr, "Warn, listener has exception flag set\n\n");
 #endif
 		goto err;
 	}
@@ -779,7 +779,7 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 	if((addr->caps & NAL_ADDRESS_CAN_CONNECT) == 0) {
 		/* Perhaps the string for the address was invalid? */
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, '%s' can't connect\n", addr->str_form);
+		NAL_fprintf(NAL_stderr, "Error, '%s' can't connect\n", addr->str_form);
 #endif
 		goto err;
 	}
@@ -868,7 +868,7 @@ int NAL_CONNECTION_set_size(NAL_CONNECTION *conn, unsigned int size)
 	if(!NAL_BUFFER_set_size(&conn->read, size) ||
 			!NAL_BUFFER_set_size(&conn->send, size)) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, couldn't set buffer sizes\n");
+		NAL_fprintf(NAL_stderr, "Error, couldn't set buffer sizes\n");
 #endif
 		return 0;
 	}
@@ -905,7 +905,7 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 	int_selector_get_conn(sel, conn, &flags);
 	if(flags & SELECTOR_FLAG_EXCEPT) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Warn, connection has exception flag set\n\n");
+		NAL_fprintf(NAL_stderr, "Warn, connection has exception flag set\n\n");
 #endif
 		goto closing;
 	}
@@ -978,11 +978,11 @@ ok:
 closing:
 #if NAL_DEBUG_LEVEL > 2
 	if(NAL_BUFFER_notempty(&conn->send))
-		NAL_fprintf(NAL_stderr(), "Warn, connection closing with unsent data\n");
+		NAL_fprintf(NAL_stderr, "Warn, connection closing with unsent data\n");
 	else if(NAL_BUFFER_notempty(&conn->read))
-		NAL_fprintf(NAL_stderr(), "Warn, connection closing with received data\n");
+		NAL_fprintf(NAL_stderr, "Warn, connection closing with received data\n");
 	else
-		NAL_fprintf(NAL_stderr(), "Info, connection with empty buffers will close\n");
+		NAL_fprintf(NAL_stderr, "Info, connection with empty buffers will close\n");
 #endif
 	return 0;
 }
@@ -1170,12 +1170,12 @@ int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
 
 int NAL_stdin_set_non_blocking(int non_blocking)
 {
-	return int_make_non_blocking(fileno(NAL_stdin()), non_blocking);
+	return int_make_non_blocking(fileno(NAL_stdin), non_blocking);
 }
 
 int NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel)
 {
-	int fd = fileno(NAL_stdin());
+	int fd = fileno(NAL_stdin);
 
 	/* We always select for excepts, but reads and sends depend on the
 	 * buffers. */
@@ -1188,7 +1188,7 @@ int NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel)
 
 int NAL_SELECTOR_stdin_readable(NAL_SELECTOR *sel)
 {
-	int ret, fd = fileno(NAL_stdin());
+	int ret, fd = fileno(NAL_stdin);
 
 	/* This should only be called once per-select because we unset the flag
 	 * for stdin once reading. This is say stdin is not accidently read a
@@ -1254,7 +1254,7 @@ int NAL_BUFFER_set_size(NAL_BUFFER *buf, unsigned int size)
 		return 1;
 	if(size > NAL_BUFFER_MAX_SIZE) {
 #if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr(), "Error, NAL_BUFFER_set_size() called with too "
+		NAL_fprintf(NAL_stderr, "Error, NAL_BUFFER_set_size() called with too "
 				"large a size\n");
 #endif
 		return 0;

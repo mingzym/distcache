@@ -108,7 +108,7 @@ int NAL_sigpipe_ignore(void)
 	sig.sa_flags = 0;
 	if(sigaction(SIGPIPE, &sig, NULL) != 0) {
 #if NAL_DEBUG_LEVEL > 0
-		NAL_fprintf(NAL_stderr(), "Error, couldn't ignore SIGPIPE\n\n");
+		NAL_fprintf(NAL_stderr, "Error, couldn't ignore SIGPIPE\n\n");
 #endif
 		return 0;
 	}

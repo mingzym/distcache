@@ -148,22 +148,24 @@
 /* OUTPUT CONTROL DECLARATIONS */
 /*******************************/
 
-#ifndef LEAVE_STREAMS_ALONE
+#if NAL_DEBUG_LEVEL > 2
 
-/* These functions provide a unified way of controlling application output.
- * Internal (FILE*) pointers are maintained for "NAL_stdin, NAL_stdout, NAL_stderr"
- * which may or may not equal stdin, stdout, stderr. These can also be NULLed
- * out, and if the NAL_fprintf macro is used then no computation time is wasted
- * on the format string processing. Unless IN_STREAMS_C is defined (which should
- * only be done in streams.c of course) the regular stdin, stdout, and stderr
- * symbols are undefined, as are the functions that often use them, ie. printf,
- * and fprintf. */
+/* We define NAL_*** symbols to replace streams and fprintf symbols so that we
+ * can hook these later on if we wish. However, as this currently serves no
+ * purpose, the implementations are only used if the debugging level is high as
+ * this lets us undefine the stdio.h symbols and verify no code is accidently
+ * using them. At other times however, the NAL_*** symbols are defined directly
+ * to their stdio.h counterparts. */
 
 /* Return the file pointer (or NULL) for a particular stream */
-FILE *NAL_stdin(void);
-FILE *NAL_stdout(void);
-FILE *NAL_stderr(void);
-int NAL_fprintf(FILE *fp, const char *fmt, ...);
+FILE *nal_stdin(void);
+FILE *nal_stdout(void);
+FILE *nal_stderr(void);
+int nal_fprintf(FILE *fp, const char *fmt, ...);
+#define NAL_stdin	nal_stdin()
+#define NAL_stdout	nal_stdout()
+#define NAL_stderr	nal_stderr()
+#define NAL_fprintf	nal_fprintf
 #ifndef IN_STREAMS_C
 #undef stdin
 #undef stdout
@@ -177,7 +179,15 @@ int NAL_fprintf(FILE *fp, const char *fmt, ...);
 #define fprintf dont_use_fprintf_use_NAL_fprintf_instead
 #endif
 
-#endif /* !LEAVE_STREAMS_ALONE */
+#else
+
+/* We use the system functions directly from our macros */
+#define NAL_stdin	stdin
+#define NAL_stdout	stdout
+#define NAL_stderr	stderr
+#define NAL_fprintf	fprintf
+
+#endif
 
 #ifndef LEAVE_PROCESSES_ALONE
 

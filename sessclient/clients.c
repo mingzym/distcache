@@ -320,13 +320,13 @@ int clients_new_client(clients_t *c, NAL_CONNECTION *conn,
 	client_ctx **item = c->items + c->used;
 
 	if(c->used >= CLIENTS_MAX_ITEMS) {
-		NAL_fprintf(NAL_stderr(), "Error, rejected new client connection "
+		NAL_fprintf(NAL_stderr, "Error, rejected new client connection "
 				"already at maximum (%u)\n", CLIENTS_MAX_ITEMS);
 		return 0;
 	}
 	*item = client_ctx_new(c->uid_seed, conn, now);
 	if(*item == NULL) {
-		NAL_fprintf(NAL_stderr(), "Error, initialisation of new client "
+		NAL_fprintf(NAL_stderr, "Error, initialisation of new client "
 				"connection failed\n");
 		return 0;
 	}

@@ -63,7 +63,7 @@ static int usage(void)
 {
 	const char **u = usage_msg;
 	while(*u)
-		NAL_fprintf(NAL_stderr(), "%s\n", *(u++));
+		NAL_fprintf(NAL_stderr, "%s\n", *(u++));
 	/* Return 0 because main() can use this is as a help
 	 * screen which shouldn't return an "error" */
 	return 0;
@@ -81,19 +81,19 @@ static const char *CMD_PROGRESS = "-progress";
 
 static int err_noarg(const char *arg)
 {
-	NAL_fprintf(NAL_stderr(), "Error, -%s requires an argument\n", arg);
+	NAL_fprintf(NAL_stderr, "Error, -%s requires an argument\n", arg);
 	usage();
 	return 1;
 }
 static int err_badrange(const char *arg)
 {
-	NAL_fprintf(NAL_stderr(), "Error, -%s given an invalid argument\n", arg);
+	NAL_fprintf(NAL_stderr, "Error, -%s given an invalid argument\n", arg);
 	usage();
 	return 1;
 }
 static int err_badswitch(const char *arg)
 {
-	NAL_fprintf(NAL_stderr(), "Error, \"%s\" not recognised\n", arg);
+	NAL_fprintf(NAL_stderr, "Error, \"%s\" not recognised\n", arg);
 	usage();
 	return 1;
 }
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 
 	/* Scrutinise the settings */
 	if(!server) {
-		NAL_fprintf(NAL_stderr(), "Error, must provide -listen\n");
+		NAL_fprintf(NAL_stderr, "Error, must provide -listen\n");
 		return 1;
 	}
 	if(!sessions_set)
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 		return err_badrange(CMD_SESSIONS);
 	if(!NAL_sigpipe_ignore()) {
 #if NAL_DEBUG_LEVEL > 0
-		NAL_fprintf(NAL_stderr(), "Error, couldn't ignore SIGPIPE\n");
+		NAL_fprintf(NAL_stderr, "Error, couldn't ignore SIGPIPE\n");
 #endif
 		return 1;
 	}
@@ -186,13 +186,13 @@ static int do_server(const char *address, unsigned int max_sessions,
 	if(!DC_SERVER_set_default_cache() ||
 			((server = DC_SERVER_new(max_sessions)) == NULL) ||
 			!addr || !sel || !listener) {
-		NAL_fprintf(NAL_stderr(), "Error, malloc/initialisation failure\n");
+		NAL_fprintf(NAL_stderr, "Error, malloc/initialisation failure\n");
 		goto err;
 	}
 	if(!NAL_ADDRESS_create(addr, address, SERVER_BUFFER_SIZE) ||
 			!NAL_ADDRESS_can_listen(addr) ||
 			!NAL_LISTENER_create(listener, addr)) {
-		NAL_fprintf(NAL_stderr(), "Error, can't listen on '%s'\n",
+		NAL_fprintf(NAL_stderr, "Error, can't listen on '%s'\n",
 				address);
 		goto err;
 	}
@@ -202,7 +202,7 @@ static int do_server(const char *address, unsigned int max_sessions,
 		/* working directory becomes "/" */
 		/* stdin/stdout/stdout -> /dev/null */
 		if(!NAL_daemon(0)) {
-			NAL_fprintf(NAL_stderr(), "Error, couldn't detach!\n");
+			NAL_fprintf(NAL_stderr, "Error, couldn't detach!\n");
 			return 1;
 		}
 	}
@@ -210,7 +210,7 @@ static int do_server(const char *address, unsigned int max_sessions,
 	if(pidfile) {
 		FILE *fp = fopen(pidfile, "w");
 		if(!fp) {
-			NAL_fprintf(NAL_stderr(), "Error, couldn't open 'pidfile' "
+			NAL_fprintf(NAL_stderr, "Error, couldn't open 'pidfile' "
 					"at '%s'.\n", pidfile);
 			return 1;
 		}
@@ -228,7 +228,7 @@ network_loop:
 	}
 	NAL_SELECTOR_add_listener(sel, listener);
 	if(!DC_SERVER_clients_to_sel(server, sel)) {
-		NAL_fprintf(NAL_stderr(), "Error, selector error\n");
+		NAL_fprintf(NAL_stderr, "Error, selector error\n");
 		goto err;
 	}
 	/* Automatically break every half-second */
@@ -236,7 +236,7 @@ network_loop:
 	if(res < 0) {
 		if(errno == EINTR)
 			goto network_loop;
-		NAL_fprintf(NAL_stderr(), "Error, select() failed\n");
+		NAL_fprintf(NAL_stderr, "Error, select() failed\n");
 		goto err;
 	}
 	/* This entire state-machine logic will operate with one single idea of
@@ -266,8 +266,8 @@ network_loop:
 	/* Either we tripped the specified "-progress" counter, or it has been
 	 * at least 1 second since we last printed something and the number of
 	 * cached sessions or number of cache operations has changed. */
-	NAL_fprintf(NAL_stdout(), "Info, total operations = % 7lu  (+ % 5u), "
-		"total sessions = % 5u  (%c% 3u)\n", tmp_ops, tmp_ops - ops,
+	NAL_fprintf(NAL_stdout, "Info, total operations = %7lu  (+ %5lu), "
+		"total sessions = %5u  (%c%3u)\n", tmp_ops, tmp_ops - ops,
 		tmp_total, (tmp_total > total ? '+' :
 			(tmp_total == total ? '=' : '-')),
 		(tmp_total > total ? tmp_total - total : total - tmp_total));
@@ -278,7 +278,7 @@ skip_totals:
 	/* Do I/O first, in case clients are dropped making room for accepts
 	 * that would otherwise fail. */
 	if(!DC_SERVER_clients_io(server, sel, &now)) {
-		NAL_fprintf(NAL_stderr(), "Error, I/O failed\n");
+		NAL_fprintf(NAL_stderr, "Error, I/O failed\n");
 		goto err;
 	}
 	/* Now handle new connections */
@@ -286,7 +286,7 @@ skip_totals:
 		/* New client! */
 		if(!DC_SERVER_new_client(server, conn,
 					DC_CLIENT_FLAG_IN_SERVER))
-			NAL_fprintf(NAL_stderr(), "Error, accept couldn't be handled\n");
+			NAL_fprintf(NAL_stderr, "Error, accept couldn't be handled\n");
 		else
 			/* Mark the connection as consumed */
 			conn = NULL;

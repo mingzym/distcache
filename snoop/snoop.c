@@ -107,7 +107,7 @@ static int usage(void)
 {
 	const char **u = usage_msg;
 	while(*u)
-		NAL_fprintf(NAL_stderr(), "%s\n", *(u++));
+		NAL_fprintf(NAL_stderr, "%s\n", *(u++));
 	/* Return 0 because main() can use this is as a help
 	 * screen which shouldn't return an "error" */
 	return 0;
@@ -121,21 +121,21 @@ static const char *CMD_SERVER2 = "-connect";
 
 static int err_noarg(const char *arg)
 {
-	NAL_fprintf(NAL_stderr(), "Error, -%s requires an argument\n", arg);
+	NAL_fprintf(NAL_stderr, "Error, -%s requires an argument\n", arg);
 	usage();
 	return 1;
 }
 #if 0
 static int err_badrange(const char *arg)
 {
-	NAL_fprintf(NAL_stderr(), "Error, -%s given an invalid argument\n", arg);
+	NAL_fprintf(NAL_stderr, "Error, -%s given an invalid argument\n", arg);
 	usage();
 	return 1;
 }
 #endif
 static int err_badswitch(const char *arg)
 {
-	NAL_fprintf(NAL_stderr(), "Error, \"%s\" not recognised\n", arg);
+	NAL_fprintf(NAL_stderr, "Error, \"%s\" not recognised\n", arg);
 	usage();
 	return 1;
 }
@@ -179,13 +179,13 @@ int main(int argc, char *argv[])
 
 	/* Scrutinise the settings */
 	if(!addr_server || !addr_listen) {
-		NAL_fprintf(NAL_stderr(), "Error, must provide -listen and -server\n");
+		NAL_fprintf(NAL_stderr, "Error, must provide -listen and -server\n");
 		return 1;
 	}
 
 	if(!NAL_sigpipe_ignore()) {
 #if NAL_DEBUG_LEVEL > 0
-		NAL_fprintf(NAL_stderr(), "Error, couldn't ignore SIGPIPE\n");
+		NAL_fprintf(NAL_stderr, "Error, couldn't ignore SIGPIPE\n");
 #endif
 		return 1;
 	}
@@ -310,7 +310,7 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 		}
 		if(m_data_len > DC_MSG_MAX_DATA) {
 #ifdef SNOOP_DBG_MSG
-			NAL_fprintf(NAL_stderr(), "SNOOP_DBG_MSG: connection %d, %s, "
+			NAL_fprintf(NAL_stderr, "SNOOP_DBG_MSG: connection %d, %s, "
 				"message has illegal 'data_len' (%d)\n",
 				item->uid, SNOOP_C2S(client_to_server), m_data_len);
 #endif
@@ -324,8 +324,8 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 			return SNOOP_PARSE_INCOMPLETE;
 		/* YES, a message! */
 #ifdef SNOOP_DBG_MSG
-		NAL_fprintf(NAL_stdout(), "SNOOP_DBG_MSG: connection %d, %s, "
-			"message completed (request_uid = %d), total_len=%d\n",
+		NAL_fprintf(NAL_stdout, "SNOOP_DBG_MSG: connection %d, %s, "
+			"message completed (request_uid = %lu), total_len=%d\n",
 			item->uid, SNOOP_C2S(client_to_server), m_request_uid,
 			moved);
 #endif
@@ -356,7 +356,7 @@ static int snoop_item_io(snoop_item *item, NAL_SELECTOR *sel)
 	do {
 		res = snoop_data_arriving(item, 1);
 		if(res == SNOOP_PARSE_ERR) {
-			NAL_fprintf(NAL_stderr(), "[TODO: change me] client->server error\n");
+			NAL_fprintf(NAL_stderr, "[TODO: change me] client->server error\n");
 			return 0;
 		}
 	} while(res == SNOOP_PARSE_COMPLETE);
@@ -364,7 +364,7 @@ static int snoop_item_io(snoop_item *item, NAL_SELECTOR *sel)
 	do {
 		res = snoop_data_arriving(item, 0);
 		if(res == SNOOP_PARSE_ERR) {
-			NAL_fprintf(NAL_stderr(), "[TODO: change me] server->client error\n");
+			NAL_fprintf(NAL_stderr, "[TODO: change me] server->client error\n");
 			return 0;
 		}
 	} while(res == SNOOP_PARSE_COMPLETE);
@@ -501,19 +501,19 @@ static int snoop_ctx_loop(snoop_ctx *ctx)
 			/* hmm, whatever - do nothing */
 			return 1;
 		case EBADF:
-			NAL_fprintf(NAL_stderr(), "Error: EBADF from select()\n");
+			NAL_fprintf(NAL_stderr, "Error: EBADF from select()\n");
 			break;
 		case ENOMEM:
-			NAL_fprintf(NAL_stderr(), "Error: ENOMEM from select()\n");
+			NAL_fprintf(NAL_stderr, "Error: ENOMEM from select()\n");
 			break;
 		default:
-			NAL_fprintf(NAL_stderr(), "Error: unknown problem in select()\n");
+			NAL_fprintf(NAL_stderr, "Error: unknown problem in select()\n");
 			break;
 		}
 		return 0;
 	}
 	if(sel_res == 0) {
-		NAL_fprintf(NAL_stderr(), "Error, select() returned zero?\n");
+		NAL_fprintf(NAL_stderr, "Error, select() returned zero?\n");
 		return 0;
 	}
 	return snoop_ctx_io(ctx);
