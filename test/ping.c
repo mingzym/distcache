@@ -322,19 +322,22 @@ int main(int argc, char *argv[])
 		if((ctx[loop] = pingctx_new(addr, sel, loop, num_repeat,
 				num_size, pingmode, peek, quiet)) == NULL)
 			abort();
-mainloop:
-	/* Select */
-	while((tmp = NAL_SELECTOR_select(sel, 0, 0)) <= 0)
-		;
-	/* Post-process */
-	done = 0;
-	for(loop = 0; loop < num_conns; loop++) {
-		if(!pingctx_io(ctx[loop]))
-			goto err;
-		if(ctx[loop]->done)
-			done++;
-	}
-	if(done < num_conns) goto mainloop;
+	do {
+		/* Select */
+		while((tmp = NAL_SELECTOR_select(sel, 0, 0)) <= 0)
+			;
+		/* Post-process */
+		done = 0;
+		for(loop = 0; loop < num_conns; loop++) {
+			if(!pingctx_io(ctx[loop]))
+				goto err;
+			if(ctx[loop]->done)
+				done++;
+		}
+	/* keep looping until the connections are done and the selector is
+	 * empty. This allows non-blocking closes to complete for libnal
+	 * implementations that support it. */
+	} while((done < num_conns) || NAL_SELECTOR_num_objects(sel));
 	/* Done */
 	ret = 0;
 err:
