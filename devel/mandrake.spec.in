@@ -191,6 +191,11 @@ rm -rf $RPM_BUILD_ROOT
 #########
 
 %changelog
+* Wed May 28 2003 Geoff Thorpe <geoff@geoffthorpe.net> 1.4.1-1
+- Release distcache version 1.4.1
+- Use build RPM macros for running configure
+- Create the distcache-sslswamp package for the new ssl/swamp code.
+
 * Mon May 12 2003 Geoff Thorpe <geoff@geoffthorpe.net> 0.4-1
 - Release distcache version 0.4.
 
