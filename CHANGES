@@ -19,6 +19,19 @@ Current version: 0.4-dev
 Changes between 0.3 and 0.xx
 ----------------------------
 
+  *) More fixes to improve the usefulness of "make dist[-bzip2]";
+     - a Makefile for ./devel/ to install useful files,
+     - pod files in ./doc/ should be installed too,
+     - BUGS note to remind us that README.API and README.TOOLS won't be
+       installed and need to migrated to the man pages,
+     - install extra files from the top-level directory (ANNOUNCE, BUGS,
+       CHANGES, etc),
+     - Update the top-level configure.ac to modern automake syntax and
+       support for bzip2 tarballs,
+     - use EXTRA_DIST in the includes/ directory for headers that aren't
+       listed for installation.
+     [Geoff Thorpe]
+
   *) Added a BUGS file, with an initial list of the bugs I'm aware of.
      [Geoff Thorpe]
 
