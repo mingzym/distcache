@@ -171,13 +171,10 @@ int NAL_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
 		const struct timeval *timenow)
 {
 	struct timeval threshold;
+	unsigned long usec_expiry = msec_expiry * 1000;
 	NAL_memcpy(struct timeval, &threshold, timeitem);
-	/* Add the "seconds" in msec_expiry */
-	threshold.tv_sec += msec_expiry / 1000;
-	/* Strip out the "seconds" and leave the fractional part, converted to
-	 * microseconds. */
-	msec_expiry = (msec_expiry % 1000) * 1000;
-	threshold.tv_usec += (msec_expiry % 1000) * 1000;
+	threshold.tv_sec = threshold.tv_sec + (usec_expiry / 1000000L);
+	threshold.tv_usec += (usec_expiry % 1000000);
 	if(threshold.tv_usec > 1000000) {
 		threshold.tv_usec -= 1000000;
 		threshold.tv_sec++;

@@ -248,39 +248,39 @@ void nal_free_int(void *ptr);
  * bugs, but release builds are still optimised. */
 #if NAL_DEBUG_LEVEL > 2
 #define NAL_cover(c,t,p)	{ \
-				t *temp_NAL_cover_ptr = p; \
+				t *temp_NAL_cover_ptr = (p); \
 				memset(temp_NAL_cover_ptr, (c), \
 						sizeof(t)); \
 				}
 #define NAL_cover_n(c,t,p,n)	{ \
-				t *temp_NAL_cover_n_ptr = p; \
+				t *temp_NAL_cover_n_ptr = (p); \
 				memset(temp_NAL_cover_n_ptr, (c), \
 						(n) * sizeof(t)); \
 				}
 #define NAL_memcpy(t,d,s)	{ \
-				t *temp_NAL_memcpy_ptr1 = d; \
-				const t *temp_NAL_memcpy_ptr2 = s; \
+				t *temp_NAL_memcpy_ptr1 = (d); \
+				const t *temp_NAL_memcpy_ptr2 = (s); \
 				memcpy(temp_NAL_memcpy_ptr1, \
 					temp_NAL_memcpy_ptr2, \
 					sizeof(t)); \
 				}
 #define NAL_memcpy_n(t,d,s,n)	{ \
-				t *temp_NAL_memcpy_ptr1 = d; \
-				const t *temp_NAL_memcpy_ptr2 = s; \
+				t *temp_NAL_memcpy_ptr1 = (d); \
+				const t *temp_NAL_memcpy_ptr2 = (s); \
 				memcpy(temp_NAL_memcpy_ptr1, \
 					temp_NAL_memcpy_ptr2, \
 					(n) * sizeof(t)); \
 				}
 #define NAL_memmove(t,d,s)	{ \
-				t *temp_NAL_memmove_ptr1 = d; \
-				const t *temp_NAL_memmove_ptr2 = s; \
+				t *temp_NAL_memmove_ptr1 = (d); \
+				const t *temp_NAL_memmove_ptr2 = (s); \
 				memmove(temp_NAL_memmove_ptr1, \
 					temp_NAL_memmove_ptr2, \
 					sizeof(t)); \
 				}
 #define NAL_memmove_n(t,d,s,n)	{ \
-				t *temp_NAL_memmove_ptr1 = d; \
-				const t *temp_NAL_memmove_ptr2 = s; \
+				t *temp_NAL_memmove_ptr1 = (d); \
+				const t *temp_NAL_memmove_ptr2 = (s); \
 				memmove(temp_NAL_memmove_ptr1, \
 					temp_NAL_memmove_ptr2, \
 					(n) * sizeof(t)); \
