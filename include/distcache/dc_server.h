@@ -83,6 +83,14 @@ typedef struct st_DC_CACHE_cb {
 #define DC_CLIENT_FLAG_NOFREE_CONN		(unsigned int)0x0001
 #define DC_CLIENT_FLAG_IN_SERVER		(unsigned int)0x0002
 
+/* Create a new session cache server. NB: DC_SERVER_set_[default_]cache()
+ * must have been called prior to creating a server with this function. */
+DC_SERVER *DC_SERVER_new(unsigned int max_sessions);
+
+/* Destroy a session cache server (NB: all clients that aren't created with
+ * DC_CLIENT_FLAG_IN_SERVER should be destroyed in advance). */
+void DC_SERVER_free(DC_SERVER *ctx);
+
 /* This function causes the builtin session cache implementation to be used in
  * all "DC_SERVER"s created. Implemented in sess_serve_cache.c, so that if
  * the following function is used rather than this one, the builtin cache
@@ -92,14 +100,6 @@ int DC_SERVER_set_default_cache(void);
 /* This function causes a custom cache implementation to be used in all
  * "DC_SERVER"s created. */
 int DC_SERVER_set_cache(const DC_CACHE_cb *impl);
-
-/* Create a new session cache server. NB: DC_SERVER_set_[default_]cache()
- * must have been called prior to creating a server with this function. */
-DC_SERVER *DC_SERVER_new(unsigned int max_sessions);
-
-/* Destroy a session cache server (NB: all clients that aren't created with
- * DC_CLIENT_FLAG_IN_SERVER should be destroyed in advance). */
-void DC_SERVER_free(DC_SERVER *ctx);
 
 /* Find out the number of session items currently stored in the server.
  * Automatically flushes expired cache items before deciding the result. */
