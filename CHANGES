@@ -12,11 +12,11 @@
                                                          -- W. Edwards Deming
 
 
-Current version: x.x
-------------------------
+Current version: 0.4
+--------------------
 
 
-Changes between 0.4pre2 and x.x
+Changes between 0.4pre2 and 0.4
 -------------------------------
 
   *) Added the ASCII-art from README.TOOLS to the FAQ so that README.API and
