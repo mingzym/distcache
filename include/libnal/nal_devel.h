@@ -31,14 +31,14 @@
 typedef struct st_NAL_CONNECTION_vtable {
 	/* The size of "vtdata" the NAL_CONNECTION should provide */
 	size_t vtdata_size;
-	/* constructor after NAL_ADDRESS_vtable->create_connection() */
-	int (*on_create)(NAL_CONNECTION *conn, const NAL_ADDRESS *addr);
-	/* constructor after NAL_LISTENER_vtable->do_accept() */
-	int (*on_accept)(NAL_CONNECTION *conn, const NAL_LISTENER *l);
-	/* destructor */
+	/* (De)Initialisations */
+	int (*on_create)(NAL_CONNECTION *conn);
 	void (*on_destroy)(NAL_CONNECTION *conn);
-	/* passive destructor */
 	void (*on_reset)(NAL_CONNECTION *conn);
+	/* after NAL_ADDRESS_vtable->create_connection() */
+	int (*connect)(NAL_CONNECTION *conn, const NAL_ADDRESS *addr);
+	/* after NAL_LISTENER_vtable->pre_accept() */
+	int (*accept)(NAL_CONNECTION *conn, const NAL_LISTENER *l);
 	/* Handlers for NAL_CONNECTION functionality */
 	int (*set_size)(NAL_CONNECTION *conn, unsigned int size);
 	NAL_BUFFER *(*get_read)(const NAL_CONNECTION *conn);
@@ -49,8 +49,9 @@ typedef struct st_NAL_CONNECTION_vtable {
 	void (*selector_add)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
 	void (*selector_del)(const NAL_CONNECTION *conn, NAL_SELECTOR *sel);
 } NAL_CONNECTION_vtable;
-void *nal_connection_get_vtdata(const NAL_CONNECTION *conn);
+int nal_connection_set_vtable(NAL_CONNECTION *conn, const NAL_CONNECTION_vtable *vtable);
 const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *conn);
+void *nal_connection_get_vtdata(const NAL_CONNECTION *conn);
 
 /****************/
 /* NAL_LISTENER */
@@ -59,18 +60,22 @@ const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *con
 typedef struct st_NAL_LISTENER_vtable {
 	/* The size of "vtdata" the NAL_LISTENER should provide */
 	size_t vtdata_size;
-	/* constructor/destructor/passive-destructor */
-	int (*on_create)(NAL_LISTENER *l, const NAL_ADDRESS *addr);
+	/* (De)Initialisations */
+	int (*on_create)(NAL_LISTENER *l);
 	void (*on_destroy)(NAL_LISTENER *l);
 	void (*on_reset)(NAL_LISTENER *l);
 	/* Handlers for NAL_LISTENER functionality */
-	const NAL_CONNECTION_vtable *(*do_accept)(NAL_LISTENER *l,
+	int (*listen)(NAL_LISTENER *l, const NAL_ADDRESS *addr);
+	const NAL_CONNECTION_vtable *(*pre_accept)(NAL_LISTENER *l,
 						NAL_SELECTOR *sel);
 	void (*selector_add)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
 	void (*selector_del)(const NAL_LISTENER *l, NAL_SELECTOR *sel);
 } NAL_LISTENER_vtable;
-void *nal_listener_get_vtdata(const NAL_LISTENER *l);
+int nal_listener_set_vtable(NAL_LISTENER *l, const NAL_LISTENER_vtable *vtable);
 const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *l);
+void *nal_listener_get_vtdata(const NAL_LISTENER *l);
+const NAL_CONNECTION_vtable *nal_listener_pre_accept(NAL_LISTENER *l,
+						NAL_SELECTOR *sel);
 
 /***************/
 /* NAL_ADDRESS */
@@ -84,19 +89,23 @@ typedef struct st_NAL_ADDRESS_vtable {
 	/* NULL-terminated array of string prefixes that correspond to this
 	 * vtable. Should include trailing colon. */
 	const char **prefixes;
-	/* constructor/destructor/passive-destructor */
-	int (*on_create)(NAL_ADDRESS *addr, const char *addr_string);
+	/* (De)Initialisations */
+	int (*on_create)(NAL_ADDRESS *addr);
 	void (*on_destroy)(NAL_ADDRESS *addr);
 	void (*on_reset)(NAL_ADDRESS *addr);
 	/* Handlers for NAL_ADDRESS functionality */
+	int (*parse)(NAL_ADDRESS *addr, const char *addr_string);
 	int (*can_connect)(const NAL_ADDRESS *addr);
 	int (*can_listen)(const NAL_ADDRESS *addr);
 	const NAL_LISTENER_vtable *(*create_listener)(const NAL_ADDRESS *addr);
 	const NAL_CONNECTION_vtable *(*create_connection)(const NAL_ADDRESS *addr);
 	struct st_NAL_ADDRESS_vtable *next;
 } NAL_ADDRESS_vtable;
-void *nal_address_get_vtdata(const NAL_ADDRESS *addr);
+int nal_address_set_vtable(NAL_ADDRESS *addr, const NAL_ADDRESS_vtable *vt);
 const NAL_ADDRESS_vtable *nal_address_get_vtable(const NAL_ADDRESS *addr);
+void *nal_address_get_vtdata(const NAL_ADDRESS *addr);
+const NAL_LISTENER_vtable *nal_address_get_listener(const NAL_ADDRESS *addr);
+const NAL_CONNECTION_vtable *nal_address_get_connection(const NAL_ADDRESS *addr);
 
 /***************************/
 /* Builtin address vtables */

@@ -34,51 +34,63 @@ struct st_NAL_LISTENER {
 	size_t vt_data_size;
 	/* When resetting objects for reuse, this is set to allow 'vt' to be NULL */
 	const NAL_LISTENER_vtable *reset;
+	/* def_buffer_size is handled directly by the API */
+	unsigned int def_buffer_size;
 };
 
-/* Internal only function used to handle vt_data */
-static int int_listener_set_vt(NAL_LISTENER *a, const NAL_LISTENER_vtable *vtable)
+/****************************/
+/* nal_internal.h functions */
+/****************************/
+
+unsigned int nal_listener_get_def_buffer_size(const NAL_LISTENER *l)
 {
-	if(a->reset) {
-		if(a->reset != vtable) {
-			/* We need to cleanup because we're not reusing state */
-			a->vt = a->reset;
-			a->vt->on_destroy(a);
-			a->reset = NULL;
-			SYS_zero_n(unsigned char, a->vt_data, a->vt_data_size);
-		} else
-			/* We're reusing the previous state */
-			goto ok;
-	}
-	/* We're not reusing, though there may be (zeroed) data allocated we
-	 * can use if it's big enough. */
-	if(vtable->vtdata_size > 0) {
-		if(a->vt_data) {
-			if(a->vt_data_size >= vtable->vtdata_size)
-				/* The existing vtdata is fine */
-				goto ok;
-			/* We need to reallocate */
-			SYS_free(void, a->vt_data);
-		}
-		a->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
-		if(!a->vt_data)
-			return 0;
-		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
-		a->vt_data_size = vtable->vtdata_size;
-	}
-ok:
-	/* All's well, more code-saving by setting the vtable for the caller */
-	a->vt = vtable;
+	return l->def_buffer_size;
+}
+
+int nal_listener_set_def_buffer_size(NAL_LISTENER *l, unsigned int def_buffer_size)
+{
+	if(!nal_check_buffer_size(def_buffer_size)) return 0;
+	l->def_buffer_size = def_buffer_size;
 	return 1;
 }
 
-/*****************************/
-/* libnal internal functions */
-/*****************************/
+/*************************/
+/* nal_devel.h functions */
+/*************************/
 
-void *nal_listener_get_vtdata(const NAL_LISTENER *l)
+int nal_listener_set_vtable(NAL_LISTENER *a, const NAL_LISTENER_vtable *vtable)
 {
-	return l->vt_data;
+	/* Are we already mapped? */
+	if(a->vt) {
+		/* Unmap the current usage */
+		a->vt->on_reset(a);
+		a->reset = a->vt;
+		a->vt = NULL;
+	}
+	/* Do we have a mismatched reset to cleanup? */
+	if(a->reset && (a->reset != vtable)) {
+		a->reset->on_destroy(a);
+		a->reset = NULL;
+		SYS_zero_n(unsigned char, a->vt_data, a->vt_data_size);
+	}
+	/* Check our memory is ok (reset cases should already bypass this) */
+	if(vtable->vtdata_size > a->vt_data_size) {
+		assert(a->reset == NULL);
+		if(a->vt_data)
+			SYS_free(void, a->vt_data);
+		a->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
+		if(!a->vt_data) {
+			a->vt_data_size = 0;
+			return 0;
+		}
+		a->vt_data_size = vtable->vtdata_size;
+		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
+	}
+	if(vtable->on_create(a)) {
+		a->vt = vtable;
+		return 1;
+	}
+	return 0;
 }
 
 const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *l)
@@ -86,16 +98,21 @@ const NAL_LISTENER_vtable *nal_listener_get_vtable(const NAL_LISTENER *l)
 	return l->vt;
 }
 
-const NAL_CONNECTION_vtable *nal_listener_accept_connection(NAL_LISTENER *l,
+void *nal_listener_get_vtdata(const NAL_LISTENER *l)
+{
+	return l->vt_data;
+}
+
+const NAL_CONNECTION_vtable *nal_listener_pre_accept(NAL_LISTENER *l,
 						NAL_SELECTOR *sel)
 {
-	if(l->vt) return l->vt->do_accept(l, sel);
+	if(l->vt) return l->vt->pre_accept(l, sel);
 	return NULL;
 }
 
-/******************************/
-/* NAL_LISTENER API FUNCTIONS */
-/******************************/
+/*******************/
+/* nal.h functions */
+/*******************/
 
 NAL_LISTENER *NAL_LISTENER_new(void)
 {
@@ -103,7 +120,9 @@ NAL_LISTENER *NAL_LISTENER_new(void)
 	if(l) {
 		l->vt = NULL;
 		l->vt_data = NULL;
+		l->vt_data_size = 0;
 		l->reset = NULL;
+		l->def_buffer_size = 0;
 	}
 	return l;
 }
@@ -130,10 +149,11 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 	const NAL_LISTENER_vtable *vtable;
 	if(list->vt) return 0; /* 'list' is in use */
 	vtable = nal_address_get_listener(addr);
-	if(!int_listener_set_vt(list, vtable))
-		return 0;
-	if(!vtable->on_create(list, addr)) {
-		list->vt = NULL;
+	if(!nal_listener_set_vtable(list, vtable) ||
+			!nal_listener_set_def_buffer_size(list,
+				NAL_ADDRESS_get_def_buffer_size(addr)) ||
+			!vtable->listen(list, addr)) {
+		NAL_LISTENER_reset(list);
 		return 0;
 	}
 	return 1;

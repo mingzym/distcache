@@ -80,20 +80,19 @@ void nal_fd_close(int *fd);
 int nal_sock_set_nagle(int fd, int use_nagle, nal_sockaddr_type type);
 int nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr, const char *start_ptr);
 int nal_sock_sockaddr_from_unix(nal_sockaddr *addr, const char *start_ptr);
-int nal_sock_create_socket(int *fd, nal_sockaddr *addr);
+int nal_sock_create_socket(int *fd, const nal_sockaddr *addr);
 int nal_sock_create_unix_pair(int sv[2]);
 int nal_sock_connect(int fd, const nal_sockaddr *addr, int *established);
 int nal_sock_listen(int fd, const nal_sockaddr *addr);
 int nal_sock_accept(int listen_fd, int *conn);
 int nal_sock_is_connected(int fd);
 
-/* Some vtable-manipulation functions required by the API implementation but
- * not required by implementors. */
+/****************/
+/* NAL_LISTENER */
+/****************/
 
-const NAL_CONNECTION_vtable *nal_listener_accept_connection(NAL_LISTENER *l,
-							NAL_SELECTOR *sel);
-const NAL_LISTENER_vtable *nal_address_get_listener(const NAL_ADDRESS *addr);
-const NAL_CONNECTION_vtable *nal_address_get_connection(const NAL_ADDRESS *addr);
+unsigned int nal_listener_get_def_buffer_size(const NAL_LISTENER *l);
+int nal_listener_set_def_buffer_size(NAL_LISTENER *l, unsigned int def_buffer_size);
 
 /**************/
 /* NAL_BUFFER */

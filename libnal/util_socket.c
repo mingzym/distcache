@@ -195,7 +195,7 @@ int nal_sock_sockaddr_from_unix(nal_sockaddr *addr, const char *start_ptr)
 }
 #endif
 
-int nal_sock_create_socket(int *fd, nal_sockaddr *addr)
+int nal_sock_create_socket(int *fd, const nal_sockaddr *addr)
 {
 	int tmp_fd = -1;
 	switch(addr->type) {

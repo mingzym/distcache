@@ -88,18 +88,53 @@ struct st_NAL_ADDRESS {
 	unsigned int def_buffer_size;
 };
 
-/*****************************/
-/* libnal internal functions */
-/*****************************/
+/*************************/
+/* nal_devel.h functions */
+/*************************/
 
-void *nal_address_get_vtdata(const NAL_ADDRESS *addr)
+int nal_address_set_vtable(NAL_ADDRESS *a, const NAL_ADDRESS_vtable *vtable)
 {
-	return addr->vt_data;
+	/* Are we already mapped? */
+	if(a->vt) {
+		/* Unmap the current usage */
+		a->vt->on_reset(a);
+		a->reset = a->vt;
+		a->vt = NULL;
+	}
+	/* Do we have a mismatched reset to cleanup? */
+	if(a->reset && (a->reset != vtable)) {
+		a->reset->on_destroy(a);
+		a->reset = NULL;
+		SYS_zero_n(unsigned char, a->vt_data, a->vt_data_size);
+	}
+	/* Check our memory is ok (reset cases should already bypass this) */
+	if(vtable->vtdata_size > a->vt_data_size) {
+		assert(a->reset == NULL);
+		if(a->vt_data)
+			SYS_free(void, a->vt_data);
+		a->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
+		if(!a->vt_data) {
+			a->vt_data_size = 0;
+			return 0;
+		}
+		a->vt_data_size = vtable->vtdata_size;
+		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
+	}
+	if(vtable->on_create(a)) {
+		a->vt = vtable;
+		return 1;
+	}
+	return 0;
 }
 
 const NAL_ADDRESS_vtable *nal_address_get_vtable(const NAL_ADDRESS *addr)
 {
 	return addr->vt;
+}
+
+void *nal_address_get_vtdata(const NAL_ADDRESS *addr)
+{
+	return addr->vt_data;
 }
 
 const NAL_LISTENER_vtable *nal_address_get_listener(const NAL_ADDRESS *addr)
@@ -114,45 +149,9 @@ const NAL_CONNECTION_vtable *nal_address_get_connection(const NAL_ADDRESS *addr)
 	return NULL;
 }
 
-/* Internal only function used to handle vt_data */
-static int int_address_set_vt(NAL_ADDRESS *a, const NAL_ADDRESS_vtable *vtable)
-{
-	if(a->reset) {
-		if(a->reset != vtable) {
-			/* We need to cleanup because we're not reusing state */
-			a->vt = a->reset;
-			a->vt->on_destroy(a);
-			a->reset = NULL;
-			SYS_zero_n(unsigned char, a->vt_data, a->vt_data_size);
-		} else
-			/* We're reusing the previous state */
-			goto ok;
-	}
-	/* We're not reusing, though there may be (zeroed) data allocated we
-	 * can use if it's big enough. */
-	if(vtable->vtdata_size > 0) {
-		if(a->vt_data) {
-			if(a->vt_data_size >= vtable->vtdata_size)
-				/* The existing vtdata is fine */
-				goto ok;
-			/* We need to reallocate */
-			SYS_free(void, a->vt_data);
-		}
-		a->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
-		if(!a->vt_data)
-			return 0;
-		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
-		a->vt_data_size = vtable->vtdata_size;
-	}
-ok:
-	/* All's well, more code-saving by setting the vtable for the caller */
-	a->vt = vtable;
-	return 1;
-}
-
-/*****************************/
-/* NAL_ADDRESS API FUNCTIONS */
-/*****************************/
+/*******************/
+/* nal.h functions */
+/*******************/
 
 NAL_ADDRESS *NAL_ADDRESS_new(void)
 {
@@ -160,6 +159,7 @@ NAL_ADDRESS *NAL_ADDRESS_new(void)
 	if(a) {
 		a->vt = NULL;
 		a->vt_data = NULL;
+		a->vt_data_size = 0;
 		a->reset = NULL;
 		a->def_buffer_size = 0;
 	}
@@ -219,10 +219,10 @@ int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 		vtable = vtable->next; /* move to next address type */
 	}
 done:
-	if(!vtable || !int_address_set_vt(addr, vtable) ||
-			!vtable->on_create(addr, addr_string)) {
-		/* no builtin vtable accepted 'addr_string' */
-		addr->vt = NULL;
+	if(!vtable)
+		return 0;
+	if(!nal_address_set_vtable(addr, vtable) || !vtable->parse(addr, addr_string)) {
+		NAL_ADDRESS_reset(addr);
 		return 0;
 	}
 	return 1;

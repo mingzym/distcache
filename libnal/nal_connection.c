@@ -36,49 +36,43 @@ struct st_NAL_CONNECTION {
 	const NAL_CONNECTION_vtable *reset;
 };
 
-/* Internal only function used to set the vtable (and handle reset logic) */
-static int int_connection_set_vt(NAL_CONNECTION *a, const NAL_CONNECTION_vtable *vtable)
+/*************************/
+/* nal_devel.h functions */
+/*************************/
+
+int nal_connection_set_vtable(NAL_CONNECTION *a, const NAL_CONNECTION_vtable *vtable)
 {
-	if(a->reset) {
-		if(a->reset != vtable) {
-			/* We need to cleanup because we're not reusing state */
-			a->vt = a->reset;
-			a->vt->on_destroy(a);
-			a->reset = NULL;
-			SYS_zero_n(unsigned char, a->vt_data, a->vt_data_size);
-		} else
-			/* We're reusing the previous state */
-			goto ok;
+	/* Are we already mapped? */
+	if(a->vt) {
+		/* Unmap the current usage */
+		a->vt->on_reset(a);
+		a->reset = a->vt;
+		a->vt = NULL;
 	}
-	/* We're not reusing, though there may be (zeroed) data allocated we
-	 * can use if it's big enough. */
-	if(vtable->vtdata_size > 0) {
-		if(a->vt_data) {
-			if(a->vt_data_size >= vtable->vtdata_size)
-				/* The existing vtdata is fine */
-				goto ok;
-			/* We need to reallocate */
+	/* Do we have a mismatched reset to cleanup? */
+	if(a->reset && (a->reset != vtable)) {
+		a->reset->on_destroy(a);
+		a->reset = NULL;
+		SYS_zero_n(unsigned char, a->vt_data, a->vt_data_size);
+	}
+	/* Check our memory is ok (reset cases should already bypass this) */
+	if(vtable->vtdata_size > a->vt_data_size) {
+		assert(a->reset == NULL);
+		if(a->vt_data)
 			SYS_free(void, a->vt_data);
-		}
 		a->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
-		if(!a->vt_data)
+		if(!a->vt_data) {
+			a->vt_data_size = 0;
 			return 0;
-		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
+		}
 		a->vt_data_size = vtable->vtdata_size;
+		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
 	}
-ok:
-	/* All's well, more code-saving by setting the vtable for the caller */
-	a->vt = vtable;
-	return 1;
-}
-
-/*****************************/
-/* libnal internal functions */
-/*****************************/
-
-void *nal_connection_get_vtdata(const NAL_CONNECTION *conn)
-{
-	return conn->vt_data;
+	if(vtable->on_create(a)) {
+		a->vt = vtable;
+		return 1;
+	}
+	return 0;
 }
 
 const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *conn)
@@ -86,9 +80,14 @@ const NAL_CONNECTION_vtable *nal_connection_get_vtable(const NAL_CONNECTION *con
 	return conn->vt;
 }
 
-/********************************/
-/* NAL_CONNECTION API FUNCTIONS */
-/********************************/
+void *nal_connection_get_vtdata(const NAL_CONNECTION *conn)
+{
+	return conn->vt_data;
+}
+
+/*******************/
+/* nal.h functions */
+/*******************/
 
 NAL_CONNECTION *NAL_CONNECTION_new(void)
 {
@@ -96,6 +95,7 @@ NAL_CONNECTION *NAL_CONNECTION_new(void)
 	if(conn) {
 		conn->vt = NULL;
 		conn->vt_data = NULL;
+		conn->vt_data_size = 0;
 		conn->reset = NULL;
 	}
 	return conn;
@@ -125,10 +125,9 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 		return 0;
 	if((vtable = nal_address_get_connection(addr)) == NULL)
 		return 0;
-	if(!int_connection_set_vt(conn, vtable))
-		return 0;
-	if(!conn->vt->on_create(conn, addr)) {
-		conn->vt = NULL;
+	if(!nal_connection_set_vtable(conn, vtable) ||
+			!vtable->connect(conn, addr)) {
+		NAL_CONNECTION_reset(conn);
 		return 0;
 	}
 	return 1;
@@ -139,12 +138,11 @@ int NAL_CONNECTION_accept(NAL_CONNECTION *conn, NAL_LISTENER *list,
 {
 	const NAL_CONNECTION_vtable *vtable;
 	if(conn->vt) return 0;
-	if((vtable = nal_listener_accept_connection(list, sel)) == NULL)
+	if((vtable = nal_listener_pre_accept(list, sel)) == NULL)
 		return 0;
-	if(!int_connection_set_vt(conn, vtable))
-		return 0;
-	if(!conn->vt->on_accept(conn, list)) {
-		conn->vt = NULL;
+	if(!nal_connection_set_vtable(conn, vtable) ||
+			!vtable->accept(conn, list)) {
+		NAL_CONNECTION_reset(conn);
 		return 0;
 	}
 	return 1;

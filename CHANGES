@@ -19,6 +19,15 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Adjust the vtable design in libnal to make things more orthogonal. As part
+     of this, each vtable has a parameterless constructor that is used in
+     advance of any other "create" handlers. From the libnal API, these are
+     usually seen as a single function, but separating them internally allows
+     the "reset" logic to work better. This also exposes a consistent set of
+     vtable functions in nal_devel.h to let vtable implementations manipulate
+     libnal objects directly.
+     [Geoff Thorpe]
+
   *) Created a new exported header, <libnal/nal_devel.h>, containing elements
      split out from libnal's own nal_internal.h header. This header can be used
      to implement additional network abstraction types.
