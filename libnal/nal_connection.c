@@ -34,6 +34,10 @@ struct st_NAL_CONNECTION {
 	size_t vt_data_size;
 	/* When resetting objects for reuse, this is set to allow 'vt' to be NULL */
 	const NAL_CONNECTION_vtable *reset;
+	/* Associated selector ... */
+	NAL_SELECTOR *sel;
+	/* ... and token */
+	NAL_SELECTOR_TOKEN sel_token;
 };
 
 /*************************/
@@ -45,6 +49,7 @@ int nal_connection_set_vtable(NAL_CONNECTION *a, const NAL_CONNECTION_vtable *vt
 	/* Are we already mapped? */
 	if(a->vt) {
 		/* Unmap the current usage */
+		if(a->sel) NAL_CONNECTION_del_from_selector(a);
 		a->vt->on_reset(a);
 		a->reset = a->vt;
 		a->vt = NULL;
@@ -85,6 +90,18 @@ void *nal_connection_get_vtdata(const NAL_CONNECTION *conn)
 	return conn->vt_data;
 }
 
+void nal_connection_pre_select(NAL_CONNECTION *conn)
+{
+	assert((conn->sel != NULL) && (conn->vt != NULL));
+	conn->vt->pre_select(conn, conn->sel, conn->sel_token);
+}
+
+void nal_connection_post_select(NAL_CONNECTION *conn)
+{
+	assert((conn->sel != NULL) && (conn->vt != NULL));
+	conn->vt->post_select(conn, conn->sel, conn->sel_token);
+}
+
 /*******************/
 /* nal.h functions */
 /*******************/
@@ -97,12 +114,15 @@ NAL_CONNECTION *NAL_CONNECTION_new(void)
 		conn->vt_data = NULL;
 		conn->vt_data_size = 0;
 		conn->reset = NULL;
+		conn->sel = NULL;
+		conn->sel_token = NULL;
 	}
 	return conn;
 }
 
 void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 {
+	if(conn->sel) NAL_CONNECTION_del_from_selector(conn);
 	if(conn->vt) conn->vt->on_destroy(conn);
 	else if(conn->reset) conn->reset->on_destroy(conn);
 	if(conn->vt_data) SYS_free(void, conn->vt_data);
@@ -112,6 +132,7 @@ void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 void NAL_CONNECTION_reset(NAL_CONNECTION *conn)
 {
 	if(conn->vt) {
+		if(conn->sel) NAL_CONNECTION_del_from_selector(conn);
 		conn->vt->on_reset(conn);
 		conn->reset = conn->vt;
 		conn->vt = NULL;
@@ -133,12 +154,11 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 	return 1;
 }
 
-int NAL_CONNECTION_accept(NAL_CONNECTION *conn, NAL_LISTENER *list,
-			NAL_SELECTOR *sel)
+int NAL_CONNECTION_accept(NAL_CONNECTION *conn, NAL_LISTENER *list)
 {
 	const NAL_CONNECTION_vtable *vtable;
 	if(conn->vt) return 0;
-	if((vtable = nal_listener_pre_accept(list, sel)) == NULL)
+	if((vtable = nal_listener_pre_accept(list)) == NULL)
 		return 0;
 	if(!nal_connection_set_vtable(conn, vtable) ||
 			!vtable->accept(conn, list)) {
@@ -181,16 +201,11 @@ const NAL_BUFFER *NAL_CONNECTION_get_send_c(const NAL_CONNECTION *conn)
 	return NULL;
 }
 
-int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
-			unsigned int max_read, unsigned int max_send)
+int NAL_CONNECTION_io(NAL_CONNECTION *conn)
 {
-	if(conn->vt) return conn->vt->do_io(conn, sel, max_read, max_send);
+	if(conn->vt && conn->sel)
+		return conn->vt->do_io(conn);
 	return 0;
-}
-
-int NAL_CONNECTION_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel)
-{
-	return NAL_CONNECTION_io_cap(conn, sel, 0, 0);
 }
 
 int NAL_CONNECTION_is_established(const NAL_CONNECTION *conn)
@@ -199,21 +214,27 @@ int NAL_CONNECTION_is_established(const NAL_CONNECTION *conn)
 	return 0;
 }
 
-void NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
+int NAL_CONNECTION_add_to_selector(NAL_CONNECTION *conn,
 				NAL_SELECTOR *sel)
 {
-	if(conn->vt) conn->vt->selector_add(conn, sel, NAL_SELECT_FLAG_RW);
+	if(conn->sel || !conn->vt || !conn->vt->pre_selector_add(conn, sel))
+		return 0;
+	if((conn->sel_token = nal_selector_add_connection(sel, conn)) ==
+				NAL_SELECTOR_TOKEN_NULL) {
+		conn->vt->pre_selector_del(conn);
+		return 0;
+	}
+	conn->sel = sel;
+	return 1;
 }
 
-void NAL_CONNECTION_add_to_selector_ex(const NAL_CONNECTION *conn,
-				NAL_SELECTOR *sel, unsigned int flags)
+void NAL_CONNECTION_del_from_selector(NAL_CONNECTION *conn)
 {
-	if(conn->vt) conn->vt->selector_add(conn, sel, flags);
-}
-
-void NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,
-				NAL_SELECTOR *sel)
-{
-	if(conn->vt) conn->vt->selector_del(conn, sel);
+	if(conn->vt && conn->sel) {
+		conn->vt->pre_selector_del(conn);
+		nal_selector_del_connection(conn->sel, conn, conn->sel_token);
+		conn->sel = NULL;
+		conn->sel_token = NULL;
+	}
 }
 

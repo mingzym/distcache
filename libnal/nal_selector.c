@@ -36,43 +36,55 @@ struct st_NAL_SELECTOR {
 	const NAL_SELECTOR_vtable *reset;
 };
 
+/****************************/
+/* nal_internal.h functions */
+/****************************/
+
+NAL_SELECTOR_TOKEN nal_selector_add_listener(NAL_SELECTOR *s, NAL_LISTENER *l)
+{
+	if(s->vt) return s->vt->add_listener(s, l);
+	return NAL_SELECTOR_TOKEN_NULL;
+}
+
+NAL_SELECTOR_TOKEN nal_selector_add_connection(NAL_SELECTOR *s, NAL_CONNECTION *c)
+{
+	if(s->vt) return s->vt->add_connection(s, c);
+	return NAL_SELECTOR_TOKEN_NULL;
+}
+
+void nal_selector_del_listener(NAL_SELECTOR *s, NAL_LISTENER *l, NAL_SELECTOR_TOKEN k)
+{
+	if(s->vt) s->vt->del_listener(s, l, k);
+}
+
+void nal_selector_del_connection(NAL_SELECTOR *s, NAL_CONNECTION *c, NAL_SELECTOR_TOKEN k)
+{
+	if(s->vt) s->vt->del_connection(s, c, k);
+}
+
 /*************************/
 /* nal_devel.h functions */
 /*************************/
 
-int nal_selector_set_vtable(NAL_SELECTOR *a, const NAL_SELECTOR_vtable *vtable)
+NAL_SELECTOR *nal_selector_new(const NAL_SELECTOR_vtable *vtable)
 {
-	/* Are we already mapped? */
-	if(a->vt) {
-		/* Unmap the current usage */
-		a->vt->on_reset(a);
-		a->reset = a->vt;
-		a->vt = NULL;
+	NAL_SELECTOR *sel = SYS_malloc(NAL_SELECTOR, 1);
+	if(!sel) goto err;
+	sel->vt = vtable;
+	if(vtable->vtdata_size) {
+		sel->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
+		if(!sel->vt_data) goto err;
+	} else
+		sel->vt_data = NULL;
+	SYS_zero_n(unsigned char, sel->vt_data, vtable->vtdata_size);
+	if(!vtable->on_create(sel)) goto err;
+	return sel;
+err:
+	if(sel) {
+		if(sel->vt_data) SYS_free(void, sel->vt_data);
+		SYS_free(NAL_SELECTOR, sel);
 	}
-	/* Do we have a mismatched reset to cleanup? */
-	if(a->reset && (a->reset != vtable)) {
-		a->reset->on_destroy(a);
-		a->reset = NULL;
-		SYS_zero_n(unsigned char, a->vt_data, a->vt_data_size);
-	}
-	/* Check our memory is ok (reset cases should already bypass this) */
-	if(vtable->vtdata_size > a->vt_data_size) {
-		assert(a->reset == NULL);
-		if(a->vt_data)
-			SYS_free(void, a->vt_data);
-		a->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
-		if(!a->vt_data) {
-			a->vt_data_size = 0;
-			return 0;
-		}
-		a->vt_data_size = vtable->vtdata_size;
-		SYS_zero_n(unsigned char, a->vt_data, vtable->vtdata_size);
-	}
-	if(vtable->on_create(a)) {
-		a->vt = vtable;
-		return 1;
-	}
-	return 0;
+	return NULL;
 }
 
 const NAL_SELECTOR_vtable *nal_selector_get_vtable(const NAL_SELECTOR *sel)
@@ -91,28 +103,17 @@ NAL_SELECTOR_TYPE nal_selector_get_type(const NAL_SELECTOR *sel)
 	return sel->vt->get_type(sel);
 }
 
-void nal_selector_fd_set(NAL_SELECTOR *sel, int fd, unsigned char flags)
+void nal_selector_fd_set(NAL_SELECTOR *sel, NAL_SELECTOR_TOKEN token,
+			int fd, unsigned char flags)
 {
-	if(sel->vt)
-		sel->vt->fd_set(sel, fd, flags);
+	if(sel->vt) sel->vt->fd_set(sel, token, fd, flags);
 }
 
-void nal_selector_fd_unset(NAL_SELECTOR *sel, int fd)
-{
-	if(sel->vt)
-		sel->vt->fd_unset(sel, fd);
-}
-
-unsigned char nal_selector_fd_test(const NAL_SELECTOR *sel, int fd)
+unsigned char nal_selector_fd_test(const NAL_SELECTOR *sel,
+			NAL_SELECTOR_TOKEN token, int fd)
 {
 	if(!sel->vt) return 0;
-	return sel->vt->fd_test(sel, fd);
-}
-
-void nal_selector_fd_clear(NAL_SELECTOR *sel, int fd)
-{
-	if(sel->vt)
-		sel->vt->fd_clear(sel, fd);
+	return sel->vt->fd_test(sel, token, fd);
 }
 
 /*******************/
@@ -121,57 +122,29 @@ void nal_selector_fd_clear(NAL_SELECTOR *sel, int fd)
 
 NAL_SELECTOR *NAL_SELECTOR_new(void)
 {
-	NAL_SELECTOR *sel = SYS_malloc(NAL_SELECTOR, 1);
-	if(sel) {
-		sel->vt = NULL;
-		sel->vt_data = NULL;
-		sel->vt_data_size = 0;
-		sel->reset = NULL;
-		/* Unlike the other abstractions, we use a default
-		 * implementation rather than staying NULL until a create()
-		 * calls pins us to a vtable. */
-		if(!nal_selector_set_vtable(sel, &sel_fdselect_vtable)) {
-			SYS_free(NAL_SELECTOR, sel);
-			return NULL;
-		}
-	}
-	return sel;
+	const NAL_SELECTOR_vtable *vt = NAL_SELECTOR_VT_DEFAULT();
+	if(!vt) return NULL;
+	return nal_selector_new(vt);
 }
 
 void NAL_SELECTOR_free(NAL_SELECTOR *sel)
 {
-	if(sel->vt) sel->vt->on_destroy(sel);
-	else if(sel->reset) sel->reset->on_destroy(sel);
+	assert(sel->vt);
+	sel->vt->on_destroy(sel);
 	if(sel->vt_data) SYS_free(void, sel->vt_data);
 	SYS_free(NAL_SELECTOR, sel);
 }
 
 void NAL_SELECTOR_reset(NAL_SELECTOR *sel)
 {
-	/* Unlike other abstractions, we use the default implementation in the
-	 * constructor rather than requiring a create() function. As such, our
-	 * reset should not follow the traditional logic, but map instead to
-	 * "set_vtable" (which automatically handles existing 'vt' settings,
-	 * resets, etc.) */
-#if 0
-	if(sel->vt) {
-		sel->vt->on_reset(sel);
-		sel->reset = sel->vt;
-		sel->vt = NULL;
-	}
-#else
-	/* This should never fail as no allocation should be required, but as
-	 * we have no guarantees over the vtable in use ... */
-	if(!nal_selector_set_vtable(sel, &sel_fdselect_vtable))
-		/* Ignoring the error allows bad dominos */
-		abort();
-#endif
+	assert(sel->vt);
+	sel->vt->on_reset(sel);
 }
 
 int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
 			int use_timeout)
 {
-	if(sel->vt) return sel->vt->select(sel, usec_timeout, use_timeout);
-	return -1;
+	assert(sel->vt);
+	return sel->vt->select(sel, usec_timeout, use_timeout);
 }
 

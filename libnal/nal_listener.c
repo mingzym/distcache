@@ -36,6 +36,10 @@ struct st_NAL_LISTENER {
 	const NAL_LISTENER_vtable *reset;
 	/* def_buffer_size is handled directly by the API */
 	unsigned int def_buffer_size;
+	/* Associated selector ... */
+	NAL_SELECTOR *sel;
+	/* ... and token */
+	NAL_SELECTOR_TOKEN sel_token;
 };
 
 /****************************/
@@ -63,6 +67,7 @@ int nal_listener_set_vtable(NAL_LISTENER *a, const NAL_LISTENER_vtable *vtable)
 	/* Are we already mapped? */
 	if(a->vt) {
 		/* Unmap the current usage */
+		if(a->sel) NAL_LISTENER_del_from_selector(a);
 		a->vt->on_reset(a);
 		a->reset = a->vt;
 		a->vt = NULL;
@@ -103,11 +108,22 @@ void *nal_listener_get_vtdata(const NAL_LISTENER *l)
 	return l->vt_data;
 }
 
-const NAL_CONNECTION_vtable *nal_listener_pre_accept(NAL_LISTENER *l,
-						NAL_SELECTOR *sel)
+const NAL_CONNECTION_vtable *nal_listener_pre_accept(NAL_LISTENER *l)
 {
-	if(l->vt) return l->vt->pre_accept(l, sel);
+	if(l->vt) return l->vt->pre_accept(l);
 	return NULL;
+}
+
+void nal_listener_pre_select(NAL_LISTENER *l)
+{
+	assert((l->sel != NULL) && (l->vt != NULL));
+	l->vt->pre_select(l, l->sel, l->sel_token);
+}
+
+void nal_listener_post_select(NAL_LISTENER *l)
+{
+	assert((l->sel != NULL) && (l->vt != NULL));
+	l->vt->post_select(l, l->sel, l->sel_token);
 }
 
 /*******************/
@@ -123,12 +139,15 @@ NAL_LISTENER *NAL_LISTENER_new(void)
 		l->vt_data_size = 0;
 		l->reset = NULL;
 		l->def_buffer_size = 0;
+		l->sel = NULL;
+		l->sel_token = NULL;
 	}
 	return l;
 }
 
 void NAL_LISTENER_free(NAL_LISTENER *list)
 {
+	if(list->sel) NAL_LISTENER_del_from_selector(list);
 	if(list->vt) list->vt->on_destroy(list);
 	else if(list->reset) list->reset->on_destroy(list);
 	if(list->vt_data) SYS_free(void, list->vt_data);
@@ -137,6 +156,7 @@ void NAL_LISTENER_free(NAL_LISTENER *list)
 
 void NAL_LISTENER_reset(NAL_LISTENER *list)
 {
+	if(list->sel) NAL_LISTENER_del_from_selector(list);
 	if(list->vt) {
 		list->vt->on_reset(list);
 		list->reset = list->vt;
@@ -159,16 +179,28 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 	return 1;
 }
 
-void NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
+int NAL_LISTENER_add_to_selector(NAL_LISTENER *list,
 				NAL_SELECTOR *sel)
 {
-	if(list->vt) list->vt->selector_add(list, sel);
+	if(!list->vt || list->sel || !list->vt->pre_selector_add(list, sel))
+		return 0;
+	if((list->sel_token = nal_selector_add_listener(sel, list)) ==
+				NAL_SELECTOR_TOKEN_NULL) {
+		list->vt->pre_selector_del(list);
+		return 0;
+	}
+	list->sel = sel;
+	return 1;
 }
 
-void NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
-				NAL_SELECTOR *sel)
+void NAL_LISTENER_del_from_selector(NAL_LISTENER *list)
 {
-	if(list->vt) list->vt->selector_del(list, sel);
+	if(list->vt && list->sel) {
+		list->vt->pre_selector_del(list);
+		nal_selector_del_listener(list->sel, list, list->sel_token);
+		list->sel = NULL;
+		list->sel_token = NULL;
+	}
 }
 
 int NAL_LISTENER_finished(const NAL_LISTENER *list)
