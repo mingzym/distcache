@@ -25,6 +25,10 @@
 #include "nal_internal.h"
 #include <libsys/post.h>
 
+/********************/
+/* Select interface */
+/********************/
+
 typedef struct _NAL_SELECTOR_item {
 	fd_set reads;
 	fd_set sends;
@@ -39,10 +43,6 @@ struct st_NAL_SELECTOR {
 	NAL_SELECTOR_item to_select;
 };
 
-/*******************/
-/* Internal macros */
-/*******************/
-
 /* Workaround signed/unsigned conflicts between real systems and windows */
 #ifndef WIN32
 #define FD_SET2(a,b) FD_SET((a),(b))
@@ -52,21 +52,45 @@ struct st_NAL_SELECTOR {
 #define FD_CLR2(a,b) FD_CLR((SOCKET)(a),(b))
 #endif
 
-/**********************/
-/* Internal functions */
-/**********************/
-
-static void nal_selector_item_init(NAL_SELECTOR_item *item)
+static int nal_selector_item_init(NAL_SELECTOR_item *item)
 {
 	FD_ZERO(&item->reads);
 	FD_ZERO(&item->sends);
 	FD_ZERO(&item->excepts);
 	item->max = 0;
+	return 1;
 }
 
-/************************************/
-/* Functions local to libnal source */
-/************************************/
+static void nal_selector_item_finish(NAL_SELECTOR_item *item)
+{
+	/* nop */
+}
+
+static void nal_selector_item_flip(NAL_SELECTOR_item *to,
+				NAL_SELECTOR_item *from)
+{
+	SYS_memcpy(fd_set, &to->reads, &from->reads);
+	SYS_memcpy(fd_set, &to->sends, &from->sends);
+	SYS_memcpy(fd_set, &to->excepts, &from->excepts);
+	to->max = from->max;
+	nal_selector_item_init(from);
+}
+
+static int nal_selector_item_select(NAL_SELECTOR_item *item,
+		unsigned long usec_timeout, int use_timeout)
+{
+	struct timeval timeout;
+	if(use_timeout) {
+		timeout.tv_sec = usec_timeout / 1000000;
+		timeout.tv_usec = usec_timeout % 1000000;
+	}
+	return select(item->max, &item->reads, &item->sends, &item->excepts,
+			(use_timeout ? &timeout : NULL));
+}
+
+/*******************************************************/
+/* Select interface - functions local to libnal source */
+/*******************************************************/
 
 /* set/unset operate on "to_select */
 
@@ -118,15 +142,23 @@ NAL_SELECTOR *NAL_SELECTOR_new(void)
 {
 	NAL_SELECTOR *sel = SYS_malloc(NAL_SELECTOR, 1);
 	if(sel) {
-		nal_selector_item_init(&sel->last_selected);
-		nal_selector_item_init(&sel->to_select);
+		if(!nal_selector_item_init(&sel->last_selected))
+			goto err;
+		if(!nal_selector_item_init(&sel->to_select)) {
+			nal_selector_item_finish(&sel->last_selected);
+			goto err;
+		}
 	}
 	return sel;
+err:
+	SYS_free(NAL_SELECTOR, sel);
+	return NULL;
 }
 
 void NAL_SELECTOR_free(NAL_SELECTOR *a)
 {
-	/* No cleanup required */
+	nal_selector_item_finish(&a->last_selected);
+	nal_selector_item_finish(&a->to_select);
 	SYS_free(NAL_SELECTOR, a);
 }
 
@@ -138,15 +170,8 @@ int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
 	timeout.tv_sec = usec_timeout / 1000000;
 	timeout.tv_usec = usec_timeout % 1000000;
 	/* Migrate to_select over to last_selected */
-	SYS_memcpy(fd_set, &sel->last_selected.reads, &sel->to_select.reads);
-	SYS_memcpy(fd_set, &sel->last_selected.sends, &sel->to_select.sends);
-	SYS_memcpy(fd_set, &sel->last_selected.excepts, &sel->to_select.excepts);
-	sel->last_selected.max = sel->to_select.max;
-	nal_selector_item_init(&sel->to_select);
-	return select(sel->last_selected.max,
-			&sel->last_selected.reads,
-			&sel->last_selected.sends,
-			&sel->last_selected.excepts,
-			(use_timeout ? &timeout : NULL));
+	nal_selector_item_flip(&sel->last_selected, &sel->to_select);
+	return nal_selector_item_select(&sel->last_selected, usec_timeout,
+				use_timeout);
 }
 
