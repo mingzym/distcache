@@ -18,9 +18,9 @@ rm -f aclocal.m4
 rm -rf autom4te*.cache
 rm -f config.*
 rm -f conftest*
-rm -f depcomp compile
+rm -f depcomp compile libtool
 rm -f install-sh ltmain.sh missing mkinstalldirs
-rm -f stamp-h.in
+rm -f stamp-h*
 
 # Residual backup files and what-not
 find . -type f -name "*~" | xargs rm -f
