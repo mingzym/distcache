@@ -25,6 +25,9 @@
 #include "timing.h"
 #include <libsys/post.h>
 
+/* Uncomment if you wish to debug setup/teardown of tunnels */
+/* #define DEBUG_TUNNELS */
+
 #define MAX_PAIRS		10
 #define MAX_CONNS		512
 #define BUFFER_SIZE		(16*1024)
@@ -175,8 +178,10 @@ static int conns_accept(NAL_CONNECTION *conn, NAL_SELECTOR *sel)
 			conns[conns_used].dead2 = 0;
 			conns[conns_used].pair = tmp;
 			conns_used++;
+#ifdef DEBUG_TUNNELS
 			SYS_fprintf(SYS_stderr, "Adding a tunnel -> total %d "
 				"(from pair %d)\n", conns_used, tmp);
+#endif
 			return 1;
 		}
 	}
@@ -235,8 +240,10 @@ static unsigned int conns_io(NAL_SELECTOR *sel)
 			NAL_CONNECTION_free(item->conn2);
 			if(foo < conns_used--)
 				SYS_memcpy_n(tunnel_t, item, item + 1, conns_used - foo);
+#ifdef DEBUG_TUNNELS
 			SYS_fprintf(SYS_stderr, "Dropping a tunnel -> total %d "
 				"(from pair %d)\n", conns_used, item->pair);
+#endif
 		} else {
 			/* Move on */
 			foo++;
