@@ -274,25 +274,17 @@ static void generate_random_bytes(unsigned char *buf, unsigned int num)
 #ifdef HAVE_OPENSSL
 	RAND_pseudo_bytes(buf, num);
 #else
-	static int first_time = 1;
-	static FILE *urandom = NULL;
 	unsigned int i;
-	if(first_time) {
-		urandom = fopen("/dev/urandom", "r");
-	}
+	FILE *urandom = fopen("/dev/urandom", "r");
 	if(urandom) {
 		fread(buf, 1, num, urandom);
-		first_time = 0;
+		fclose(urandom);
 		return;
 	}
-	if(first_time) {
-		SYS_fprintf(SYS_stderr, "Warning - no random seed, will "
+	SYS_fprintf(SYS_stderr, "Warning - no random seed, will "
 			"generate repeating sequence!!!\n");
-		first_time = 0;
-	}
-	for (i = 0; i < num; i++) {
+	for (i = 0; i < num; i++)
 		buf[i] = (unsigned char)(255.0 * rand() / (RAND_MAX + 1.0));
-	}
 #endif
 }
 
