@@ -19,10 +19,16 @@ Current version: x.x
 Changes between 0.4pre1 and x.x
 -------------------------------
 
+  *) Removed the unnecessary NAL_BUFFER_read_ptr() function as it is equivalent
+     to NAL_BUFFER_data() except the latter (correctly) returns a const
+     pointer. This function was apparently written when I was too distracted to
+     realise that NAL_BUFFER is a FIFO and the read pointer is invariant.
+     [Geoff Thorpe]
+
   *) Add more API documents;
-    - NAL_LISTENER_new.pod (all NAL_LISTENER functions)
-    - NAL_SELECTOR_new.pod (all NAL_SELECTOR functions)
-    [Geoff Thorpe]
+     - NAL_LISTENER_new.pod (all NAL_LISTENER functions)
+     - NAL_SELECTOR_new.pod (all NAL_SELECTOR functions)
+     [Geoff Thorpe]
 
 Changes between 0.3 and 0.4pre1
 -------------------------------

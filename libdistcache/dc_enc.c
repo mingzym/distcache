@@ -405,7 +405,7 @@ static int DC_PLUG_IO_make_space(DC_PLUG_IO *io, unsigned int needed)
 static int DC_PLUG_IO_read_flush(DC_PLUG_IO *io, int to_server,
 				NAL_BUFFER *buffer)
 {
-	unsigned char *buf_ptr;
+	const unsigned char *buf_ptr;
 	unsigned int buf_len, tmp;
 	DC_CMD cmd;
 
@@ -423,7 +423,7 @@ start_over:
 		assert(NULL == "shouldn't be here");
 		return 0;
 	}
-	buf_ptr = NAL_BUFFER_read_ptr(buffer);
+	buf_ptr = NAL_BUFFER_data(buffer);
 	buf_len = NAL_BUFFER_used(buffer);
 	/* Whichever case we are - try to decode a message, if that fails, we
 	 * haven't changed anything. */

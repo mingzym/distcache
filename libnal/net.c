@@ -1347,11 +1347,6 @@ unsigned int NAL_BUFFER_read(NAL_BUFFER *buf, unsigned char *ptr,
 	return toread;
 }
 
-unsigned char *NAL_BUFFER_read_ptr(NAL_BUFFER *buf)
-{
-	return buf->_data;
-}
-
 unsigned char *NAL_BUFFER_write_ptr(NAL_BUFFER *buf)
 {
 	return (buf->_data + buf->_used);

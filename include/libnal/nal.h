@@ -140,14 +140,13 @@ unsigned int 	NAL_BUFFER_write(NAL_BUFFER *buf,
 unsigned int 	NAL_BUFFER_read(NAL_BUFFER *buf,
 				unsigned char *ptr,
 				unsigned int size);
-/***************** WARNING ********************/
-/* These functions allow direct access to the buffers internal data and are to
- * be used with caution - it's easy for data to "go missing" or "get created out
- * of nowhere" by misusing these functions. */
-/***************** WARNING ********************/
-/* Returns a pointer to the head of the buffer's data, you should never attempt
- * to access more than NAL_BUFFER_used(buf) bytes from the return value. */
-unsigned char *	NAL_BUFFER_read_ptr(NAL_BUFFER *buf);
+
+/***************** WARNING START ********************/
+/* These functions manipulate internal data directly and are to be used with
+ * caution - it's easy for data to "go missing" or "get created out of nowhere"
+ * by misusing these functions. */
+/******** WARNING END - you have been warned ********/
+
 /* Returns a pointer to the tail of the buffer's data, you should never attempt
  * to write more than NAL_BUFFER_unused(buf) bytes from the return value. */
 unsigned char *	NAL_BUFFER_write_ptr(NAL_BUFFER *buf);
