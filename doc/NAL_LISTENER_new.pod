@@ -8,7 +8,7 @@ NAL_LISTENER_new, NAL_LISTENER_free, NAL_LISTENER_create, NAL_LISTENER_accept_bl
 
  #include <libnal/nal.h>
 
- NAL_LISTENER *	NAL_LISTENER_new(void);
+ NAL_LISTENER *NAL_LISTENER_new(void);
  void NAL_LISTENER_free(NAL_LISTENER *a);
  int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr);
  int NAL_LISTENER_accept_block(const NAL_LISTENER *list, NAL_CONNECTION *conn);
