@@ -37,11 +37,14 @@ typedef struct st_NAL_BUFFER NAL_BUFFER;
 
 /********************/
 /* Global functions */
+/********************/
 
-int		NAL_config_set_nagle(int enabled);
+void		NAL_config_set_nagle(int enabled);
 
 /*********************/
 /* Address functions */
+/*********************/
+
 NAL_ADDRESS *	NAL_ADDRESS_new(void);
 void		NAL_ADDRESS_free(NAL_ADDRESS *a);
 int		NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
@@ -49,12 +52,13 @@ int		NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 unsigned int	NAL_ADDRESS_get_def_buffer_size(const NAL_ADDRESS *addr);
 int		NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
 				unsigned int def_buffer_size);
-int		NAL_ADDRESS_can_connect(NAL_ADDRESS *addr);
-int		NAL_ADDRESS_can_listen(NAL_ADDRESS *addr);
-const char *	NAL_ADDRESS_source_string(NAL_ADDRESS *addr);
+int		NAL_ADDRESS_can_connect(const NAL_ADDRESS *addr);
+int		NAL_ADDRESS_can_listen(const NAL_ADDRESS *addr);
 
 /**********************/
 /* Selector functions */
+/**********************/
+
 NAL_SELECTOR *	NAL_SELECTOR_new(void);
 void		NAL_SELECTOR_free(NAL_SELECTOR *a);
 int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
@@ -63,31 +67,28 @@ int		NAL_SELECTOR_select(NAL_SELECTOR *sel,
 
 /**********************/
 /* Listener functions */
+/**********************/
+
 NAL_LISTENER *	NAL_LISTENER_new(void);
 void		NAL_LISTENER_free(NAL_LISTENER *a);
 int		NAL_LISTENER_create(NAL_LISTENER *list,
 				const NAL_ADDRESS *addr);
-int		NAL_LISTENER_accept_block(const NAL_LISTENER *list,
-				NAL_CONNECTION *conn);
-int		NAL_LISTENER_accept(const NAL_LISTENER *list,
-				NAL_SELECTOR *sel,
-				NAL_CONNECTION *conn);
 void		NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel);
 void		NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel);
 
-/************************/
-/* Connection functions */
+/**********************************/
+/* Connection functions (general) */
+/**********************************/
+
 NAL_CONNECTION *NAL_CONNECTION_new(void);
 void		NAL_CONNECTION_free(NAL_CONNECTION *a);
 int		NAL_CONNECTION_create(NAL_CONNECTION *conn,
 				const NAL_ADDRESS *addr);
-int		NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1,
-				NAL_CONNECTION *conn2,
-				unsigned int def_buffer_size);
-int		NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
-				unsigned int def_buffer_size);
+int		NAL_CONNECTION_accept(NAL_CONNECTION *conn,
+				NAL_LISTENER *list,
+				NAL_SELECTOR *sel);
 int		NAL_CONNECTION_set_size(NAL_CONNECTION *conn,
 				unsigned int size);
 NAL_BUFFER *	NAL_CONNECTION_get_read(NAL_CONNECTION *conn);
@@ -103,6 +104,17 @@ void		NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
 void		NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,
 				NAL_SELECTOR *sel);
 
+/**************************************/
+/* Connection functions (specialised) */
+/**************************************/
+
+#if 0
+int		NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1,
+				NAL_CONNECTION *conn2,
+				unsigned int def_buffer_size);
+int		NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
+				unsigned int def_buffer_size);
+#endif
 /* These are used by distcache utilities (excluding daemons) in one or two
  * places, and they were not worth explicitly hiding from the libnal
  * abstraction but nevertheless don't warrant a mention in the API. As such,
@@ -111,12 +123,16 @@ void		NAL_CONNECTION_del_from_selector(const NAL_CONNECTION *conn,
  * don't promise that I won't butcher these at some point, and if anyone wants
  * them anyway, they would probably be better off implementing a new
  * NAL_CONNECTION type to encapsulate arbitrary fd's. */
+#if 0
 void		NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel);
 int		NAL_SELECTOR_stdin_readable(NAL_SELECTOR *sel);
 int		NAL_stdin_set_non_blocking(int non_blocking);
+#endif
 
 /********************/
 /* Buffer functions */
+/********************/
+
 NAL_BUFFER *	NAL_BUFFER_new(void);
 void		NAL_BUFFER_free(NAL_BUFFER *a);
 int		NAL_BUFFER_set_size(NAL_BUFFER *buf,
@@ -154,6 +170,7 @@ void		NAL_BUFFER_wrote(NAL_BUFFER *buf,
 
 /*************************/
 /* En/Decoding functions */
+/*************************/
 
 /* This set of functions provide architecture-independant ways of encoding
  * various primitive types. The general format of the functions is;

@@ -276,7 +276,7 @@ main_loop:
 	/* Set a "now" value that can be used throughout this post-select loop
 	 * (saving on redundant calls to gettimeofday()). */
 	SYS_gettime(&now);
-	if(conn && NAL_LISTENER_accept(listener, sel, conn)) {
+	if(conn && NAL_CONNECTION_accept(conn, listener, sel)) {
 		if(!clients_new_client(clients, conn, &now)) {
 			SYS_fprintf(SYS_stderr, "Error, couldn't add in new "
 				"client connection - dropping it.\n");

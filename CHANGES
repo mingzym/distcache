@@ -19,13 +19,16 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
-  *) Modularisation of libnal
+  *) Major overhaul of libnal
      - NAL_BUFFER implementation separated out into buffer.c
      - NAL_SELECTOR implementation separated out into selector.c
      - addition of NAL_LISTENER_get_fd()
      - addition of const versions of NAL_CONNECTION_get_[read|send]
      - converted NAL_SELECTOR_[add|del]_[conn|listener] functions into
        NAL_LISTENER_*** and NAL_CONNECTION_*** equivalents.
+     - converted NAL_LISTENER_accept() to NAL_CONNECTION_accept() as this makes
+       more OO sense. Also removed NAL_LISTENER_accept_block() which was unused
+       (and trivial for the caller to manufacture if they need it).
      - removed NAL_[CONNECTION|LISTENER]_get_fd() functions as these don't
        help me to preserve opacity and weren't used (except to work around
        the problem now solved by the previous change in this list).
@@ -46,6 +49,16 @@ Changes between 1.4.1 and x.x
        parent NAL_ADDRESS structures. This makes encapsulation hard, has never
        been used, and can be managed by the caller if they so wish (ie. if they
        want to keep a copy of the address, they can).
+     - NAL_config_set_nagle() needs no return type, so it's now void.
+     - NAL_ADDRESS_source_string() has been removed as this is as unnecessary
+       as keeping a NAL_ADDRESS copy inside NAL_LISTENER and NAL_CONNECTION
+       was - the caller can take care of such "caching" if they want/need it.
+     - specialised functions (NAL_CONNECTION_create_[pair|dummy],
+       NAL_SELECTOR_stdin_[add|readable], and NAL_stdin_set_non_blocking) have
+       been "#if 0"'d out for the moment as they're unused and will (initially)
+       complicate modularisation of the libnal implementations. I'll put these
+       back in as/when I get round to it after I'm done with the current
+       overhauls.
      - minor tidy-ups and bug-fixes
      [Geoff Thorpe]
 

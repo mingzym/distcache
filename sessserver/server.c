@@ -287,7 +287,7 @@ skip_totals:
 		goto err;
 	}
 	/* Now handle new connections */
-	if(NAL_LISTENER_accept(listener, sel, conn)) {
+	if(NAL_CONNECTION_accept(conn, listener, sel)) {
 		/* New client! */
 		if(!DC_SERVER_new_client(server, conn,
 					DC_CLIENT_FLAG_IN_SERVER))

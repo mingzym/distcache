@@ -438,7 +438,7 @@ static int snoop_ctx_io(snoop_ctx *ctx)
 {
 	unsigned int loop = 0;
 	snoop_item *i = ctx->items;
-	if(NAL_LISTENER_accept(ctx->list, ctx->sel, ctx->newclient)) {
+	if(NAL_CONNECTION_accept(ctx->newclient, ctx->list, ctx->sel)) {
 		/* This assert is justified by the fact we don't add the
 		 * listener to the selector unless this is already true. */
 		assert(ctx->items_used < SNOOP_MAX_ITEMS);
