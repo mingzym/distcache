@@ -87,7 +87,7 @@
  * an "error" value (in the case of "ADD", and "REMOVE" this includes an "OK"
  * value, and in the case of "HAVE" is a boolean anyway). These values, if
  * they're less than 100, come from the DC_ERR enumerate type. Otherwise, they
- * are from the per-operation enums corresponding to the command type.  The
+ * are from the per-operation enums corresponding to the command type. The
  * meaning of the operations and their data is as follows;
  *
  * DC_OP_ADD;
@@ -95,18 +95,17 @@
  *    d2i_SSL_SESSION() function) to a cache target for addition. The encoded
  *    data is prefixed by a 4-byte (unsigned long) value indicating the number
  *    of seconds the server should allow before automatically removing the
- *    session from its storage. The return value is 1-byte; either zero (for
- *    OK), or a value chosen from DC_[ADD_]ERR_*** values.
+ *    session from its storage. The return value is 1-byte; either DC_ERR_OK, or
+ *    a value chosen from DC_[ADD_]ERR_*** values.
  * DC_OP_GET;
  *    This operation looks up a cache target to see if it has the SSL_SESSION
  *    corresponding to a given session id. The payload is the session id, and
- *    the return value is either a 1-byte error value (chosen from
- *    DC_[GET_]ERR_*** values) or an encoded SSL_SESSION matching the id.
+ *    the return value is either a 1-byte error value chosen from the DC_ERR
+ *    type or an encoded SSL_SESSION matching the id.
  * DC_OP_REMOVE;
  *    This operation looks up a cache target to see if it has the SSL_SESSION
  *    corresponding to a given session id. The payload is the session id, and
- *    the return value is 1-byte; either zero (for OK), or a value chosen from
- *    DC_[REMOVE_]ERR_*** values.
+ *    the return value is a 1-byte error value chosen from DC_ERR_TYPE.
  * DC_OP_HAVE;
  *    This operation is like DC_OP_GET, except that it doesn't return a session
  *    object even if it has the one that is asked for. The caller is simply
@@ -115,7 +114,8 @@
  *    so proxies may alreay have the session cached but just want to check it
  *    hasn't been deleted from the server before they return it to an
  *    application. The format is the same as DC_OP_GET, and the return value is
- *    always 1-byte chosen from DC_[HAVE_]RES_*** values.
+ *    a 1-byte boolean value from chosen from the DC_ERR type (YES/NO is
+ *    DC_ERR_OK/DC_ERR_NOTOK respectively).
  */
 
 typedef enum {
@@ -125,9 +125,9 @@ typedef enum {
 
 typedef enum {
 	DC_OP_ADD = 0,
-	DC_OP_GET = 1,
-	DC_OP_REMOVE = 2,
-	DC_OP_HAVE = 3
+	DC_OP_GET,
+	DC_OP_REMOVE,
+	DC_OP_HAVE
 } DC_OP;
 
 /* These alternative enums provide an encapsulated op_class/operation pair */
@@ -143,6 +143,7 @@ typedef enum {
  * are numbered from 100 onwards. */
 typedef enum {
 	DC_ERR_OK = 0,
+	DC_ERR_NOTOK,
 	DC_ERR_DISCONNECTED
 } DC_ERR;
 
@@ -154,17 +155,6 @@ typedef enum {
 	DC_ADD_ERR_ID_RANGE,
 	DC_ADD_ERR_DATA_RANGE
 } DC_ADD_ERR;
-typedef enum {
-	DC_REMOVE_ERR_NO_SUCH_SESSION = 10,
-} DC_REMOVE_ERR;
-typedef enum {
-	DC_GET_ERR_NO_SUCH_SESSION = 100
-} DC_GET_ERR;
-
-typedef enum {
-	DC_HAVE_RES_NO = 0,
-	DC_HAVE_RES_YES = 1,
-} DC_HAVE_RES;
 
 /* Before decoding, serialised data is scanned to see that it is valid and
  * complete using 'DC_MSG_pre_decode()'. This is the return type. */

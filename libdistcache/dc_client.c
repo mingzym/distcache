@@ -386,9 +386,9 @@ int DC_CTX_has_session(DC_CTX *ctx,
 	if(ctx->read_data_len != 1)
 		return 0;
 	switch(ctx->read_data[0]) {
-	case DC_HAVE_RES_YES:
+	case DC_ERR_OK:
 		return 1;
-	case DC_HAVE_RES_NO:
+	case DC_ERR_NOTOK:
 		return 0;
 	default:
 		break;
