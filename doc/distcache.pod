@@ -29,13 +29,27 @@ a variety of "shared-state" uses besides SSL/TLS session caching.
 
 =item B<dc_server>
 
-Runs a cache server listening on a configurable network address.
+Runs a cache server listening on a configurable network address. See
+L<dc_server(1)>.
 
 =item B<dc_client>
 
 Runs a local client proxy. This presents an interface to applications much like
 B<dc_server> but itself manages multiplexing application requests to/from a
-cache server through a single persistent connection.
+cache server through a single persistent connection. See L<dc_client(1)>.
+
+=item B<dc_test>
+
+Sends a (configurable) barrage of session caching requests to a given network
+address using the distcache protocol. Useful for testing correctness of an
+installation as well as benchmarking. See L<dc_test(1)>.
+
+=item B<dc_snoop>
+
+A transparent proxy tool supporting the distcache protocol that can be used to
+monitor cache operation requests and responses between any two end-points (eg.
+between an application and B<dc_client>, or between B<dc_client> and
+B<dc_server>). See L<dc_snoop(1)>.
 
 =back
 
@@ -86,12 +100,42 @@ representing the read and send parts of a NAL_CONNECTION object.
 
 =head2 libdistcache
 
-... [todo] ...
+There are two APIs implemented by the B<libdistcache> library;
+
+=over 4
+
+=item distcache/dc_enc.h
+
+This header declares the raw message structure type DC_MSG as well the
+associated constants, enumerated types [etc]. In addition it provides the
+DC_PLUG abstraction which provides an encapsulation of a connection supporting
+the distcache protocol and various functions for manipulating the reading and
+writing of distcache messages (requests or responses). This abstraction can
+support client and server implementations of the distcache protocol and
+supports asynchronous behaviour by interacting with I<libnal>'s NAL_SELECTOR
+type. For more information, see L<DC_PLUG_new(2)>.
+
+=item distcache/dc_client.h
+
+This header declares a higher-level (and much simpler) API than dc_enc.h, and
+is useful in applications that want API functions that ``do cache operations''.
+The API is blocking, and provides simplistic ``add'', ``remove'', and ``get''
+functions that only return once the full request/response cycle is complete or
+an error has occured. This is the API used to add distcache support to applications
+like Apache, stunnel, etc. For more information, see L<DC_CTX_new(2)>.
+
+=back
 
 =head2 libdistcacheserver
 
-... [todo] ...
-
+This header declares an API for implementing a session cache supporting the
+distcache protocol. It is primarily intended for environments that wish to
+implement an alternative method for session storage. As with elements of
+I<libdistcache>, this API is likely to be undergoing some important
+restructuring and enhancements. Please consider subscribing to the distcache
+mail list and/or monitoring CVS, this gives you an opportunity to influence
+ongoing development and be less surprised at changes the turn up in future
+versions. For more information, see L<DC_SERVER_new(2)>.
 
 =head1 SEE ALSO
 
