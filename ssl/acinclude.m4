@@ -17,8 +17,15 @@ if test "x$dc_ssltk_base" = "x"; then
 
 	AC_ARG_WITH(ssl, AC_HELP_STRING([--with-ssl=/path/to/openssl],
 		[use the specified OpenSSL installation or build tree]), [
-		dnl This ensures $withval is actually a directory and that it is absolute
-		dc_ssltk_base="`cd $withval ; pwd`"
+		dnl This ensures $withval is actually a directory and that it is
+		dnl absolute.
+		if test -d "$withval"; then
+			dc_ssltk_base="`cd "$withval" ; pwd`"
+		elif test -d "../$withval"; then
+			dc_ssltk_base="`cd "../$withval" ; pwd`"
+		else
+			AC_MSG_ERROR([invalid directory: "$withval"])
+		fi
 	])
 	if test "x$dc_ssltk_base" = "x"; then
 		AC_MSG_RESULT(none)
