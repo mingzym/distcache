@@ -19,5 +19,33 @@ Current version: xx.xx
 Changes between 0.1-seed and xx.xx
 ----------------------------------
 
-[no changes yet]
+  *) [Steve Robb]
+  
+     Add the first part of autoconf/autmake/libtool support to distcache
+     including numerous followup tweaks.
 
+  *) [Geoff Thorpe]
+
+     Use the autoconf-generated config.h to control #includes.
+
+     Removed various things from 0.1-seed that aren't relevant;
+     - IN_MAKEDEPEND hacks no longer needed as autoconf/automake handle
+       dependencies.
+     - wrapper functions removed for unneeded stuff, fork(), waitpid(), etc.
+     - NAL_SELECTOR_create() removed too.
+     - NAL types are always dynamic now, so init() functions aren't needed to
+       initialise static versions.
+     - Get rid of some unnecessary types and use just DC_ERR where possible
+       (this altered the protocol slightly).
+
+     Add "-pidfile" and "-daemon" switches to the 'sserver' utility.
+
+     Allow building without OpenSSL support (only affects test_session which
+     can generate garbage sessions to test with rather than OpenSSL-compatible
+     ones).
+
+     Added a self-test script to test sserver and sclient with test_session.
+
+     Added DISTCACHE_CLIENT_API and DISTCACHE_CLIENT_BINARY version defines to
+     dc_client.h so that apache/mod_ssl plugins can run sanity checks on the
+     version of distcache.

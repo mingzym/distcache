@@ -18,21 +18,26 @@ Installation
 ------------
 
 For now, the compilation instructions are very straightforward.
+ o Type "./configure"
  o Type "make"
  o Hope
 
 As for installation, that's also rather easy.
- o Use 'cp' or 'mv'
+ o As the root user, type "make install"
 
 
 Something more useful
 ---------------------
 
 Now that 'distcache' is open source, some efforts are being made to support it
-using the GNU autotools. The code, prior to being released as open source, was
-made to work on the required platforms on a case-by-case basis (by scripts in
-the "NotLinux" directory that would patch the build system). Likewise, packaging
-and installation was handled externally to the source tree.
+better using the GNU autotools. The current version of the code has the standard
+GNU autotools framework in place already ("./configure" with all the normal
+supported options such as "--prefix"), but there is quite likely some work
+required to have the code *use* the facilities of the autotools for better
+portability, particularly in the "libnal" networking code. If you have a target
+platform that has compilation problems, please give us some information - if you
+can provide fixes or allow us shell access to such a machine to fix it ourselves
+we would be most grateful; please mail distcache-team@lists.sourceforge.net.
 
 Before long, 'distcache' should be well supported on the standard Unix-like
 platforms as well as Win32 (using Cygwin) because of the GNU autotools suite.
