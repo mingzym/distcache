@@ -26,6 +26,9 @@
 #include "timing.h"
 #include <libsys/post.h>
 
+/* To debug each request/response, define this */
+/* #define DEBUG_PONG */
+
 typedef enum {
 	NET_NULL,
 	NET_CLIENT,
@@ -39,8 +42,8 @@ typedef enum {
 #define DEF_NUM_CONNS		1
 #define DEF_REQUEST		10
 #define DEF_RESPONSE		1024
-#define DEF_LOOP		1
 #define DEF_REPEAT		10
+#define DEF_WINDOW		1
 #define DEF_UNITS		UNITS_bits
 
 #ifdef SUPPORT_UPDATE
@@ -50,15 +53,14 @@ IMPLEMENT_UNITS()
 static void usage(void)
 {
 	SYS_fprintf(SYS_stderr,
-"Usage:   nal_ping [options ...] < [ -connect | -accept ] address >\n"
+"Usage:   nal_pong [options ...] < [ -connect | -accept ] address >\n"
 "where options include;\n"
 "   -num <num>          - default=%d\n"
 "   -request <num>      - default=%d\n"
 "   -response <num>     - default=%d\n"
-"   -loop <num>         - default=%d\n"
 "   -repeat <num>       - default=%d\n"
-"   -reverse\n",
-DEF_NUM_CONNS, DEF_REQUEST, DEF_RESPONSE, DEF_LOOP, DEF_REPEAT);
+"   -window <num>       - default=%d\n",
+DEF_NUM_CONNS, DEF_REQUEST, DEF_RESPONSE, DEF_REPEAT, DEF_WINDOW);
 #ifdef SUPPORT_UPDATE
 	SYS_fprintf(SYS_stderr,
 "   -update <secs>      - default=<none>\n"
@@ -67,17 +69,6 @@ DEF_NUM_CONNS, DEF_REQUEST, DEF_RESPONSE, DEF_LOOP, DEF_REPEAT);
 "An optional prefix can scale to kilo, mega, or giga bits/bytes.\n",
 UNITS2STR(DEF_UNITS));
 #endif
-	SYS_fprintf(SYS_stderr,
-"Using -loop allows requests/responses to be repeated over the same\n"
-"connection, whereas -repeat indicates how many times a connection\n"
-"should be reopened. The network server (-accept) must have a loop\n"
-"value matching the client, however -repeat is ignored and -num is\n"
-"only used as a maximum (it will not accept more than -num connections\n"
-"at a time).\n");
-	SYS_fprintf(SYS_stderr,
-"When using -connect (ie. network client), it is assumed we send the\n"
-"the request and then read the response. With -accept, the converse\n"
-"is assumed. Specifying -reverse can invert the request/response roles.\n");
 }
 
 static int util_parsenum(const char *s, unsigned int *num)
@@ -114,21 +105,23 @@ typedef struct st_pongctx {
 	/* Fixed context data */
 	const NAL_ADDRESS *addr;
 	NAL_SELECTOR *sel;
-	int id, requestor;
-	unsigned int num_loop, num_repeat, size_request, size_response;
+	int id;
+	unsigned int num_repeat, size_request, size_response, window;
 	NET_MODE mode;
 	/* State */
-	int step, done;
+	int done;
 	NAL_CONNECTION *conn;
-	unsigned int loop, repeat, step_offset;
+	unsigned int num_sent, num_received;
 } pongctx;
 
 static int pongctx_io(pongctx *ctx);
+static int pongctx_postio_client(pongctx *ctx);
+static int pongctx_postio_server(pongctx *ctx);
 
 static pongctx *pongctx_new(const NAL_ADDRESS *addr, NAL_SELECTOR *sel, int id,
-				int requestor, unsigned int num_loop,
-				unsigned int num_repeat, unsigned int size_request,
-				unsigned int size_response, NET_MODE mode)
+			unsigned int num_repeat, unsigned int size_request,
+			unsigned int size_response, unsigned int window,
+			NET_MODE mode)
 {
 	pongctx *ret = SYS_malloc(pongctx, 1);
 	if(!ret) goto err;
@@ -138,19 +131,18 @@ static pongctx *pongctx_new(const NAL_ADDRESS *addr, NAL_SELECTOR *sel, int id,
 	ret->addr = addr;
 	ret->sel = sel;
 	ret->id = id;
-	ret->requestor = requestor;
-	ret->num_loop = num_loop;
 	ret->num_repeat = num_repeat;
 	ret->size_request = size_request;
 	ret->size_response = size_response;
+	ret->window = window;
 	ret->mode = mode;
 	/* state */
-	ret->step = ret->done = 0;
-	ret->loop = ret->repeat = ret->step_offset = 0;
+	ret->done = 0;
+	ret->num_sent = ret->num_received = 0;
 	if((mode == NET_CLIENT) && (!NAL_CONNECTION_create(ret->conn, addr) ||
 				!NAL_CONNECTION_add_to_selector(ret->conn, sel)))
 		goto err;
-	if((mode == NET_CLIENT) && (pongctx_io(ret) < 0)) goto err;
+	if((mode == NET_CLIENT) && (pongctx_postio_client(ret) < 0)) goto err;
 	return ret;
 err:
 	if(ret) {
@@ -166,104 +158,117 @@ static void pongctx_free(pongctx *ctx)
 	SYS_free(pongctx, ctx);
 }
 
+static int pongctx_postio_client(pongctx *ctx)
+{
+	int num, ret = 0;
+	NAL_BUFFER *b_read = NAL_CONNECTION_get_read(ctx->conn);
+	NAL_BUFFER *b_send = NAL_CONNECTION_get_send(ctx->conn);
+	/* Consume responses */
+	num = NAL_BUFFER_used(b_read) / ctx->size_response;
+	if(num > 0) {
+		unsigned int foo = NAL_BUFFER_read(b_read, NULL,
+				num * ctx->size_response);
+		assert(foo == num * ctx->size_response);
+		ctx->num_received += num;
+		ret += foo;
+#ifdef DEBUG_PONG
+		SYS_fprintf(SYS_stderr, "consuming %d responses -> %d\n",
+			num, ctx->num_received);
+#endif
+	}
+	/* Produce requests */
+	num = NAL_BUFFER_unused(b_send) / ctx->size_request;
+	/* limit by repeat and window */
+	if((ctx->num_sent + num) > ctx->num_repeat)
+		num = ctx->num_repeat - ctx->num_sent;
+	if((ctx->num_sent + num) > (ctx->num_received + ctx->window))
+		num = ctx->num_received + ctx->window - ctx->num_sent;
+#ifdef DEBUG_PONG
+	if(num > 0)
+		SYS_fprintf(SYS_stderr, "producing %d requests -> %d\n",
+			num, ctx->num_sent + num);
+#endif
+	while(num-- > 0) {
+		unsigned int foo = NAL_BUFFER_write(b_send, garbage,
+				ctx->size_request);
+		assert(foo == ctx->size_request);
+		ctx->num_sent++;
+		ret += ctx->size_request;
+	}
+	if((ctx->num_received == ctx->num_repeat) && NAL_BUFFER_empty(b_send)) {
+#ifdef DEBUG_PONG
+		SYS_fprintf(SYS_stderr, "Done\n");
+#endif
+		NAL_CONNECTION_reset(ctx->conn);
+		ctx->done = 1;
+	}
+	return ret;
+}
+
+static int pongctx_postio_server(pongctx *ctx)
+{
+	int num, ret = 0;
+	NAL_BUFFER *b_read = NAL_CONNECTION_get_read(ctx->conn);
+	NAL_BUFFER *b_send = NAL_CONNECTION_get_send(ctx->conn);
+	/* Consume requests */
+	num = NAL_BUFFER_used(b_read) / ctx->size_request;
+	if(num > 0) {
+		unsigned int foo = NAL_BUFFER_read(b_read, NULL,
+				num * ctx->size_request);
+		assert(foo == num * ctx->size_request);
+		ctx->num_received += num;
+		ret += foo;
+#ifdef DEBUG_PONG
+		SYS_fprintf(SYS_stderr, "consuming %d requests -> %d\n",
+			num, ctx->num_received);
+#endif
+	}
+	/* Produce responses */
+	num = NAL_BUFFER_unused(b_send) / ctx->size_response;
+	/* limit by received */
+	if((ctx->num_sent + num) > ctx->num_received)
+		num = ctx->num_received - ctx->num_sent;
+#ifdef DEBUG_PONG
+	if(num > 0)
+		SYS_fprintf(SYS_stderr, "producing %d responses -> %d\n",
+			num, ctx->num_sent + num);
+#endif
+	while(num-- > 0) {
+		unsigned int foo = NAL_BUFFER_write(b_send, garbage,
+				ctx->size_response);
+		assert(foo == ctx->size_response);
+		ctx->num_sent++;
+		ret += ctx->size_response;
+	}
+	return ret;
+}
+
 /* returns -1 for error, or the amount of data read+written */
 static int pongctx_io(pongctx *ctx)
 {
-	int ret = 0;
 	if(ctx->done) {
 		assert(ctx->mode == NET_CLIENT);
-		return ret;
+		return 0;
 	}
 	if(!NAL_CONNECTION_io(ctx->conn)) {
 		if(!NAL_CONNECTION_is_established(ctx->conn))
 			SYS_fprintf(SYS_stderr, "(%d) Connection failed\n", ctx->id);
-		else
+		else {
 			SYS_fprintf(SYS_stderr, "(%d) Disconnection\n", ctx->id);
+			if(ctx->mode == NET_SERVER) {
+				NAL_CONNECTION_reset(ctx->conn);
+				ctx->done = 1;
+				return 0;
+			}
+		}
 		return -1;
 	}
 	/* handle non-blocking connects */
-	if(!NAL_CONNECTION_is_established(ctx->conn)) return ret;
+	if(!NAL_CONNECTION_is_established(ctx->conn)) return 0;
 	/* post-processing */
-post_processing:
-	if(ctx->requestor) {
-		/* Requestor */
-		if(!ctx->step) {
-			/* Send the request */
-			unsigned int num_sent = NAL_BUFFER_write(
-				NAL_CONNECTION_get_send(ctx->conn), garbage,
-				ctx->size_request - ctx->step_offset);
-			ctx->step_offset += num_sent;
-			ret += num_sent;
-			if(ctx->step_offset == ctx->size_request) {
-				ctx->step = 1;
-				ctx->step_offset = 0;
-			} else
-				return ret;
-		}
-		if(ctx->step) {
-			/* Read the response */
-			unsigned int num_read = NAL_BUFFER_read(
-				NAL_CONNECTION_get_read(ctx->conn), NULL,
-				ctx->size_response - ctx->step_offset);
-			ctx->step_offset += num_read;
-			ret += num_read;
-			if(ctx->step_offset == ctx->size_response)
-				goto moveon;
-			return ret;
-		}
-	} else {
-		/* Responder */
-		if(!ctx->step) {
-			/* Read the request */
-			unsigned int num_read = NAL_BUFFER_read(
-				NAL_CONNECTION_get_read(ctx->conn), NULL,
-				ctx->size_request - ctx->step_offset);
-			ctx->step_offset += num_read;
-			ret += num_read;
-			if(ctx->step_offset == ctx->size_request) {
-				ctx->step = 1;
-				ctx->step_offset = 0;
-			} else
-				return ret;
-		}
-		if(ctx->step == 1) {
-			/* Write the response */
-			unsigned int num_sent = NAL_BUFFER_write(
-				NAL_CONNECTION_get_send(ctx->conn), garbage,
-				ctx->size_response - ctx->step_offset);
-			ctx->step_offset += num_sent;
-			ret += num_sent;
-			if(ctx->step_offset == ctx->size_response)
-				ctx->step = 2;
-			else
-				return ret;
-		}
-		assert(ctx->step == 2);
-		/* Wait for the outgoing buffer to empty */
-		if(NAL_BUFFER_empty(NAL_CONNECTION_get_send(ctx->conn)))
-			goto moveon;
-		return ret;
-	}
-moveon:
-	ctx->step = 0;
-	ctx->step_offset = 0;
-	if(++ctx->loop < ctx->num_loop)
-		/* A new transaction on the same conn */
-		goto post_processing;
-	/* We close the connection */
-	ctx->loop = 0;
-	NAL_CONNECTION_reset(ctx->conn);
-	/* For a server, we're "done". For a client, we're done if we've
-	 * finished repeating. */
-	if((ctx->mode == NET_SERVER) || (++ctx->repeat == ctx->num_repeat)) {
-		ctx->done = 1;
-		return ret;
-	}
-	/* Reconnect the client */
-	if(!NAL_CONNECTION_create(ctx->conn, ctx->addr) ||
-			!NAL_CONNECTION_add_to_selector(ctx->conn, ctx->sel))
-		return -1;
-	goto post_processing;
+	if(ctx->mode == NET_CLIENT)
+		return pongctx_postio_client(ctx);
+	return pongctx_postio_server(ctx);
 }
 
 #define ARG_INC do {argc--;argv++;} while(0)
@@ -277,14 +282,13 @@ int main(int argc, char *argv[])
 	int tmp, ret = 1;
 	unsigned int loop, loop_limit;
 	pongctx **ctx;
-	int requestor, reverse = 0;
 	const char *str_addr = NULL;
 	NET_MODE mode = NET_NULL;
 	unsigned int num_conns = DEF_NUM_CONNS;
 	unsigned int size_request = DEF_REQUEST;
 	unsigned int size_response = DEF_RESPONSE;
-	unsigned int num_loop = DEF_LOOP;
 	unsigned int num_repeat = DEF_REPEAT;
+	unsigned int window = DEF_WINDOW;
 	NAL_ADDRESS *addr;
 	NAL_SELECTOR *sel;
 	NAL_LISTENER *listener = NULL;
@@ -331,16 +335,14 @@ int main(int argc, char *argv[])
 			ARG_CHECK("-response");
 			if(!util_parsenum(*argv, &size_response))
 				return 1;
-		} else if(strcmp(*argv, "-loop") == 0) {
-			ARG_CHECK("-loop");
-			if(!util_parsenum(*argv, &num_loop))
-				return 1;
 		} else if(strcmp(*argv, "-repeat") == 0) {
 			ARG_CHECK("-repeat");
 			if(!util_parsenum(*argv, &num_repeat))
 				return 1;
-		} else if(strcmp(*argv, "-reverse") == 0) {
-			reverse = 1;
+		} else if(strcmp(*argv, "-window") == 0) {
+			ARG_CHECK("-window");
+			if(!util_parsenum(*argv, &window))
+				return 1;
 #ifdef SUPPORT_UPDATE
 		} else if(strcmp(*argv, "-update") == 0) {
 			ARG_CHECK("-update");
@@ -364,12 +366,12 @@ int main(int argc, char *argv[])
 		SYS_fprintf(SYS_stderr, "Error, -request or -response out of range\n");
 		return 1;
 	}
-	requestor = ((mode == NET_SERVER) ? 0 : 1);
-	if(reverse) requestor = !requestor;
-	loop_limit = (mode == NET_SERVER ? 0 : num_conns);
+	/* Create garbage data */
 	srand(time(NULL));
 	for(loop = 0; loop < MAX_SIZE; loop += sizeof(int))
 		*((int *)(garbage + loop)) = rand();
+	/* Initialise */
+	loop_limit = ((mode == NET_SERVER) ? 0 : num_conns);
 	SYS_sigpipe_ignore();
 	if((ctx = SYS_malloc(pongctx*, num_conns)) == NULL) abort();
 	addr = NAL_ADDRESS_new();
@@ -383,8 +385,8 @@ int main(int argc, char *argv[])
 			abort();
 	}
 	for(loop = 0; loop < num_conns; loop++)
-		if((ctx[loop] = pongctx_new(addr, sel, loop, requestor, num_loop,
-				num_repeat, size_request, size_response,
+		if((ctx[loop] = pongctx_new(addr, sel, loop, num_repeat,
+				size_request, size_response, window,
 				mode)) == NULL)
 			abort();
 #ifdef SUPPORT_UPDATE
@@ -396,10 +398,7 @@ int main(int argc, char *argv[])
 "\n"
 "Note, '-update' statistics have accurate timing but the traffic measurements\n"
 "are based on transfers between user-space fifo buffers. As such, they should\n"
-"only be considered accurate \"on average\". Also, the traffic measured is\n"
-"two-way, identical traffic is passing in both directions so you can consider\n"
-"each direction to be half the advertised throughput value. (We measure receive\n"
-"data and double it.)\n"
+"only be considered accurate \"on average\".\n"
 "\n");
 	}
 #endif
@@ -413,15 +412,14 @@ int main(int argc, char *argv[])
 		if((mode == NET_SERVER) && (loop_limit < num_conns) &&
 				NAL_CONNECTION_accept(ctx[loop_limit]->conn,
 					listener)) {
+			SYS_fprintf(SYS_stderr, "(%d) Connection\n",
+					ctx[loop_limit]->id);
 			if(!NAL_CONNECTION_add_to_selector(ctx[loop_limit]->conn,
 							sel))
 				abort();
-			ctx[loop_limit]->step = 0;
 			ctx[loop_limit]->done = 0;
-			ctx[loop_limit]->loop = 0;
-			ctx[loop_limit]->repeat = 0;
-			ctx[loop_limit]->step_offset = 0;
-			if(pongctx_io(ctx[loop_limit]) < 0) goto err;
+			ctx[loop_limit]->num_sent = 0;
+			ctx[loop_limit]->num_received = 0;
 			if(++loop_limit == num_conns)
 				NAL_LISTENER_del_from_selector(listener);
 		}
