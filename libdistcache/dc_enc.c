@@ -188,11 +188,8 @@ static DC_DECODE_STATE DC_MSG_pre_decode(const unsigned char *data,
 		/* 'data_len' out of range */
 		return DC_DECODE_STATE_CORRUPT;
 	if(!complete && (payload_len < DC_MSG_MAX_DATA))
-		/* to prevent "trickling", 'incomplete' messages must encode at
-		 * least DC_MSG_MAX_DATA bytes. NB: We use DC_MSG_MAX_DATA
-		 * rather than DC_MSG_MAX_DATA, because the latter may grow but
-		 * the binary restriction (min DC_MSG_MAX_DATA bytes) must
-		 * remain the same. */
+		/* To prevent "trickling", 'incomplete' messages must encode
+		 * exactly DC_MSG_MAX_DATA bytes. */
 		return DC_DECODE_STATE_CORRUPT;
 	/* (data_len - 2) is what's left for the data */
 	if(data_len - 2 < payload_len)

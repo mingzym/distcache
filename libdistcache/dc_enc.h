@@ -37,7 +37,7 @@
  * incompatible behavioural (or binary formatting) changes should cause an
  * corresponding bump in the most-significant word (the "protocol version") and
  * thus "officially" break interoperability with prior versions. */
-#define DISTCACHE_PROTO_VER	0x10
+#define DISTCACHE_PROTO_VER	0x11
 #define DISTCACHE_PATCH_LEVEL	0x00
 #define DISTCACHE_PROTO_LEVEL	DISTCACHE_MAKE_PROTO_LEVEL(\
 					DISTCACHE_PROTO_VER,DISTCACHE_PATCH_LEVEL)
@@ -97,8 +97,7 @@
  *            0 -> there is more data to come
  *            1 -> this is the final message.
  *    NB: To make the protocol more sturdy, each "incomplete" message must send
- *    at least DC_MSG_MAX_DATA bytes of data. Only the final message can send
- *    less.
+ *    DC_MSG_MAX_DATA bytes of data. Only the final message can send less.
  * data_len;
  *    This value indicates how many bytes are in the 'data_len' field that
  *    follows it. It allows multiple requests/responses to be concatenated one
@@ -131,31 +130,32 @@
  * meaning of the operations and their data is as follows;
  *
  * DC_OP_ADD;
- *    This operation sends an encoded SSL_SESSION (compatible with OpenSSL's
- *    d2i_SSL_SESSION() function) to a cache target for addition. The encoded
- *    data is prefixed by a 4-byte (unsigned long) value indicating the number
- *    of seconds the server should allow before automatically removing the
- *    session from its storage. The return value is 1-byte; either DC_ERR_OK, or
- *    a value chosen from DC_[ADD_]ERR_*** values.
+ *    This operation sends session data to a cache target for addition. The
+ *    encoded data is prefixed by a 4-byte (unsigned long) value indicating the
+ *    number of seconds the server should allow before automatically removing
+ *    the session from its storage. Following that is a 4-byte value indicating
+ *    the length of the session id. The rest of the payload data is the session
+ *    id followed by the session data itself. The return value is 1-byte;
+ *    either DC_ERR_OK, or a value chosen from DC_[ADD_]ERR_*** values.
  * DC_OP_GET;
- *    This operation looks up a cache target to see if it has the SSL_SESSION
+ *    This operation looks up a cache target to see if it has the session
  *    corresponding to a given session id. The payload is the session id, and
  *    the return value is either a 1-byte error value chosen from the DC_ERR
- *    type or an encoded SSL_SESSION matching the id.
+ *    type or the session data matching the id.
  * DC_OP_REMOVE;
- *    This operation looks up a cache target to see if it has the SSL_SESSION
+ *    This operation looks up a cache target to remove the session
  *    corresponding to a given session id. The payload is the session id, and
  *    the return value is a 1-byte error value chosen from DC_ERR_TYPE.
  * DC_OP_HAVE;
- *    This operation is like DC_OP_GET, except that it doesn't return a session
- *    object even if it has the one that is asked for. The caller is simply
- *    wanting to know if the cache still has the session. The reason is for
- *    proxying code - downloading a session involves quite a bit of bandwidth -
- *    so proxies may alreay have the session cached but just want to check it
- *    hasn't been deleted from the server before they return it to an
- *    application. The format is the same as DC_OP_GET, and the return value is
- *    a 1-byte boolean value from chosen from the DC_ERR type (YES/NO is
- *    DC_ERR_OK/DC_ERR_NOTOK respectively).
+ *    This operation is like DC_OP_GET, except that it doesn't return session
+ *    data if it has the session corresponding to the provided session id. The
+ *    caller is simply wanting to know if the cache still has the session. The
+ *    reason is for proxying code - downloading a session involves quite a bit
+ *    of bandwidth - so proxies may alreay have the session cached but just
+ *    want to check it hasn't been deleted from the server before they return
+ *    it to an application. The format is the same as DC_OP_GET, and the return
+ *    value is a 1-byte boolean value from chosen from the DC_ERR type (YES/NO
+ *    is DC_ERR_OK/DC_ERR_NOTOK respectively).
  */
 
 typedef enum {
