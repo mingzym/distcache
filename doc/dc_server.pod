@@ -77,6 +77,13 @@ path file to later kill the running B<dc_server> instance, use something like
 
     kill `cat pidfile.pid`
 
+=item B<-killable>
+
+The default behaviour of B<dc_server> is to silently ignore SIGUSR1 and SIGUSR2
+signals, but with this switch enabled it will handle these signals and close
+down cleanly (mainly useful for developers as an alternative to SIGKILL which
+is less useful for debugging memory leaks).
+
 =item B<-h>, B<-help>, B<-?>
 
 Any of these flags will cause B<dc_server> to display a brief usage summary to

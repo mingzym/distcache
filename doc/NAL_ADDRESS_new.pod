@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-NAL_ADDRESS_new, NAL_ADDRESS_free, NAL_ADDRESS_create, NAL_ADDRESS_set_def_buffer_size, NAL_ADDRESS_can_connect, NAL_ADDRESS_can_listen, NAL_ADDRESS_source_string - libnal addressing functions
+NAL_ADDRESS_new, NAL_ADDRESS_free, NAL_ADDRESS_create, NAL_ADDRESS_set_def_buffer_size, NAL_ADDRESS_can_connect, NAL_ADDRESS_can_listen - libnal addressing functions
 
 =head1 SYNOPSIS
 
@@ -16,7 +16,6 @@ NAL_ADDRESS_new, NAL_ADDRESS_free, NAL_ADDRESS_create, NAL_ADDRESS_set_def_buffe
                                      unsigned int def_buffer_size);
  int NAL_ADDRESS_can_connect(NAL_ADDRESS *addr);
  int NAL_ADDRESS_can_listen(NAL_ADDRESS *addr);
- const char *NAL_ADDRESS_source_string(NAL_ADDRESS *addr);
 
 =head1 DESCRIPTION
 
@@ -47,19 +46,12 @@ the type of transport and the string from which B<addr> was parsed, some
 addresses are only good for connecting or listening whereas others can be good
 for both. See L</NOTES>.
 
-NAL_ADDRESS_source_string() will return B<addr>'s internal copy of the string
-passed to it during a NAL_ADDRESS_create() call. This string is only valid
-while B<addr> is valid and is not changed.
-
 =head1 RETURN VALUES
 
 NAL_ADDRESS_new() returns a valid B<NAL_ADDRESS> object on success, NULL
 otherwise.
 
 NAL_ADDRESS_free() has no return value.
-
-NAL_ADDRESS_source_string() returns B<addr>'s internal string data if B<addr>
-is valid, NULL otherwise.
 
 All other B<NAL_ADDRESS> functions return zero for failure or false, and
 non-zero for success or true.
