@@ -36,7 +36,7 @@
 static void usage(void)
 {
 	SYS_fprintf(SYS_stderr,
-"Usage:   nal_host [options ...]\n"
+"Usage:   nal_hose [options ...]\n"
 "where options include;\n"
 "   -connect <addr>   - default='%s'\n"
 "   -num <num>        - default=%d\n"
