@@ -32,19 +32,19 @@ static const char *usage_msg[] = {
 "  -<h|help|?>      (display this usage message)",
 "", NULL};
 
-#define NUM_ALLOC_ADDRESS	(unsigned long)1000000
-#define NUM_ALLOC_BUFFER	(unsigned long)1000000
-#define NUM_ALLOC_LISTENER	(unsigned long)1000000
-#define NUM_ALLOC_CONNECTION	(unsigned long)1000000
-#define NUM_ALLOC_SELECTOR	(unsigned long)1000000
+#define NUM_ALLOC_ADDRESS	(unsigned long)5000000
+#define NUM_ALLOC_BUFFER	(unsigned long)3000000
+#define NUM_ALLOC_LISTENER	(unsigned long)5000000
+#define NUM_ALLOC_CONNECTION	(unsigned long)5000000
+#define NUM_ALLOC_SELECTOR	(unsigned long)2000000
 
 #define NUM_CREATE_ADDRESS1	(unsigned long)1000000
-#define NUM_CREATE_ADDRESS2	(unsigned long)300000
-#define NUM_CREATE_ADDRESS3	(unsigned long)10000 /* gethostbyname is SLOW */
+#define NUM_CREATE_ADDRESS2	(unsigned long)400000
+#define NUM_CREATE_ADDRESS3	(unsigned long)20000 /* gethostbyname is SLOW */
 #define NUM_CREATE_ADDRESS4	(unsigned long)1000000
 #define NUM_CREATE_BUFFER1	(unsigned long)1000000
 #define NUM_CREATE_BUFFER2	(unsigned long)1000000
-#define NUM_CREATE_LISTENER1	(unsigned long)100000
+#define NUM_CREATE_LISTENER1	(unsigned long)70000
 
 /* Prototypes */
 static int do_alloc_timings(void);
@@ -239,19 +239,3 @@ err:
 	SYS_fprintf(SYS_stdout, "\nerror!\n");
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
