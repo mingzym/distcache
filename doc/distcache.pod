@@ -99,7 +99,7 @@ representing the read and send parts of a NAL_CONNECTION object.
 
 =item L<dc_server(1)>
 
-Distributed caching server
+Distributed caching server.
 
 =item L<dc_client(1)>
 
@@ -107,15 +107,19 @@ Distributed caching client proxy
 
 =item F<http://www.distcache.org/>
 
+Distcache home page.
+
 =back
 
 
 =head1 AUTHOR
 
-This toolkit was designed and implemented by Geoff Thorpe at Cryptographic
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
 Appliances Incorporated. Since the project was released into open source, it
 has a home page and a project environment where development, mailing lists, and
-releases are organised.
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
 
-Distcache Home Page F<http://www.distcache.org>
+Home Page: F<http://www.distcache.org>
 

@@ -5,7 +5,7 @@ dc_server - Distributed session cache server
 
 =head1 SYNOPSIS
 
-B<dc_server> [ ... ]
+B<dc_server> [options]
 
 
 =head1 DESCRIPTION
@@ -46,39 +46,72 @@ The syntax is that defined by the I<libnal> API. Some examples follow;
 
 Specifies a maximum number of sessions that should be stored in the cache. All
 sessions in a cache have an expiry time so that they will, if they have not
-been forcibly removed before that time, be expired out of the cache. Default
-value: 512.
+been forcibly removed before that time, be expired out of the cache. If it is
+desirable to allow long session timeouts under normal situations yet protect
+against the session cache growing without limit periods of high-load, this
+limit can provide the required balance. If the session cache reaches this
+limit, it will automatically rotate out those sessions in the cache that are
+due to expire soonest. It is not (yet) possible to have no limit at all, though
+a future version should support this by allowing the user to specify zero.
+
+The default value for this flag is 512.
 
 =item B<-progress> num
 
-...
+B<dc_server> will, by default, log a line of output to stdout whenever there is
+cache activity, but will make sure to do so no more often than once a second.
+If B<-progress> is specified, this will take precedence  so that output will be
+emitted whenever B<num> operations have occurred since the last output,
+irrespective of how little time has elapsed. The once-a-second logic remains
+behind this, so that if less than B<num> operations has taken place but at
+least one second has passed, output will still be logged. This flag has no
+effect if B<-daemon> is used.
 
 =item B<-pidfile> path
 
-...
+This is a standard flag for many programs, and most useful in combination with
+B<-daemon>. When B<-pidfile> is specified B<dc_server> will write its process
+ID to a file at the specified path upon successful initialisation. To use this
+path file to later kill the running B<dc_server> instance, use something like
+(where B<pidfile.pid> is whatever B<path> was);
+
+    kill `cat pidfile.pid`
 
 =item B<-h>, B<-help>, B<-?>
 
-...
+Any of these flags will cause B<dc_server> to display a brief usage summary to
+the console and exit cleanly. Any other flags are ignored.
 
 =back
 
 
 =head1 SEE ALSO
 
+=over 4
+
+=item L<dc_client(1)>
+
+Distributed caching client proxy.
+
 =item L<distcache(8)>
 
+Overview of the distcache architecture.
+
 =item F<http://www.distcache.org/>
+
+Distcache home page.
 
 =back
 
 
 =head1 AUTHOR
 
-This toolkit was designed and implemented by Geoff Thorpe at Cryptographic
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
 Appliances Incorporated. Since the project was released into open source, it
 has a home page and a project environment where development, mailing lists, and
-releases are organised.
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
 
-Distcache Home Page F<http://www.distcache.org>
+Home Page: F<http://www.distcache.org>
 
