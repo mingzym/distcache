@@ -58,7 +58,7 @@ else
 		-Wbad-function-cast -Wcast-qual -Wcast-align \
 		-Wsign-compare -Wmissing-prototypes \
 		-Wmissing-declarations -Wredundant-decls -Wwrite-strings \
-		-g -ggdb3"
+		-g -ggdb3 -Werror"
 	else
 		echo "Error, '$PRECONF' is not recognised as a value for PRECONF"
 		exit 1
