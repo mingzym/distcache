@@ -62,9 +62,10 @@ int nal_fd_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send)
 		return 0;
 #ifdef WIN32
 	ret = send(fd, NAL_BUFFER_data(buf), max_send, 0);
-#elif !defined(MSG_DONTWAIT) || !defined(MSG_NOSIGNAL)
-	ret = write(fd, NAL_BUFFER_data(buf), max_send);
 #else
+	ret = write(fd, NAL_BUFFER_data(buf), max_send);
+#endif
+#if 0
 	ret = send(fd, NAL_BUFFER_data(buf), max_send,
 		MSG_DONTWAIT | MSG_NOSIGNAL);
 #endif
@@ -84,7 +85,7 @@ int nal_fd_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send)
 		/* Scroll the buffer forward */
 		NAL_BUFFER_read(buf, NULL, uret);
 #if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stdout, "Debug: net.c (fd=%d) sent %lu bytes\n",
+		SYS_fprintf(SYS_stderr, "Debug: net.c (fd=%d) sent %lu bytes\n",
 			fd, (unsigned long)uret);
 #endif
 	}
@@ -104,9 +105,10 @@ int nal_fd_buffer_from_fd(NAL_BUFFER *buf, int fd, unsigned int max_read)
 		return 0;
 #ifdef WIN32
 	ret = recv(fd, NAL_BUFFER_write_ptr(buf), max_read, 0);
-#elif !defined(MSG_NOSIGNAL)
-	ret = read(fd, NAL_BUFFER_write_ptr(buf), max_read);
 #else
+	ret = read(fd, NAL_BUFFER_write_ptr(buf), max_read);
+#endif
+#if 0
 	ret = recv(fd, NAL_BUFFER_write_ptr(buf), max_read, MSG_NOSIGNAL);
 #endif
 	/* There's a couple of "soft errors" we don't consider fatal */
@@ -124,7 +126,7 @@ int nal_fd_buffer_from_fd(NAL_BUFFER *buf, int fd, unsigned int max_read)
 		unsigned int uret = (unsigned int)ret;
 		NAL_BUFFER_wrote(buf, uret);
 #if SYS_DEBUG_LEVEL > 1
-		SYS_fprintf(SYS_stdout, "Debug: net.c (fd=%d) received %lu bytes\n",
+		SYS_fprintf(SYS_stderr, "Debug: net.c (fd=%d) received %lu bytes\n",
 			fd, (unsigned long)uret);
 #endif
 	}
