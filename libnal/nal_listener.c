@@ -129,6 +129,14 @@ void nal_listener_post_select(NAL_LISTENER *l)
 	l->vt->post_select(l, l->sel, l->sel_token);
 }
 
+NAL_SELECTOR *nal_listener_get_selector(const NAL_LISTENER *l,
+					NAL_SELECTOR_TOKEN *t)
+{
+	/* Only assign the token if there is a selector */
+	if(l->sel && t) *t = l->sel_token;
+	return l->sel;
+}
+
 /*******************/
 /* nal.h functions */
 /*******************/

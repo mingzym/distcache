@@ -105,6 +105,14 @@ void nal_connection_post_select(NAL_CONNECTION *conn)
 	conn->vt->post_select(conn, conn->sel, conn->sel_token);
 }
 
+NAL_SELECTOR *nal_connection_get_selector(const NAL_CONNECTION *c,
+					NAL_SELECTOR_TOKEN *t)
+{
+	/* Only assign the token if there is a selector */
+	if(c->sel && t) *t = c->sel_token;
+	return c->sel;
+}
+
 /*******************/
 /* nal.h functions */
 /*******************/
