@@ -1,19 +1,20 @@
 # Process this file with autoconf to produce a configure script.
 AC_INIT(distcache, 1.4.4dev, distcache-users@lists.sourceforge.net)
-AM_INIT_AUTOMAKE(distcache, 1.4.4dev)
 
 echo ""
-echo "Configuring Distcache libraries and utilities;"
+echo "---------------------------------------------"
+echo "Configuring Distcache libraries and utilities"
+echo "---------------------------------------------"
 
-#AC_CONFIG_AUX_DIR(config)
+AM_INIT_AUTOMAKE(distcache, 1.4.4dev)
+
 AC_CONFIG_SRCDIR(sessserver/server.c)
-#AM_CONFIG_HEADER(config/config.h)
 AM_CONFIG_HEADER(config.h)
 
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_MAKE_SET
-#AC_DISABLE_SHARED
+AC_DISABLE_SHARED
 AM_PROG_LIBTOOL
 
 # Checks for header files.
