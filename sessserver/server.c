@@ -47,6 +47,7 @@ static const char *usage_msg[] = {
 "  -progress <num>  (report cache progress at least every 'num' operations)",
 #ifndef WIN32
 "  -pidfile <path>  (a file to store the process ID in)",
+"  -killable        (exit cleanly on a SIGUSR1 or SIGUSR2 signal)",
 #endif
 "  -<h|help|?>      (display this usage message)",
 "\n",
@@ -62,7 +63,7 @@ static const char *usage_msg[] = {
 /* Prototypes used by main() */
 static int do_server(const char *address, unsigned int max_sessions,
 			unsigned long progress, int daemon_mode,
-			const char *pidfile);
+			const char *pidfile, int killable);
 
 static int usage(void)
 {
@@ -79,6 +80,7 @@ static const char *CMD_HELP3 = "-?";
 #ifndef WIN32
 static const char *CMD_DAEMON = "-daemon";
 static const char *CMD_PIDFILE = "-pidfile";
+static const char *CMD_KILLABLE = "-killable";
 #endif
 static const char *CMD_SERVER = "-listen";
 static const char *CMD_SESSIONS = "-sessions";
@@ -113,6 +115,9 @@ static int err_badswitch(const char *arg)
 		return err_noarg(a); \
 	ARG_INC
 
+/* Used to spot if we have recieved SIGUSR1 or SIGUSR2 */
+static int got_signal = 0;
+
 int main(int argc, char *argv[])
 {
 	int sessions_set = 0;
@@ -122,6 +127,7 @@ int main(int argc, char *argv[])
 	unsigned long progress = def_progress;
 #ifndef WIN32
 	int daemon_mode = 0;
+	int killable = 0;
 	const char *pidfile = def_pidfile;
 #endif
 
@@ -134,7 +140,9 @@ int main(int argc, char *argv[])
 #ifndef WIN32
 		if(strcmp(*argv, CMD_DAEMON) == 0)
 			daemon_mode = 1;
-		else if(strcmp(*argv, CMD_PIDFILE) == 0) {
+		else if(strcmp(*argv, CMD_KILLABLE) == 0) {
+			killable = 1;
+		} else if(strcmp(*argv, CMD_PIDFILE) == 0) {
 			ARG_CHECK(CMD_PIDFILE);
 			pidfile = *argv;
 		} else
@@ -171,14 +179,20 @@ int main(int argc, char *argv[])
 #endif
 		return 1;
 	}
-	return do_server(server, sessions, progress, daemon_mode, pidfile);
+	if(!SYS_sigusr_interrupt(&got_signal)) {
+#if SYS_DEBUG_LEVEL > 0
+		SYS_fprintf(SYS_stderr, "Error, couldn't ignore SIGUSR[1|2]\n");
+#endif
+		return 1;
+	}
+	return do_server(server, sessions, progress, daemon_mode, pidfile, killable);
 }
 
 static int do_server(const char *address, unsigned int max_sessions,
 			unsigned long progress, int daemon_mode,
-			const char *pidfile)
+			const char *pidfile, int killable)
 {
-	int res;
+	int res, ret = 1;
 	struct timeval now, last_now;
 	unsigned int total = 0, tmp_total;
 	unsigned long ops = 0, tmp_ops;
@@ -236,12 +250,29 @@ network_loop:
 		SYS_fprintf(SYS_stderr, "Error, selector error\n");
 		goto err;
 	}
-	/* Automatically break every half-second */
-	res = NAL_SELECTOR_select(sel, 500000, 1);
+	/* Automatically break every half-second. NB: we skip the select if
+	 * SIGUSR1 or SIGUSR2 has arrived to improve the chances we don't
+	 * needlessly wait half a second before closing down. Of course,
+	 * there's still a race condition whereby we might go into the select
+	 * anyway but after the signal has been handled, but the chances are
+	 * much greater that the signal arrives in the logical processing above
+	 * or the select itself. Anyway, this is to make administration more
+	 * responsive, not to seal off any theoretical possibility of a delay
+	 * in the shutdown. */
+	if(!killable || !got_signal)
+		res = NAL_SELECTOR_select(sel, 500000, 1);
+	else
+		res = -1;
 	if(res < 0) {
-		if(errno == EINTR)
+		if(!killable)
 			goto network_loop;
-		SYS_fprintf(SYS_stderr, "Error, select() failed\n");
+		if(got_signal)
+			/* We're killable and the negative return is because of
+			 * a signal interruption, in this case we return
+			 * main()'s version of "success". */
+			ret = 0;
+		else
+			SYS_fprintf(SYS_stderr, "Error, select() failed\n");
 		goto err;
 	}
 	/* This entire state-machine logic will operate with one single idea of
@@ -298,12 +329,11 @@ skip_totals:
 	}
 	goto network_loop;
 err:
-	if(addr)
-		NAL_ADDRESS_free(addr);
-	if(sel)
-		NAL_SELECTOR_free(sel);
+	if(addr) NAL_ADDRESS_free(addr);
+	if(sel) NAL_SELECTOR_free(sel);
+	if(conn) NAL_CONNECTION_free(conn);
 	if(server)
 		DC_SERVER_free(server);
-	return 1;
+	return killable;
 }
 

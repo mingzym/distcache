@@ -19,6 +19,13 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Add a "-killable" switch to dc_server so that SIGUSR1 or SIGUSR2 cause a
+     clean shutdown, for memory leak checking mainly. However to make this sane
+     from a user/admin point of view, we make dc_server *ignore* either signal
+     if the switch is not specified (rather than the default behaviour which is
+     to automatically terminate the process).
+     [Geoff Thorpe]
+
   *) Added a SYS_sigusr_interrupt() function to the libsys API for use by
      executables (can't be added to libraries). The normal response to a
      SIGUSR1 or SIGUSR2 signal is to kill the process immediately, but by
