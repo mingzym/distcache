@@ -19,6 +19,10 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Added the beginnings of a benchmarking and self-testing libnal program,
+     nal_test.
+     [Geoff Thorpe]
+
   *) Modularisation of libnal (sequel to the earlier overhaul)
      - the major libnal types are now abstract classes implemented via vtables
        with interfaces defined in nal_internal.h.
