@@ -18,8 +18,8 @@ NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_c
  int NAL_CONNECTION_set_size(NAL_CONNECTION *conn, unsigned int size);
  NAL_BUFFER *NAL_CONNECTION_get_read(NAL_CONNECTION *conn);
  NAL_BUFFER *NAL_CONNECTION_get_send(NAL_CONNECTION *conn);
- const NAL_BUFFER *NAL_CONNECTION_get_read(const NAL_CONNECTION *conn);
- const NAL_BUFFER *NAL_CONNECTION_get_send(const NAL_CONNECTION *conn);
+ const NAL_BUFFER *NAL_CONNECTION_get_read_c(const NAL_CONNECTION *conn);
+ const NAL_BUFFER *NAL_CONNECTION_get_send_c(const NAL_CONNECTION *conn);
  int NAL_CONNECTION_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel);
  int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
                            unsigned int max_read, unsigned int max_send);
