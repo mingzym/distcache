@@ -63,6 +63,28 @@ are generally preferable to TCP/IPv4. Eg.
 
 The default value for this flag is: UNIX:/tmp/scache
 
+=item B<-sockowner> user
+
+This switch is only useful when listening (see B<-listen>) on unix domain sockets.
+It will attempt to change ownership of the created socket file.
+
+=item B<-sockgroup> group
+
+This switch is only useful when listening (see B<-listen>) on unix domain sockets.
+It will attempt to change group ownership of the created socket file.
+
+=item B<-sockperms> perms
+
+This switch is only useful when listening (see B<-listen>) on unix domain sockets.
+It will attempt to change file permissions for the created socket file, and is
+specified in the standard octal notation used for unix file permissions. Eg. to
+start dc_client to run as the I<nobody> user, listening on a unix domain socket
+that can only be connected to by the I<root> user or members of the I<ssl>
+group;
+
+    # dc_client -listen UNIX:/tmp/cacheclient -user nobody \
+          -sockgroup ssl -sockperms 440
+
 =item B<-server> address
 
 =item B<-connect> address

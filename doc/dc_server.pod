@@ -52,6 +52,28 @@ The syntax is that defined by the I<libnal> API. Some examples follow;
     # Listen on a unix domain socket in the /tmp directory
     dc_server -listen UNIX:/tmp/cacheserver
 
+=item B<-sockowner> user
+
+This switch is only useful when listening (see B<-listen>) on unix domain sockets.
+It will attempt to change ownership of the created socket file.
+
+=item B<-sockgroup> group
+
+This switch is only useful when listening (see B<-listen>) on unix domain sockets.
+It will attempt to change group ownership of the created socket file.
+
+=item B<-sockperms> perms
+
+This switch is only useful when listening (see B<-listen>) on unix domain sockets.
+It will attempt to change file permissions for the created socket file, and is
+specified in the standard octal notation used for unix file permissions. Eg. to
+start dc_server to run as the I<nobody> user, listening on a unix domain socket
+that can only be connected to by the I<root> user or members of the I<dcclient>
+group;
+
+    # dc_server -listen UNIX:/tmp/cacheserver -user nobody \
+          -sockgroup dcclient -sockperms 440
+
 =item B<-sessions> num
 
 Specifies a maximum number of sessions that should be stored in the cache. All
