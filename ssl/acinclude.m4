@@ -66,23 +66,27 @@ if test "x$dc_ssltk_base" = "x"; then
 		AC_MSG_ERROR([... Error, SSL/TLS libraries were missing or unusable])
 	fi
 
+	dnl Default value
+	dc_ssl_swamp="yes"
 	AC_ARG_ENABLE(swamp,
 	AC_HELP_STRING(
 		[--enable-swamp],
 		[build the 'sslswamp' SSL/TLS utility]),
 [
-	AC_MSG_CHECKING(whether to build sslswamp)
 	if test "x$enableval" != "x"; then
 		if test "$enableval" != "yes" -a "$enableval" != "no"; then
 			AC_MSG_ERROR("invalid syntax: --enable-swamp=$enableval")
 		fi
+		dc_ssl_swamp=$enableval
 	fi
-	if test "x$enableval" != "no"; then
+])
+	AC_MSG_CHECKING(whether to build sslswamp)
+	if test "$dc_ssl_swamp" = "yes"; then
 		AC_DEFINE(HAVE_SWAMP)
 		AC_MSG_RESULT(yes)
 	else
 		AC_MSG_RESULT(no)
 	fi
-])
+	AM_CONDITIONAL(HAVE_SWAMP, test "$dc_ssl_swamp" = yes)
 fi
 ])

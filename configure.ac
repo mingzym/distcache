@@ -52,13 +52,6 @@ AC_SUBST(VERSION)
 # Declare all the SSL-related stuff
 TOP_LEVEL_SSL
 
-# Hook whether we have SSL stuff or not
-AM_CONDITIONAL(HAVE_SSL_SUBDIR, test "x$enable_ssl" = "xyes")
-
-if test "x$enable_ssl" = "xyes"; then
-	AC_CONFIG_SUBDIRS(ssl)
-fi
-
 AC_CONFIG_FILES([Makefile
 		 libdistcache/Makefile
 		 libdistcacheserver/Makefile

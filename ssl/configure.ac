@@ -49,9 +49,6 @@ AC_CHECK_FUNCS([strtol strdup])
 # Declare all the SSL-related stuff
 DISTCACHE_WITH_SSL
 
-# Hook whether we build swamp or not
-AM_CONDITIONAL(HAVE_SWAMP, test "$enable_swamp" = yes)
-
 # This makes sure "@VERSION@" can be used in Makefile.am's for things like
 # pod2man. I've noticed that some versions of autoconf (or automake?) don't
 # define this, the following trick seems to fix that.

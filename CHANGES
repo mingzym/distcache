@@ -19,6 +19,11 @@ Current version: x.x
 Changes between 0.4 and x.x
 ---------------------------
 
+  *) Change the top-level configuration such that the ssl/ tree is configured
+     and built by default unless --disable-ssl is specified. Likewise, swamp
+     is built by default unless --disable-swamp is specified.
+     [Geoff Thorpe]
+
   *) Used AC_CONFIG_SUBDIRS to (conditionally) run the configure script in the
      ssl/ sub-tree. This is a more robust method for hooking up the build
      system, and solves the issue of automatically passing command-line flags
