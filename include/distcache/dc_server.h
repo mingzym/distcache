@@ -20,10 +20,6 @@
 #ifndef HEADER_DISTCACHE_DC_SERVER_H
 #define HEADER_DISTCACHE_DC_SERVER_H
 
-#ifndef HEADER_LIBSYS_SYS_H
-#error "Must include 'libsys/sys.h' prior to 'distcache/dc_server.h'"
-#endif
-
 /* Boundaries on input. Function callers should observe these limits as the
  * functions often test these with assert() statements (so they disapper in
  * non-debug builds, and in debug builds they blow up error situations rather

@@ -17,10 +17,10 @@
  * along with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#include <libsys/sys.h>
 #include <libnal/nal.h>
 #include <distcache/dc_client.h>
 #include <distcache/dc_enc.h>
+#include <libsys/sys.h>
 
 /* How big connection's buffers should be */
 #define DC_CTX_BUFFER_SIZE		4096

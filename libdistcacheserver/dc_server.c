@@ -17,10 +17,13 @@
  * along with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#include <libsys/sys.h>
+
 #include <libnal/nal.h>
-#include <distcache/dc_server.h>
 #include <distcache/dc_enc.h>
+/* We normally want private headers last to verify the API headers aren't
+ * system-dependant, however dc_server.h requires "struct timeval". */
+#include <libsys/sys.h>
+#include <distcache/dc_server.h>
 
 /* The starting size of the array of *pointers* to client items */
 #define DC_SERVER_START_SIZE		256

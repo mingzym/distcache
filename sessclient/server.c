@@ -17,10 +17,10 @@
  * along with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#include <libsys/sys.h>
 #include <libnal/nal.h>
 #include <distcache/dc_enc.h>
 
+#include <libsys/sys.h>
 #include "private.h"
 
 #define SERVER_BUFFER_SIZE	(sizeof(DC_MSG) * 8)

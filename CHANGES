@@ -19,6 +19,17 @@ Current version: x.x
 Changes between 0.4pre2 and x.x
 -------------------------------
 
+  *) I've re-ordered the inclusion of headers so that installed API headers
+     preceed internal headers. This helps ensure that public headers do not
+     depend on anything defined by internal headers (an obvious problem to
+     anyone trying to use our APIs). The exception is dc_server.h, which
+     requires the system type "struct timeval" to be defined in advance. Rather
+     than work around this with predeclarations of that type, we gently violate
+     the aforementioned rule and use our internal sys.h header to define the
+     type (by including the relevant system headers) before including
+     dc_server.h.
+     [Geoff Thorpe]
+
   *) The non-networking stuff in libnal (the daemon/sigpipe/etc wrappers as
      well as the mem and streams debugging cruft) has been separated out into a
      new library, libsys.a, that is not installed but is linked into the
