@@ -54,7 +54,8 @@ struct st_DC_CACHE {
 	 * NULL 'store' (to find the size of the session to be copied before
 	 * finding room to copy it to) followed by another call with a non-NULL
 	 * 'store' doesn't do two searches. It also helps if an "add" operation
-	 * is followed immediately by a "get" or "remove". */
+	 * is followed immediately by a "get" or "remove" (eg. session
+	 * resumption and renegotiation, respectively). */
 	unsigned char cached_id[DC_MAX_ID_LEN];
 	unsigned int cached_id_len;
 	int cached_idx; /* -1 means a cached lookup for a session that doesn't
@@ -91,24 +92,31 @@ static unsigned int cached_hits = 0;
  * appropriate action with the cached-lookup */
 static void int_lookup_expired(DC_CACHE *cache, unsigned int num)
 {
-	/* Was the cached index in the first 'num' items? */
-	if(cache->cached_idx < (int)num) {
-		/* Yes, so cache the fact the session has gone */
+	/* The whole list slipped 'num' to the left */
+	cache->cached_idx -= num;
+	/* If that put cached_idx into the red, it means the cached item has
+	 * been removed. */
+	if(cache->cached_idx < 0) {
 		cache->cached_idx = -1;
 		CACHED_REMOVE
-	} else
-		/* No, so it's still alive */
-		cache->cached_idx -= num;
+	}
 }
 
 /* A specific index in the cache has been removed - check if this affects the
  * cached-lookup. */
 static void int_lookup_removed(DC_CACHE *cache, unsigned int idx)
 {
+	/* At worst case, the last item in the array was deleted and
+	 * cache->items_used has already been decremented so idx is the first
+	 * unused spot in the array. */
+	assert(idx <= cache->items_used);
 	if(cache->cached_idx == (int)idx) {
+		/* Our cached item was the one removed */
 		cache->cached_idx = -1;
 		CACHED_REMOVE
 	} else if(cache->cached_idx > (int)idx)
+		/* Our cached item was after the removed item, so the index has
+		 * moved left */
 		cache->cached_idx--;
 }
 
@@ -118,13 +126,14 @@ static int int_lookup_check(DC_CACHE *cache,
 			unsigned int session_id_len,
 			unsigned int *idx)
 {
-	if((session_id_len != cache->cached_id_len) ||
+	if((cache->cached_idx < 0) ||
+			(session_id_len != cache->cached_id_len) ||
 			(memcmp(session_id, cache->cached_id,
 				session_id_len) != 0)) {
 		CACHED_MISS
 		return 0;
 	}
-	*idx = cache->cached_idx;
+	*idx = (unsigned int)cache->cached_idx;
 	CACHED_HIT
 	return 1;
 }
@@ -135,7 +144,7 @@ static int int_lookup_check(DC_CACHE *cache,
 static void int_lookup_set(DC_CACHE *cache,
 			const unsigned char *session_id,
 			unsigned int session_id_len,
-			unsigned int idx)
+			int idx)
 {
 	cache->cached_id_len = session_id_len;
 	if(session_id_len)
@@ -187,7 +196,6 @@ static void int_expire(DC_CACHE *cache, const struct timeval *now)
 static int int_find_DC_ITEM(DC_CACHE *cache, const unsigned char *ptr,
 				unsigned int len, const struct timeval *now)
 {
-	int ret;
 	unsigned int idx;
 	DC_ITEM *item = cache->items;
 	/* First flush out expired entries */
@@ -199,16 +207,14 @@ static int int_find_DC_ITEM(DC_CACHE *cache, const unsigned char *ptr,
 	idx = 0;
 	while(idx < cache->items_used) {
 		if((item->id_len == len) && (memcmp(item->ptr, ptr, len) == 0)) {
-			ret = (int)idx;
-			goto cache_and_return;
+			/* Found the session - cache it and return the idx */
+			int_lookup_set(cache, ptr, len, idx);
+			return (int)idx;
 		}
 		idx++;
 		item++;
 	}
-	ret = -1;
-cache_and_return:
-	int_lookup_set(cache, ptr, len, idx);
-	return ret;
+	return -1;
 }
 
 static int int_add_DC_ITEM(DC_CACHE *cache, unsigned int idx,
@@ -217,7 +223,6 @@ static int int_add_DC_ITEM(DC_CACHE *cache, unsigned int idx,
 		const unsigned char *data, unsigned int data_len)
 {
 	unsigned char *ptr;
-	/* Use 'idx' to search for the insertion point based on 'expiry' */
 	DC_ITEM *item;
 
 	/* So we'll definitely insert - take care of the one remaining error
@@ -246,13 +251,15 @@ static int int_add_DC_ITEM(DC_CACHE *cache, unsigned int idx,
 
 static void int_remove_DC_ITEM(DC_CACHE *cache, unsigned int idx)
 {
-	DC_ITEM *item = cache->items + idx;
+	DC_ITEM *item;
+	assert(idx < cache->items_used);
+	item = cache->items + idx;
 	int_pre_remove_DC_ITEM(item);
-	if(idx + 1 < cache->items_used)
+	cache->items_used--;
+	if(idx < cache->items_used)
 		NAL_memmove_n(DC_ITEM, cache->items + idx,
 				cache->items + (idx + 1),
-				cache->items_used - (idx + 1));
-	cache->items_used--;
+				cache->items_used - idx);
 	int_lookup_removed(cache, idx);
 }
 
