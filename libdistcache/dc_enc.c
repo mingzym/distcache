@@ -54,7 +54,7 @@ static int proto_level_test(unsigned long pl)
 			(unsigned int)getpid(), DISTCACHE_PROTO_LEVEL, pl);
 #endif
 		abort();
-		return 0;
+		/* return 0; */
 	}
 	return 1;
 }
