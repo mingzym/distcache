@@ -42,38 +42,29 @@ Features
  o probably much, much more ...
 
 
-Disclaimer
-----------
-
-Read the LICENSE file, it's all in there. Also, the web is littered with various
-discussion archives, READMEs, HOWTOs, and other resources about open source
-licensing, especially for such popular licenses as the LGPL. If in doubt, have
-your lawyer look at it, and they would do well to start by visiting www.gnu.org.
-But to briefly summarise the disclaimer implicit in the LGPL ... basically no
-guarantees are given in any sense. Much like any expensive proprietary software
-you might be running, probably. Except of course 'distcache' isn't all that
-expensive or proprietary. :-)
-
-
 Further information
 -------------------
 
 There are other text files you might want to browse depending on what it is
 you're looking for;
 
- o INSTALL:
-     Explains how to compile and install elements of the 'distcache' package.
+ o ANNOUNCE:
+     Details about the the current distcache release.
+ o CHANGES:
+     A change-log summarising noteworthy changes between distcache releases.
  o FAQ:
      Common questions and answers about using the 'distcache' libraries and
      tools.
+ o INSTALL:
+     Explains how to compile and install elements of the 'distcache' package.
  o LICENSE:
      The text of the LGPL ("Lesser GNU Public License").
- o README.TOOLS
-     Basic usage information about the executable programs built in the
-     'distcache' package.
  o README.API
      Basic information about programming with the 'distcache' libraries until
      such time as there are better docs available (ie. man pages).
+ o README.TOOLS
+     Basic usage information about the executable programs built in the
+     'distcache' package.
 
 For information about ongoing development, up-to-date source code, etc, please
 go the home page(s);
@@ -85,4 +76,16 @@ The SourceForge.net-hosted development site has mail lists, a "Tracker" system
 for bug-reports, feature requests, etc, an online CVS browser system to view the
 history of source-code changes, and a variety of other information about the
 project.
+
+Disclaimer
+----------
+
+Read the LICENSE file, it's all in there. Also, the web is littered with various
+discussion archives, READMEs, HOWTOs, and other resources about open source
+licensing, especially for such popular licenses as the LGPL. If in doubt, have
+your lawyer look at it, and they would do well to start by visiting www.gnu.org.
+But to briefly summarise the disclaimer implicit in the LGPL ... basically no
+guarantees are given in any sense. Much like any expensive proprietary software
+you might be running, probably. Except of course 'distcache' isn't all that
+expensive or proprietary. :-)
 

@@ -1,0 +1,50 @@
+
+     _          _                   _
+  __| |o ___ __| |__ ___  __ _  ___| |__   ___     distcache
+ / _` |_/ __|__   __/ __|/ _` |/ __| '_ \ / , \    Distributed session caching
+| (_| | \__ \  | | | (__| (_| | (__| | | |  __/    www.distcache.org
+ \__,_|_|___/  |_|  \___|\__,_|\___|_| |_|\___|    distcache.sourceforge.net
+
+-------------------------------------------------------------------------------
+
+                                   ``Society has always seemed to demand a
+                                     little more from human beings than it will
+                                     get in practice.''
+                                                       -- George Orwell
+
+
+distcache release: 0.1-seed
+---------------------------
+
+The seed code to distcache was derived from commercial code belonging to
+Cryptographic Appliances who gave permission for it to be open-sourced under an
+LGPL license. This 0.1-seed release is to allow this initial code to be reviewed
+and tested by those who have an interest in distributed session caching, eg. for
+SSL/TLS.
+
+More information can be found from the README (and the other files that the
+README document refers to), but one important note needs to be made about this
+release - there should be no expectation, implied or construed, that the
+protocol implemented in this release will interoperate with any future distcache
+release. Version checking and other handshaking measures are currently being
+reviewed to ensure that successive versions can properly interoperate with one
+another (or gracefully refuse with version-related diagnositcs) - but simply the
+introduction of such measures will break interoperability with the protocol
+implemented in this 0.1-seed release.
+
+In short, this is a proof-of-concept release.
+
+Please bookmark the distcache home page and check back from time to time, and/or
+subscribe to one or more of the email lists mentioned on the site;
+    http://www.distcache.org/
+
+The distcache project is hosted by SourceForge.net, and as such provides a full
+range of additional services. Please feel free to take a browse :-)
+
+Thanks for trying out distcache!
+
+--
+Geoff Thorpe,
+"distcache" Project Admin
+http://www.distcache.org/
+
