@@ -116,9 +116,15 @@ for each accepted connection.
 =item NAL_SELECTOR (see L<NAL_SELECTOR_new(2)>)
 
 This provides an object that can be prepared with various NAL_LISTENER and
-NAL_CONNECTION objects, and then can block waiting for network activity up to
-some configurable limit of time. This is the basis of non-blocking I/O and is
-an encapsulation of the traditional select(2) function.
+NAL_CONNECTION objects, and can then manage the non-blocking I/O "event loop".
+Prior to blocking, this object gives all the listeners and connections it
+contains a chance to set state to control their notification criteria. After
+blocking, this object can provide a chance to each object that has received I/O
+activity a chance to post-process. There are implementations for this object
+based on the select(2) and poll(2) functions that interoperate with the
+file-descriptor listener and connection types. Work is underway to bring other
+I/O models to this infrastructure, such as epoll(4) and proprietary TOE (TCP
+Offload Engine) devices.
 
 =item NAL_BUFFER (see L<NAL_BUFFER_new(2)>)
 
