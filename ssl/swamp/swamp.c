@@ -398,7 +398,7 @@ static int swamp_thread_ctx_loop(swamp_thread_ctx *ctx)
 		item = ctx->items + loop;
 
 		/* Network I/O */
-		if(item->conn && !NAL_CONNECTION_io(item->conn, ctx->sel)) {
+		if(item->conn && !NAL_CONNECTION_io(item->conn)) {
 			swamp_item_finish(item);
 			item->total_failed++;
 		}
@@ -503,7 +503,8 @@ possible_reconnect:
 		 * course! */
 		if(item->conn) {
 			swamp_item_dirty_loop(item);
-			NAL_CONNECTION_add_to_selector(item->conn, ctx->sel);
+			if(!NAL_CONNECTION_add_to_selector(item->conn, ctx->sel))
+				return 0;
 		}
 		ctx->total_completed += item->total_completed;
 		ctx->total_failed += item->total_failed;
@@ -512,7 +513,7 @@ possible_reconnect:
 	}
 	/* Flush stderr */
 	fflush(SYS_stderr);
-	return(1);
+	return 1;
 }
 
 /* Another to save duplication. */
