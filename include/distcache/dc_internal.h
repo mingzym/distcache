@@ -17,12 +17,12 @@
  * along with this library; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#ifndef HEADER_DISTCACHE_DC_ENC_H
-#define HEADER_DISTCACHE_DC_ENC_H
+#ifndef HEADER_DISTCACHE_DC_INTERNAL_H
+#define HEADER_DISTCACHE_DC_INTERNAL_H
 
-/* We declare stuff that we didn't want to expose in dc_plug.h, so source all
- * that stuff first. */
-#include <distcache/dc_plug.h>
+#ifndef HEADER_DISTCACHE_DC_PLUG_H
+#error "Must include dc_plug.h prior to dc_internal.h"
+#endif
 
 /* This header supports the binary standard unpinning the session caching.
  *
@@ -217,4 +217,4 @@ unsigned int DC_MSG_decode(DC_MSG *msg, const unsigned char *data,
 				unsigned int data_len);
 #endif
 
-#endif /* !defined(HEADER_DISTCACHE_DC_ENC_H) */
+#endif /* !defined(HEADER_DISTCACHE_DC_INTERNAL_H) */

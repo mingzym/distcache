@@ -1,2 +1,2 @@
-EXTRA_DIST=sys.h
+EXTRA_DIST	= pre.h post.h
 
