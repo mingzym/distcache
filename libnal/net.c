@@ -306,11 +306,6 @@ err:
 	return 0;
 }
 
-const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list)
-{
-	return &list->addr;
-}
-
 void NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel)
 {
@@ -601,11 +596,6 @@ closing:
 int NAL_CONNECTION_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel)
 {
 	return NAL_CONNECTION_io_cap(conn, sel, 0, 0);
-}
-
-const NAL_ADDRESS *NAL_CONNECTION_address(const NAL_CONNECTION *conn)
-{
-	return &conn->addr;
 }
 
 int NAL_CONNECTION_is_established(const NAL_CONNECTION *conn)

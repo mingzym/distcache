@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_create_pair, NAL_CONNECTION_create_dummy, NAL_CONNECTION_set_size, NAL_CONNECTION_get_read, NAL_CONNECTION_get_send, NAL_CONNECTION_io, NAL_CONNECTION_io_cap, NAL_CONNECTION_address, NAL_CONNECTION_is_established, NAL_CONNECTION_add_to_selector, NAL_CONNECTION_del_from_selector - libnal connection functions
+NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_create_pair, NAL_CONNECTION_create_dummy, NAL_CONNECTION_set_size, NAL_CONNECTION_get_read, NAL_CONNECTION_get_send, NAL_CONNECTION_io, NAL_CONNECTION_io_cap, NAL_CONNECTION_is_established, NAL_CONNECTION_add_to_selector, NAL_CONNECTION_del_from_selector - libnal connection functions
 
 =head1 SYNOPSIS
 
@@ -23,7 +23,6 @@ NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_c
  int NAL_CONNECTION_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel);
  int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
                            unsigned int max_read, unsigned int max_send);
- const NAL_ADDRESS *NAL_CONNECTION_address(const NAL_CONNECTION *conn);
  int NAL_CONNECTION_is_established(const NAL_CONNECTION *conn);
  void NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
                                      NAL_SELECTOR *sel);
@@ -95,9 +94,6 @@ available is in the connection's buffers, what the results of the last select
 on B<sel> were, and how much data the host system's networking support will
 accept or provide to B<conn>.
 
-NAL_CONNECTION_address() returns a pointer to B<conn>'s internal copy of the
-B<NAL_ADDRESS> object that it was created from.
-
 NAL_CONNECTION_is_established() is useful for determining when a non-blocking
 connect has completed. See the L</NOTES> section.
 
@@ -116,10 +112,6 @@ NAL_CONNECTION_del_from_selector() have no return value.
 NAL_CONNECTION_get_read(), NAL_CONNECTION_get_send(),
 NAL_CONNECTION_get_read_c(), and NAL_CONNECTION_get_send_c() return pointers to
 the connection's buffer objects or NULL for failure.
-
-NAL_CONNECTION_address() returns a pointer to B<conn>'s internal copy of the
-B<NAL_ADDRESS> object that it was created from (which should not be manipulated
-or destroyed by the caller), or NULL for failure.
 
 All other B<NAL_CONNECTION> functions return zero for failure or false, and
 non-zero for success or true.

@@ -71,7 +71,6 @@ int		NAL_LISTENER_accept_block(const NAL_LISTENER *list,
 int		NAL_LISTENER_accept(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel,
 				NAL_CONNECTION *conn);
-const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list);
 void		NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
 				NAL_SELECTOR *sel);
 void		NAL_LISTENER_del_from_selector(const NAL_LISTENER *list,
@@ -97,7 +96,6 @@ const NAL_BUFFER *NAL_CONNECTION_get_send_c(const NAL_CONNECTION *conn);
 int		NAL_CONNECTION_io(NAL_CONNECTION *conn, NAL_SELECTOR *sel);
 int		NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 				unsigned int max_read, unsigned int max_send);
-const NAL_ADDRESS *NAL_CONNECTION_address(const NAL_CONNECTION *conn);
 int		NAL_CONNECTION_is_established(const NAL_CONNECTION *conn);
 void		NAL_CONNECTION_add_to_selector(const NAL_CONNECTION *conn,
 				NAL_SELECTOR *sel);

@@ -42,6 +42,10 @@ Changes between 1.4.1 and x.x
      - libnal's internal sockaddr_safe type is now nal_sockaddr.
      - nal_sock_sockaddr_from_ipv4() now handles name resolution and other
        aspects of address parsing, removing complexity from NAL_ADDRESS code.
+     - NAL_LISTENER and NAL_CONNECTION no longer keep an internal copy of their
+       parent NAL_ADDRESS structures. This makes encapsulation hard, has never
+       been used, and can be managed by the caller if they so wish (ie. if they
+       want to keep a copy of the address, they can).
      - minor tidy-ups and bug-fixes
      [Geoff Thorpe]
 
