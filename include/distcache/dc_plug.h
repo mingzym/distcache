@@ -77,8 +77,9 @@ typedef struct st_DC_PLUG DC_PLUG;
 /* General "plug" functions */
 DC_PLUG *DC_PLUG_new(NAL_CONNECTION *conn, unsigned int flags);
 int DC_PLUG_free(DC_PLUG *plug);
-void DC_PLUG_to_select(DC_PLUG *plug, NAL_SELECTOR *sel);
-int DC_PLUG_io(DC_PLUG *plug, NAL_SELECTOR *sel);
+int DC_PLUG_to_select(DC_PLUG *plug, NAL_SELECTOR *sel);
+void DC_PLUG_from_select(DC_PLUG *plug);
+int DC_PLUG_io(DC_PLUG *plug);
 
 /* Read a decoded (defragmented and parsed) message payload and message type.
  * This leaves the message blocked (future "reads" have to use a non-zero

@@ -85,14 +85,13 @@ static int int_connect(DC_CTX *ctx)
 static int int_netloop(DC_PLUG *plug, NAL_SELECTOR *sel)
 {
 	int ret;
-	DC_PLUG_to_select(plug, sel);
 reselect:
 	ret = NAL_SELECTOR_select(sel, 0, 0);
 	if((ret < 0) && (errno != EINTR))
 		return 0;
 	if(ret <= 0)
 		goto reselect;
-	if(!DC_PLUG_io(plug, sel))
+	if(!DC_PLUG_io(plug))
 		return 0;
 	return 1;
 }
@@ -145,6 +144,8 @@ static int int_transact(DC_CTX *ctx, DC_CMD cmd)
 	/* Get our selector ready */
 	if((sel = NAL_SELECTOR_new()) == NULL)
 		goto err;
+	if(!DC_PLUG_to_select(plug, sel))
+		goto err;
 	/* Do the network loop. This writes "send_data" into the
 	 * plug and hopes for a response until either;
 	 *  - I/O fails,
@@ -177,10 +178,12 @@ err:
 	/* Data sent (or the whole operation blew up), so reset this */
 	ctx->send_data_len = 0;
 	/* Cleanup */
-	if(sel)
-		NAL_SELECTOR_free(sel);
 	if(!(ctx->flags & DC_CTX_FLAG_PERSISTENT) && plug)
 		DC_PLUG_free(plug);
+	else if(plug)
+		DC_PLUG_from_select(plug);
+	if(sel)
+		NAL_SELECTOR_free(sel);
 	return toreturn;
 net_err:
 	if(retried || !(ctx->flags & DC_CTX_FLAG_PERSISTENT) ||
@@ -191,6 +194,8 @@ net_err:
 	if(!int_connect(ctx))
 		goto err;
 	plug = ctx->plug;
+	if(!DC_PLUG_to_select(plug, sel))
+		goto err;
 	goto restart_after_net_err;
 }
 

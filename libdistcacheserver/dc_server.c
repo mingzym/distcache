@@ -395,28 +395,14 @@ int DC_SERVER_process_client(DC_CLIENT *clnt,
 /*****************************************************************************/
 /* Network functions for clients with the DC_CLIENT_FLAG_IN_SERVER flag */
 
-int DC_SERVER_clients_to_sel(DC_SERVER *ctx, NAL_SELECTOR *sel)
-{
-	unsigned int idx = 0;
-	DC_CLIENT *client;
-	while(idx < ctx->clients_used) {
-		client = ctx->clients[idx];
-		if(client->flags & DC_CLIENT_FLAG_IN_SERVER)
-			DC_PLUG_to_select(client->plug, sel);
-		idx++;
-	}
-	return 1;
-}
-
-int DC_SERVER_clients_io(DC_SERVER *ctx, NAL_SELECTOR *sel,
-				const struct timeval *now)
+int DC_SERVER_clients_io(DC_SERVER *ctx, const struct timeval *now)
 {
 	unsigned int idx = 0;
 	DC_CLIENT *client;
 	while(idx < ctx->clients_used) {
 		client = ctx->clients[idx];
 		if((client->flags & DC_CLIENT_FLAG_IN_SERVER) &&
-				(!DC_PLUG_io(client->plug, sel) ||
+				(!DC_PLUG_io(client->plug) ||
 				!DC_SERVER_process_client(client, now)))
 			int_server_del_client(ctx, idx);
 		else

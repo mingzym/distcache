@@ -726,15 +726,20 @@ int DC_PLUG_free(DC_PLUG *plug)
 	return 1;
 }
 
-void DC_PLUG_to_select(DC_PLUG *plug, NAL_SELECTOR *sel)
+int DC_PLUG_to_select(DC_PLUG *plug, NAL_SELECTOR *sel)
 {
-	NAL_CONNECTION_add_to_selector(plug->conn, sel);
+	return NAL_CONNECTION_add_to_selector(plug->conn, sel);
 }
 
-int DC_PLUG_io(DC_PLUG *plug, NAL_SELECTOR *sel)
+void DC_PLUG_from_select(DC_PLUG *plug)
+{
+	NAL_CONNECTION_del_from_selector(plug->conn);
+}
+
+int DC_PLUG_io(DC_PLUG *plug)
 {
 	int to_server = plug->flags & DC_PLUG_FLAG_TO_SERVER;
-	if(!NAL_CONNECTION_io(plug->conn, sel))
+	if(!NAL_CONNECTION_io(plug->conn))
 		return 0;
 	/* Network I/O has (possibly) taken place. Ensure our "state" is
 	 * adjusted appropriately. */

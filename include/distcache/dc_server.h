@@ -123,13 +123,12 @@ int DC_SERVER_del_client(DC_CLIENT *clnt);
 int DC_SERVER_process_client(DC_CLIENT *clnt,
 				const struct timeval *now);
 
-/* These functions are only useful for clients created with the
- * DC_CLIENT_FLAG_IN_SERVER flag. They handle networking operations on the list
- * of such clients, including closing and destroying dead client connections,
- * etc. */
-int DC_SERVER_clients_to_sel(DC_SERVER *ctx, NAL_SELECTOR *sel);
-int DC_SERVER_clients_io(DC_SERVER *ctx, NAL_SELECTOR *sel,
-				const struct timeval *now);
+/* This function is only useful for clients created with the
+ * DC_CLIENT_FLAG_IN_SERVER flag. It handles the post-processing for such
+ * clients (including closing dead connections, etc). */
+int DC_SERVER_clients_io(DC_SERVER *ctx, const struct timeval *now);
+
+/* Boolean */
 int DC_SERVER_clients_empty(const DC_SERVER *ctx);
 
 #endif /* !defined(HEADER_DISTCACHE_DC_SERVER_H) */
