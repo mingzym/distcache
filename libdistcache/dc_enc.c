@@ -187,11 +187,12 @@ static DC_DECODE_STATE DC_MSG_pre_decode(const unsigned char *data,
 	if(payload_len > DC_MSG_MAX_DATA)
 		/* 'data_len' out of range */
 		return DC_DECODE_STATE_CORRUPT;
-	if(!complete && (payload_len < 1024))
+	if(!complete && (payload_len < DC_MSG_MAX_DATA))
 		/* to prevent "trickling", 'incomplete' messages must encode at
-		 * least 1024 bytes. NB: We use 1024 rather than
-		 * DC_MSG_MAX_DATA, because the latter may grow but the binary
-		 * restriction (min 1024 bytes) must remain the same. */
+		 * least DC_MSG_MAX_DATA bytes. NB: We use DC_MSG_MAX_DATA
+		 * rather than DC_MSG_MAX_DATA, because the latter may grow but
+		 * the binary restriction (min DC_MSG_MAX_DATA bytes) must
+		 * remain the same. */
 		return DC_DECODE_STATE_CORRUPT;
 	/* (data_len - 2) is what's left for the data */
 	if(data_len - 2 < payload_len)
@@ -311,7 +312,7 @@ static unsigned int DC_MSG_decode(DC_MSG *msg, const unsigned char *data,
 #endif
 	/* "pre_decode" should already be testing this, so abort if it slips
 	 * through to here. */
-	assert((msg->complete == 1) || (msg->data_len >= 1024));
+	assert((msg->complete == 1) || (msg->data_len >= DC_MSG_MAX_DATA));
 	return data_len - len;
 }
 
@@ -358,7 +359,7 @@ struct st_DC_PLUG {
 
 /* How big to make our storage in the DC_PLUG_IO structure when it is first
  * initialised. After this, expansions grow the array by 50% each time. */
-#define DC_IO_START_SIZE	1024
+#define DC_IO_START_SIZE	DC_MSG_MAX_DATA
 
 /***************************/
 /* Internal "IO" functions */
