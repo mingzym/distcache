@@ -22,7 +22,7 @@
 #define HEADER_PRIVATE_CTRL_FD_H
 
 #ifndef HEADER_LIBSYS_PRE_H
-	#error "Must include libsys/pre.h prior to libnal/nal.h"
+	#error "Must include libsys/pre.h prior to ctrl_fd.h"
 #endif
 
 /* Bitwise flags for fdset criteria */
