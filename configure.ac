@@ -25,16 +25,17 @@ AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_HEADER_TIME
 
+# Checks for system libraries
+AC_CHECK_LIB(dl, dlopen)
+AC_CHECK_LIB(nsl, gethostent)
+AC_CHECK_LIB(socket, socket)
+
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gettimeofday memmove memset select socket strstr strtoul])
 AC_CHECK_FUNCS([daemon])
-
-AC_CHECK_LIB(dl, dlopen)
-AC_CHECK_LIB(nsl, gethostent)
-AC_CHECK_LIB(socket, socket)
 
 # Find out where OpenSSL is
 DISTCACHE_WITH_SSL
