@@ -9,7 +9,7 @@ NAL_SELECTOR_new, NAL_SELECTOR_free, NAL_SELECTOR_select - libnal selector funct
  #include <libnal/nal.h>
 
  NAL_SELECTOR *NAL_SELECTOR_new(void);
- void NAL_SELECTOR_free(NAL_SELECTOR *a);
+ void NAL_SELECTOR_free(NAL_SELECTOR *sel);
  int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
                          int use_timeout);
 

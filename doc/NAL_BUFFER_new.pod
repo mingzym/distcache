@@ -9,7 +9,8 @@ NAL_BUFFER_new, NAL_BUFFER_free, NAL_BUFFER_set_size, NAL_BUFFER_empty, NAL_BUFF
  #include <libnal/nal.h>
 
  NAL_BUFFER *NAL_BUFFER_new(void);
- void NAL_BUFFER_free(NAL_BUFFER *a);
+ void NAL_BUFFER_free(NAL_BUFFER *buf);
+ void NAL_BUFFER_reset(NAL_BUFFER *buf);
  int NAL_BUFFER_set_size(NAL_BUFFER *buf, unsigned int size);
  int NAL_BUFFER_empty(const NAL_BUFFER *buf);
  int NAL_BUFFER_full(const NAL_BUFFER *buf);
@@ -31,6 +32,12 @@ NAL_BUFFER_new, NAL_BUFFER_free, NAL_BUFFER_set_size, NAL_BUFFER_empty, NAL_BUFF
 NAL_BUFFER_new() allocates and initialises a new B<NAL_BUFFER> object.
 
 NAL_BUFFER_free() destroys a B<NAL_BUFFER> object.
+
+NAL_BUFFER_reset() will, if necessary, cleanup any prior state in B<buf> so
+that it can be reused. Internally, there are various optimisations and benefits
+to using NAL_BUFFER_reset() instead of NAL_BUFFER_free() and NAL_BUFFER_new() -
+the implementation can try to avoid repeated reallocation and reinitialisation
+of state.
 
 NAL_BUFFER_set_size() sets the size of the buffer in B<buf> to B<size> bytes.
 
@@ -67,7 +74,7 @@ written into B<buf> following NAL_BUFFER_write_ptr(), see L</NOTES>.
 NAL_BUFFER_new() returns a valid B<NAL_BUFFER> object on success, NULL
 otherwise.
 
-NAL_BUFFER_free() has no return value.
+NAL_BUFFER_free() and NAL_BUFFER_reset() have no return value.
 
 NAL_BUFFER_empty(), NAL_BUFFER_full(), NAL_BUFFER_notempty(), and
 NAL_BUFFER_notfull() return boolean results (non-zero for true).

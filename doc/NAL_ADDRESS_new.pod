@@ -9,8 +9,8 @@ NAL_ADDRESS_new, NAL_ADDRESS_free, NAL_ADDRESS_create, NAL_ADDRESS_set_def_buffe
  #include <libnal/nal.h>
 
  NAL_ADDRESS *NAL_ADDRESS_new(void);
- void NAL_ADDRESS_free(NAL_ADDRESS *a);
- void NAL_ADDRESS_reset(NAL_ADDRESS *a);
+ void NAL_ADDRESS_free(NAL_ADDRESS *addr);
+ void NAL_ADDRESS_reset(NAL_ADDRESS *addr);
  int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
                         unsigned int def_buffer_size);
  unsigned int NAL_ADDRESS_get_def_buffers_size(const NAL_ADDRESS *addr);
@@ -25,7 +25,7 @@ NAL_ADDRESS_new() allocates and initialises a new B<NAL_ADDRESS> object.
 
 NAL_ADDRESS_free() destroys a B<NAL_ADDRESS> object.
 
-NAL_ADDRESS_reset() will, if necessary, cleanup any prior state in B<a> so that
+NAL_ADDRESS_reset() will, if necessary, cleanup any prior state in B<addr> so that
 it can be reused in NAL_ADDRESS_create(). Internally, there are other
 optimisations and benefits to using NAL_ADDRESS_reset() instead of
 NAL_ADDRESS_free() and NAL_ADDRESS_new() - the implementation can try to avoid
