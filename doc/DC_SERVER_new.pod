@@ -44,11 +44,17 @@ The remaining functions return non-zero for success or zero for failure.
 
 =head1 DESCRIPTION and NOTES
 
-These functions facilitate the implementation a session cache server to be
-compatible with the distcache protocol. The source code to dc_server(1)
-provides an example of using this API, and is probably the ideal reference (a
-single C file of 304 lines). The storage of the cache is provided by a table of
-handler functions defined by the B<DC_CACHE_cb> structure;
+Use of the B<dc_server.h> header requires the "I<struct timeval>" type to be
+defined. On many systems, this will require that you include the B<time.h>
+header in advance, though details will vary from system to system. If in doubt,
+try consulting your system's gettimeofday(2) man page for information on how to
+have this system type defined.
+
+These B<DC_SERVER> functions facilitate the implementation a session cache
+server to be compatible with the distcache protocol. The source code to
+dc_server(1) provides an example of using this API, and is probably the ideal
+reference (a single C file of 304 lines). The storage of the cache is provided
+by a table of handler functions defined by the B<DC_CACHE_cb> structure;
 
  typedef struct st_DC_CACHE_cb {
          DC_CACHE *   (*cache_new)(unsigned int max_sessions);
