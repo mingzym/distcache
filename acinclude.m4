@@ -14,6 +14,7 @@ dnl line. This is left to probing the system directories (i.e. when
 dnl --with-ssl *isn't* on the configure command line).
 dnl
 AC_DEFUN([DISTCACHE_WITH_SSL],[
+AH_TEMPLATE(HAVE_OPENSSL, [Define to 1 if you have OpenSSL installed])
 AC_ARG_WITH(ssl,
 AC_HELP_STRING(
 	[--with-ssl=/path/to/openssl],
@@ -40,6 +41,9 @@ AC_HELP_STRING(
 			ossl_not_found_reason="can't find header files"
 			ossl_found=0
 		fi
+	else
+		ossl_not_found_reason="no such directory $withval"
+		ossl_found=0
 	fi
 
 	if test "x$ossl_found" = "x1" ; then
@@ -47,6 +51,7 @@ AC_HELP_STRING(
 		OPENSSL_CFLAGS="-I$ossl_include_path"
 		AC_SUBST(OPENSSL_LIBS)
 		AC_SUBST(OPENSSL_CFLAGS)
+		AC_DEFINE(HAVE_OPENSSL)
 		AC_MSG_RESULT([yes])
 	else
 		AC_MSG_RESULT([no])
@@ -83,6 +88,7 @@ AC_HELP_STRING(
 		OPENSSL_CFLAGS="" # None are needed.
 		AC_SUBST(OPENSSL_LIBS)
 		AC_SUBST(OPENSSL_CFLAGS)
+		AC_DEFINE(HAVE_OPENSSL)
 	else
 		AC_MSG_ERROR([Probe for system OpenSSL failed: $ossl_not_found_reason])
 	fi

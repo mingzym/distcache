@@ -23,8 +23,7 @@
 #include <libdistcache/dc_enc.h>
 #include <libdistcacheserver/dc_server.h>
 
-#if defined(HAVE_LIBSSL) || defined(HAVE_OPENSSL_SSL_H)
-#define INTERNAL_SSL
+#ifdef HAVE_OPENSSL
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #endif
@@ -57,7 +56,7 @@ static int usage(void)
 "  -connect <addr>  (connect to server at address 'addr')\n"
 "  -progress <num>  (report transaction count every 'num' operations)\n"
 "  -sessions <num>  (create 'num' sessions to use for testing)\n"
-#ifdef INTERNAL_SSL
+#ifdef HAVE_OPENSSL
 "  -withcert <num>  (make 'num' of the sessions use peer certificates)\n"
 #endif
 "  -timeout <secs>  (add sessions with a timeout of 'secs')\n"
@@ -149,7 +148,7 @@ int main(int argc, char *argv[])
 			sessions = (unsigned int)atoi(*argv);
 			sessions_set = 1;
 		} else if(strcmp(*argv, CMD_WITHCERT) == 0) {
-#ifndef INTERNAL_SSL
+#ifndef HAVE_OPENSSL
 			NAL_fprintf(NAL_stderr(), "Error, no OpenSSL support "
 				"compiled in, -with-cert not available.\n");
 			return 1;
@@ -216,7 +215,7 @@ int main(int argc, char *argv[])
 			ops, progress, persistent);
 }
 
-#ifdef INTERNAL_SSL
+#ifdef HAVE_OPENSSL
 /* Prototype some ugliness we want to leave at the end */
 static SSL_SESSION *int_new_ssl_session(int withcert);
 #else
@@ -255,7 +254,7 @@ static int do_client(const char *address, unsigned int num_sessions,
 	}
 
 	while(idx < num_sessions) {
-#ifdef INTERNAL_SSL
+#ifdef HAVE_OPENSSL
 		SSL_SESSION *tmp_session;
 		unsigned char *ptr;
 		int ret;
@@ -436,7 +435,7 @@ bail:
 	return 1;
 }
 
-#ifdef INTERNAL_SSL
+#ifdef HAVE_OPENSSL
 /***************************************/
 
 /* Steal this SSL_CIPHER definition from s3_lib.c so that we can manually
