@@ -41,6 +41,9 @@ static const unsigned long def_idle_timeout = 0;
 #ifndef WIN32
 static const char *def_pidfile = NULL;
 static const char *def_user = NULL;
+static const char *def_sockowner = NULL;
+static const char *def_sockgroup = NULL;
+static const char *def_sockperms = NULL;
 #endif
 
 /* Avoid the dreaded "greater than the length `509' ISO C89 compilers are
@@ -50,7 +53,6 @@ static const char *usage_msg[] = {
 "Usage: dc_client [options]      where 'options' are from;",
 #ifndef WIN32
 "  -daemon           (detach and run in the background)",
-"  -user <user>      (run daemon as given user)",
 #endif
 "  -listen <addr>    (listen on address 'addr', def: UNIX:/tmp/scache)",
 "  -server <addr>    (connects to a cache server at 'addr')",
@@ -58,6 +60,10 @@ static const char *usage_msg[] = {
 "  -retry <num>      (retry period (msecs) for cache servers, def: 5000)",
 "  -idle <num>       (idle timeout (msecs) for client connections, def: 0)",
 #ifndef WIN32
+"  -user <user>      (run daemon as given user)",
+"  -sockowner <user> (controls ownership of unix domain listening socket)",
+"  -sockgroup <user> (controls ownership of unix domain listening socket)",
+"  -sockperms <oct>  (set permissions of unix domain listening socket)",
 "  -pidfile <path>   (a file to store the process ID in)",
 "  -killable         (exit cleanly on a SIGUSR1 or SIGUSR2 signal)",
 #endif
@@ -74,6 +80,9 @@ static const char *CMD_HELP3 = "-?";
 #ifndef WIN32
 static const char *CMD_DAEMON = "-daemon";
 static const char *CMD_USER = "-user";
+static const char *CMD_SOCKOWNER = "-sockowner";
+static const char *CMD_SOCKGROUP = "-sockgroup";
+static const char *CMD_SOCKPERMS = "-sockperms";
 static const char *CMD_PIDFILE = "-pidfile";
 static const char *CMD_KILLABLE = "-killable";
 #endif
@@ -135,9 +144,12 @@ int main(int argc, char *argv[])
 	/* Overridables */
 #ifndef WIN32
 	int daemon_mode = 0;
-	const char *pidfile = def_pidfile;
 	int killable = 0;
+	const char *pidfile = def_pidfile;
 	const char *user = def_user;
+	const char *sockowner = def_sockowner;
+	const char *sockgroup = def_sockgroup;
+	const char *sockperms = def_sockperms;
 #endif
 	const char *listen_addr = def_listen_addr;
 	unsigned long retry_period = def_retry_period;
@@ -154,16 +166,24 @@ int main(int argc, char *argv[])
 #ifndef WIN32
 		if(strcmp(*argv, CMD_DAEMON) == 0)
 			daemon_mode = 1;
-		/* Check options with an argument */
-		else if(strcmp(*argv, CMD_PIDFILE) == 0) {
-			ARG_CHECK(*argv);
+		else if(strcmp(*argv, CMD_KILLABLE) == 0) {
+			killable = 1;
+		} else if(strcmp(*argv, CMD_PIDFILE) == 0) {
+			ARG_CHECK(CMD_PIDFILE);
 			pidfile = *argv;
 		} else if(strcmp(*argv, CMD_USER) == 0) {
 			ARG_CHECK(CMD_USER);
 			user = *argv;
-		} else if(strcmp(*argv, CMD_KILLABLE) == 0)
-			killable = 1;
-		else
+		} else if(strcmp(*argv, CMD_SOCKOWNER) == 0) {
+			ARG_CHECK(CMD_SOCKOWNER);
+			sockowner = *argv;
+		} else if(strcmp(*argv, CMD_SOCKGROUP) == 0) {
+			ARG_CHECK(CMD_SOCKGROUP);
+			sockgroup = *argv;
+		} else if(strcmp(*argv, CMD_SOCKPERMS) == 0) {
+			ARG_CHECK(CMD_SOCKPERMS);
+			sockperms = *argv;
+		} else
 #endif
 		if(strcmp(*argv, CMD_LISTEN) == 0) {
 			ARG_CHECK(CMD_LISTEN);
@@ -231,13 +251,22 @@ int main(int argc, char *argv[])
 		SYS_fprintf(SYS_stderr, "Error, bad listen address\n");
 		return 1;
 	}
+	NAL_ADDRESS_free(addr);
 	if((sel = NAL_SELECTOR_new()) == NULL) {
 		SYS_fprintf(SYS_stderr, "Error, malloc problem\n");
 		return 1;
 	}
-	NAL_ADDRESS_free(addr);
 
 #ifndef WIN32
+	if((sockowner || sockgroup) && !NAL_LISTENER_set_fs_owner(listener,
+						sockowner, sockgroup))
+		SYS_fprintf(SYS_stderr, "Warning, can't set socket ownership "
+			"to user '%s' and group '%s', continuing anyway\n",
+			sockowner ? sockowner : "(null)",
+			sockgroup ? sockgroup : "(null)");
+	if(sockperms && !NAL_LISTENER_set_fs_perms(listener, sockperms))
+		SYS_fprintf(SYS_stderr, "Warning, can't set socket permissions "
+				"to '%s', continuing anyway\n", sockperms);
 	if(user) {
 		if(!SYS_setuid(user)) {
 			SYS_fprintf(SYS_stderr, "Error, couldn't become user "
