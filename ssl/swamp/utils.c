@@ -150,24 +150,6 @@ end:
 }
 #endif
 
-#ifndef HAVE_STRDUP
-char *strdup(const char *s)
-{
-	size_t slen;
-	char *toret;
-	if(!s)
-		return NULL;
-	slen = strlen(s);
-	toret = malloc(slen + 1);
-	if(!toret)
-		return NULL;
-	if(slen)
-		SYS_memcpy_n(char, toret, s, slen);
-	toret[slen] = '\0';
-	return toret;
-}
-#endif
-
 /* Wrapper for strtol() */
 int int_strtol(const char *str, long *val)
 {
