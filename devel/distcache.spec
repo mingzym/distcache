@@ -31,23 +31,23 @@
 # instructions will apply to a released distcache 'bz2' tarball. If you're
 # working from a fresh CVS checkout, do the following to create such a tarball;
 #
-# (1) run ./bootstrap.sh to generate "./configure" and Makefile.in files
-# (2) remove CVS crud using the command;
-#         find . -type d -name "CVS" | xargs rm -rf
-# (3) change to the parent directory and rename this directory to match the
-#     values of the 'name'/'version' directives in this spec file. Eg. if
-#     'name' is distcache and 'version' is 0.4dev;
-#         cd .. ; mv distcache distcache-0.4dev
-# (4) create the bz2 tarball;
-#         tar jcf distcache-0.4dev.tar.bz2 distcache-0.4dev/
+# (1) verify that the version in the "configure.ac" file, the second parameter
+#     to the AC_INIT() macro, matches exactly the "%define version ..." setting
+#     further down in this file.
+# (2) run ./bootstrap.sh to generate "./configure" and Makefile.in files
+# (3) run "./configure"
+# (4) run "make dist-bzip2"
+#
+# The resulting distcache-X.X.tar.bz2 tarball should be in the top-level
+# directory.
 #
 # Now you have a 'bz2' tarball, the steps to building the RPMs are relatively
 # straightforward;
 #
 # (1) copy the tarball to the RPM 'SOURCES' directory;
-#         mv distcache-0.4dev.tar.bz2 ~/rpm/SOURCES/
+#         mv distcache-X.X.tar.bz2 ~/rpm/SOURCES/
 # (2) point directly to this spec file when running the rpm build command;
-#         rpm -ba distcache-0.4dev/devel/distcache.spec
+#         rpm -ba distcache-X.X/devel/distcache.spec
 #
 # If all goes well, the last line of output should mention "exit 0" and there
 # should be new RPMs living in ~/rpm/RPMS/i586 and ~/rpm/SRPMS.
@@ -59,7 +59,7 @@
 #############
 
 %define name distcache
-%define version 0.4dev
+%define version 0.4pre1
 %define release 1
 # Uncomment one of these lines according to the destination distribution
 # (Mandrake) %define targetgroup Networking/Other
