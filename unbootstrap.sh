@@ -47,3 +47,7 @@ fi
 # Run the routine in all required sub-directories and then this directory
 (cd ssl/ && undo_stuff) || exit 1
 undo_stuff || exit 1
+
+# Finally, the ssl subdirectory derives configure.ac from configure.ac.template
+rm -f ssl/configure.ac
+
