@@ -25,7 +25,7 @@
 /* We're windows, include the headers we want explicitly */
 
 #if _MSC_VER > 1000
-#pragma once
+	#pragma once
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -48,13 +48,13 @@
 #include "config/config.h"
 
 #if !defined(HAVE_SELECT)
-#error "'select()' must be supported on your system, sorry"
+	#error "'select()' must be supported on your system, sorry"
 #endif
 #if !defined(HAVE_SOCKET)
-#error "'socket()' must be supported on your system, sorry"
+	#error "'socket()' must be supported on your system, sorry"
 #endif
 #if !defined(HAVE_GETTIMEOFDAY)
-#error "'gettimeofday()' must be supported on your system, sorry"
+	#error "'gettimeofday()' must be supported on your system, sorry"
 #endif
 
 #if defined(STDC_HEADERS)
@@ -141,7 +141,7 @@
  * 4 = output trace-level debugging information (verbose).
  */
 #ifndef NAL_DEBUG_LEVEL
-	#define NAL_DEBUG_LEVEL 1
+#define NAL_DEBUG_LEVEL 1
 #endif
 
 /*******************************/
@@ -176,16 +176,16 @@ int NAL_stderr_set(const char *path);
 int NAL_stderr_to_stdout(void);
 int NAL_fprintf(FILE *fp, const char *fmt, ...);
 #ifndef IN_STREAMS_C
-	#undef stdin
-	#undef stdout
-	#undef stderr
-	#undef printf
-	#undef fprintf
-	#define stdin dont_use_stdin_use_NAL_stdin_instead
-	#define stdout dont_use_stdout_use_NAL_stdout_instead
-	#define stderr dont_use_stderr_use_NAL_stderr_instead
-	#define printf dont_use_printf_use_NAL_fprintf_with_NAL_stdout
-	#define fprintf dont_use_fprintf_use_NAL_fprintf_instead
+#undef stdin
+#undef stdout
+#undef stderr
+#undef printf
+#undef fprintf
+#define stdin dont_use_stdin_use_NAL_stdin_instead
+#define stdout dont_use_stdout_use_NAL_stdout_instead
+#define stderr dont_use_stderr_use_NAL_stderr_instead
+#define printf dont_use_printf_use_NAL_fprintf_with_NAL_stdout
+#define fprintf dont_use_fprintf_use_NAL_fprintf_instead
 #endif
 
 #endif /* !LEAVE_STREAMS_ALONE */
@@ -193,7 +193,7 @@ int NAL_fprintf(FILE *fp, const char *fmt, ...);
 #ifndef LEAVE_PROCESSES_ALONE
 
 #ifndef IN_SYS_C
-	#define daemon dont_use_daemon_but_use_NAL_daemon_instead
+#define daemon dont_use_daemon_but_use_NAL_daemon_instead
 #endif
 
 #endif /* !LEAVE_PROCESSES_ALONE */
@@ -247,51 +247,51 @@ void nal_free_int(void *ptr);
  * by the precompiler. Ie. debugging levels greater than 2 help find source
  * bugs, but release builds are still optimised. */
 #if NAL_DEBUG_LEVEL > 2
-	#define NAL_cover(c,t,p)	{ \
-					t *temp_NAL_cover_ptr = p; \
-					memset(temp_NAL_cover_ptr, (c), \
-							sizeof(t)); \
-				}
-	#define NAL_cover_n(c,t,p,n) { \
-					t *temp_NAL_cover_n_ptr = p; \
-					memset(temp_NAL_cover_n_ptr, (c), \
-							(n) * sizeof(t)); \
-				}
-	#define NAL_memcpy(t,d,s) { \
-					t *temp_NAL_memcpy_ptr1 = d; \
-					const t *temp_NAL_memcpy_ptr2 = s; \
-					memcpy(temp_NAL_memcpy_ptr1, \
-						temp_NAL_memcpy_ptr2, \
+#define NAL_cover(c,t,p)	{ \
+				t *temp_NAL_cover_ptr = p; \
+				memset(temp_NAL_cover_ptr, (c), \
 						sizeof(t)); \
-				 }
-	#define NAL_memcpy_n(t,d,s,n) { \
-					t *temp_NAL_memcpy_ptr1 = d; \
-					const t *temp_NAL_memcpy_ptr2 = s; \
-					memcpy(temp_NAL_memcpy_ptr1, \
-						temp_NAL_memcpy_ptr2, \
+				}
+#define NAL_cover_n(c,t,p,n)	{ \
+				t *temp_NAL_cover_n_ptr = p; \
+				memset(temp_NAL_cover_n_ptr, (c), \
 						(n) * sizeof(t)); \
-				 }
-	#define NAL_memmove(t,d,s) { \
-					t *temp_NAL_memmove_ptr1 = d; \
-					const t *temp_NAL_memmove_ptr2 = s; \
-					memmove(temp_NAL_memmove_ptr1, \
-						temp_NAL_memmove_ptr2, \
-						sizeof(t)); \
-				  }
-	#define NAL_memmove_n(t,d,s,n) { \
-					t *temp_NAL_memmove_ptr1 = d; \
-					const t *temp_NAL_memmove_ptr2 = s; \
-					memmove(temp_NAL_memmove_ptr1, \
-						temp_NAL_memmove_ptr2, \
-						(n) * sizeof(t)); \
-				  }
+				}
+#define NAL_memcpy(t,d,s)	{ \
+				t *temp_NAL_memcpy_ptr1 = d; \
+				const t *temp_NAL_memcpy_ptr2 = s; \
+				memcpy(temp_NAL_memcpy_ptr1, \
+					temp_NAL_memcpy_ptr2, \
+					sizeof(t)); \
+				}
+#define NAL_memcpy_n(t,d,s,n)	{ \
+				t *temp_NAL_memcpy_ptr1 = d; \
+				const t *temp_NAL_memcpy_ptr2 = s; \
+				memcpy(temp_NAL_memcpy_ptr1, \
+					temp_NAL_memcpy_ptr2, \
+					(n) * sizeof(t)); \
+				}
+#define NAL_memmove(t,d,s)	{ \
+				t *temp_NAL_memmove_ptr1 = d; \
+				const t *temp_NAL_memmove_ptr2 = s; \
+				memmove(temp_NAL_memmove_ptr1, \
+					temp_NAL_memmove_ptr2, \
+					sizeof(t)); \
+				}
+#define NAL_memmove_n(t,d,s,n)	{ \
+				t *temp_NAL_memmove_ptr1 = d; \
+				const t *temp_NAL_memmove_ptr2 = s; \
+				memmove(temp_NAL_memmove_ptr1, \
+					temp_NAL_memmove_ptr2, \
+					(n) * sizeof(t)); \
+				}
 #else
-	#define NAL_cover(c,t,p)		memset((p), (c), sizeof(t))
-	#define NAL_cover_n(c,t,p,n)	memset((p), (c), (n) * sizeof(t))
-	#define NAL_memcpy(t,d,s)	memcpy((d), (s), sizeof(t))
-	#define NAL_memcpy_n(t,d,s,n)	memcpy((d), (s), (n) * sizeof(t))
-	#define NAL_memmove(t,d,s)	memmove((d), (s), sizeof(t))
-	#define NAL_memmove_n(t,d,s,n)	memmove((d), (s), (n) * sizeof(t))
+#define NAL_cover(c,t,p)	memset((p), (c), sizeof(t))
+#define NAL_cover_n(c,t,p,n)	memset((p), (c), (n) * sizeof(t))
+#define NAL_memcpy(t,d,s)	memcpy((d), (s), sizeof(t))
+#define NAL_memcpy_n(t,d,s,n)	memcpy((d), (s), (n) * sizeof(t))
+#define NAL_memmove(t,d,s)	memmove((d), (s), sizeof(t))
+#define NAL_memmove_n(t,d,s,n)	memmove((d), (s), (n) * sizeof(t))
 #endif
 #define NAL_zero(t,p)		NAL_cover(0,t,(p))
 #define NAL_zero_n(t,p,n)	NAL_cover_n(0,t,(p),(n))

@@ -21,11 +21,11 @@
 #define HEADER_PRIVATE_NAL_INTERNAL_H
 
 #ifndef HEADER_LIBNAL_COMMON_H
-#error "Must include libnal/common.h prior to libnal/nal.h"
+	#error "Must include libnal/common.h prior to libnal/nal.h"
 #endif
 
 #ifndef HEADER_LIBNAL_NAL_H
-#error "Must include libnal/nal.h prior to libnal/nal_internal.h"
+	#error "Must include libnal/nal.h prior to libnal/nal_internal.h"
 #endif
 
 
