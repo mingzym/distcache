@@ -223,7 +223,8 @@ static void int_sockaddr_from_ipv4(sockaddr_safe *addr, unsigned char *ip,
 	if(ip == NULL)
 		in_addr.sin_addr.s_addr = INADDR_ANY;
 	else
-		memcpy(&in_addr.sin_addr.s_addr, ip, 4);
+		NAL_memcpy_n(unsigned char,
+			(unsigned char *)&in_addr.sin_addr.s_addr, ip, 4);
 	in_addr.sin_port = htons(port);
 	/* Now sandblast the sockaddr_in structure onto the sockaddr structure
 	 * (which one hopes is greater than or equal to it in size :-). */
@@ -1327,7 +1328,7 @@ unsigned int NAL_BUFFER_write(NAL_BUFFER *buf, const unsigned char *ptr,
 		towrite = size;
 	if(towrite == 0)
 		return 0;
-	memcpy(buf->_data + buf->_used, ptr, towrite);
+	NAL_memcpy_n(unsigned char, buf->_data + buf->_used, ptr, towrite);
 	buf->_used += towrite;
 	return towrite;
 }

@@ -69,7 +69,7 @@ int NAL_decode_bin(const unsigned char **bin, unsigned int *bin_len,
 		return 0;
 	if(val_len == 0)
 		return 1;
-	memcpy(val, *bin, val_len);
+	NAL_memcpy_n(unsigned char, val, *bin, val_len);
 	*bin += val_len;
 	*bin_len -= val_len;
 	return 1;
@@ -134,7 +134,7 @@ int NAL_encode_bin(unsigned char **bin, unsigned int *cnt,
 #endif
 		return 0;
 	}
-	memcpy(*bin, data, len);
+	NAL_memcpy_n(unsigned char, *bin, data, len);
 	*bin += len;
 	*cnt -= len;
 	return 1;
