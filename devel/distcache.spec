@@ -71,7 +71,7 @@ Name: %{name}
 Summary: Programs to provide a distributed session caching architecture
 Version: %{version}
 Release: %{release}
-Source: http://www.distcache.org/direct/%{name}-%{version}.tar.bz2
+Source: http://download.sourceforge.net/distcache/%{name}-%{version}.tar.bz2
 URL: http://www.distcache.org/
 Group: ${targetgroup}
 Buildroot: %{_tmppath}/%{name}-buildroot
