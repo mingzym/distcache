@@ -4,4 +4,4 @@
 *.lo
 Makefile
 Makefile.in
-sclient
+dc_client

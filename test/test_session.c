@@ -67,7 +67,7 @@ static int usage(void)
 "  -<h|help|?>      (display this usage message)\n"
 "\n"
 "Eg. test_session -connect UNIX:/tmp/session_cache -sessions 10 -withcert 3\n"
-"  will start connecting to a cache server (or a cache proxy like 'sclient')\n"
+"  will start connecting to a cache server (or a cache proxy like 'dc_client')\n"
 "  and will runs tests using 10 sample SSL/TLS sessions, 3 of which will be\n"
 "  large due to peer-certificate encoding.\n"
 "NB: '-progress' ensures that if 'num' operations have accumulated,\n"

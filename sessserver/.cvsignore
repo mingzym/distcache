@@ -4,4 +4,4 @@
 *.lo
 Makefile
 Makefile.in
-sserver
+dc_server

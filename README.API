@@ -66,12 +66,12 @@ NAL_ADDRESS provided support for TCP streams over both the IPv4 (Internet
 Protocol) and unix domain protocols. The NAL_ADDRESS functions allow all
 addresses to be specified in a single string-based namespace such that the
 application needn't from that point on take any special measures depending on
-what transport was involved. For example, the "sclient" utility of 'distcache'
+what transport was involved. For example, the "dc_client" utility of 'distcache'
 provides a proxy for distributed session caching that can operate on, say, a
 web-server machine to handle all local session caching operations on behalf of
 the web-server. It might be executed by a command-line such as;
 
-    # sclient -listen UNIX:/tmp/scache -server IP:cache-server.localnet:9123
+    # dc_client -listen UNIX:/tmp/scache -server IP:cache-server.localnet:9123
 
 in both the UNIX and IP cases (IP is an alias for IPv4), the strings are passed
 verbatim to the single API function;

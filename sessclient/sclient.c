@@ -23,7 +23,7 @@
 
 #include "private.h"
 
-/* This file implements the "sclient" utility - a self-contained program that
+/* This file implements the "dc_client" utility - a self-contained program that
  * connects to a back-end session cache server, listens on a local address for
  * connections, and for each of those connections, manages the forwarding of
  * requests to back-end cache server (and demultiplexing its responses). */
@@ -47,7 +47,7 @@ static const char *def_pidfile = NULL;
 
 /* Little message used by main() */
 static const char *usage_string =
-"Usage: sclient [options]      where 'options' are from;\n"
+"Usage: dc_client [options]      where 'options' are from;\n"
 #ifndef WIN32
 "  -daemon           (detach and run in the background)\n"
 #endif
@@ -61,7 +61,7 @@ static const char *usage_string =
 #endif
 "  -<h|help|?>       (display this usage message)\n"
 "\n"
-" Eg. sclient -listen UNIX:/tmp/scache -server IP:192.168.2.5:9003\n"
+" Eg. dc_client -listen UNIX:/tmp/scache -server IP:192.168.2.5:9003\n"
 " will listen on a unix domain socket at /tmp/scache and will manage\n"
 " forwarding requests and responses to and from two the cache server.\n"
 "\n";

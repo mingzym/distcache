@@ -41,7 +41,7 @@ static int do_server(const char *address, unsigned int max_sessions,
 static int usage(void)
 {
 	NAL_fprintf(NAL_stderr(), "\n"
-"Usage: sserver [options]     where 'options' are from;\n"
+"Usage: dc_server [options]     where 'options' are from;\n"
 #ifndef WIN32
 "  -daemon          (detach and run in the background)\n"
 #endif
@@ -53,7 +53,7 @@ static int usage(void)
 #endif
 "  -<h|help|?>      (display this usage message)\n"
 "\n"
-"Eg. sserver -listen IP:9001\n"
+"Eg. dc_server -listen IP:9001\n"
 "  will start a session cache server listening on port 9001 for all TCP/IP\n"
 "  interfaces.\n"
 "\n");
