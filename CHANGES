@@ -19,6 +19,13 @@ Current version: x.x
 Changes between 0.4pre1 and x.x
 -------------------------------
 
+  *) Produce conventional static-libraries directly rather than libtool
+     archives. This is the easiest way to prevent the installation of "*.la"
+     files and as we're already disabling building of shared-libraries
+     (AC_DISABLE_SHARED in configure.ac), there's nothing to be gained from
+     libtool libraries.
+     [Geoff Thorpe]
+
   *) Allow CVS users to pass settings to bootstrap.sh for use in ./configure if
      it will be automatically run because of PRECONF. These settings can be
      specified by the PREFLAGS environment variable.

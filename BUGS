@@ -38,7 +38,3 @@
   there's loads of cross-link errors/warnings when building. (NOTE: I've
   disabled compilation of HTML documents for now).
 
-- I think installing the libtool things doesn't make much sense. I just started
-  getting warnings from my apache-2 hacking which indicates that the presence
-  of libdistcache.la and libnal.la is misleading ("file moved" type of
-  warning). So we should only install (and package) static libs.
