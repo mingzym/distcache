@@ -271,7 +271,11 @@ network_loop:
 			 * a signal interruption, in this case we return
 			 * main()'s version of "success". */
 			ret = 0;
-		else
+		else if(errno == EINTR) {
+			SYS_fprintf(SYS_stderr, "Error, select interrupted for unknown "
+					"signal, continuing\n");
+			goto network_loop;
+		} else
 			SYS_fprintf(SYS_stderr, "Error, select() failed\n");
 		goto err;
 	}
