@@ -270,7 +270,7 @@ write_ping:
 
 int main(int argc, char *argv[])
 {
-	int tmp;
+	int tmp, ret = 1;
 	unsigned int loop, done;
 	pingctx **ctx;
 	const char *str_addr = DEF_SERVER_ADDRESS;
@@ -330,16 +330,18 @@ mainloop:
 	done = 0;
 	for(loop = 0; loop < num_conns; loop++) {
 		if(!pingctx_io(ctx[loop]))
-			return 1;
+			goto err;
 		if(ctx[loop]->done)
 			done++;
 	}
 	if(done < num_conns) goto mainloop;
 	/* Done */
+	ret = 0;
+err:
 	for(loop = 0; loop < num_conns; loop++)
 		pingctx_free(ctx[loop]);
 	SYS_free(pingctx*, ctx);
 	NAL_SELECTOR_free(sel);
 	NAL_ADDRESS_free(addr);
-	return 0;
+	return ret;
 }
