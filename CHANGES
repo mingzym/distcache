@@ -12,12 +12,21 @@
                                                          -- W. Edwards Deming
 
 
-Current version: xx.xx
-----------------------
+Current version: 0.2
+--------------------
 
 
-Changes between 0.1-seed and xx.xx
-----------------------------------
+Changes between 0.1-seed and 0.2
+--------------------------------
+
+  *) Altered the binary protocol used by distcache to begin each message with a
+     32-bit protocol level. The top 16-bit word of this is a "protocol value"
+     which must be identical for peers to interoperate (though a server with a
+     higher value could respond to the first request by adopting the peer's
+     protocol). The lower 16-bit word is a "patch level" which allows the more
+     recent of two peers to decide if it should accept communications or not
+     with the peer (and work around older bugs if necessary).
+     [Geoff Thorpe]
 
   *) Added DISTCACHE_CLIENT_API and DISTCACHE_CLIENT_BINARY version defines to
      dc_client.h so that apache/mod_ssl plugins can run sanity checks on the
