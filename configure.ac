@@ -39,6 +39,12 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gettimeofday memmove memset select socket strstr strtoul])
 AC_CHECK_FUNCS([daemon])
 
+# Declare all the SSL-related stuff
+TOP_LEVEL_SSL
+
+# Hook whether we have SSL stuff or not
+AM_CONDITIONAL(HAVE_SSL_SUBDIR, test "$enable_ssl" = yes)
+
 # This makes sure "@VERSION@" can be used in Makefile.am's for things like
 # pod2man. I've noticed that some versions of autoconf (or automake?) don't
 # define this, the following trick seems to fix that.
@@ -62,4 +68,7 @@ AC_CONFIG_FILES([Makefile
 		 devel/Makefile
 		 devel/mandrake.spec])
 AC_OUTPUT
+
+# Run the SSL sub-tree's own configure script
+DO_SSL_CONFIG
 

@@ -8,6 +8,8 @@
 
 #set -x
 
+produce_stuff()
+{
 aclocal
 autoheader
 libtoolize --copy --automake
@@ -19,7 +21,22 @@ autoconf
 # packaging - if the host system really has auto<whatever> and it wants to
 # regenerate stuff, it can recreate the cache directory itself.
 rm -rf autom4te*
+}
 
+# Make sure the version in the sub-directory configure.ac files is the same as
+# the top-level one
+cat configure.ac | egrep "^AC_INIT" > .tmp_bootstrap.txt || exit 1
+(cd ssl/ && cat ../.tmp_bootstrap.txt | \
+		sed "s/distcache/distcache-ssl/" > .tmp_bootstrap.ac &&
+	cat configure.ac | egrep -v "^AC_INIT" >> .tmp_bootstrap.ac &&
+	mv -f .tmp_bootstrap.ac configure.ac) || exit 1
+rm -f .tmp_bootstrap.txt
+
+# Run the routine in this directory and then the required sub-directories
+produce_stuff || exit 1
+(cd ssl/ && produce_stuff) || exit 1
+
+# Now handle preset environment variables
 if [ "x$PRECONF" = "x" ]; then
 	echo ""
 	echo "No PRECONF environment variable set, will not run ./configure"
@@ -30,18 +47,19 @@ if [ "x$PRECONF" = "x" ]; then
 	echo "Also PREFLAGS, if it is set, will be passed to ./configure"
 	echo ""
 else
+	CONFFLAGS="--enable-ssl --enable-swamp"
 	if [ "$PRECONF" = "gcc-RELEASE" ]; then
-		CFLAGS="-Wall -O3 -fomit-frame-pointer -DNDEBUG" \
-		./configure $PREFLAGS || exit 1
+		export CFLAGS="-Wall -O3 -fomit-frame-pointer -DNDEBUG"
 	elif [ "$PRECONF" = "gcc-DEBUG" ]; then
-		CFLAGS="-Wall -pedantic -Wundef -Wshadow -Wpointer-arith \
+		export CFLAGS="-Wall -pedantic -Wundef -Wshadow -Wpointer-arith \
 		-Wbad-function-cast -Wcast-qual -Wcast-align \
-		-Wsign-compare -Wstrict-prototypes -Wmissing-prototypes \
+		-Wsign-compare -Wmissing-prototypes \
 		-Wmissing-declarations -Wredundant-decls -Wwrite-strings \
-		-g -ggdb3" ./configure $PREFLAGS || exit 1
+		-g -ggdb3"
 	else
 		echo "Error, '$PRECONF' is not recognised as a value for PRECONF"
 		exit 1
 	fi
+	./configure $CONFFLAGS $PREFLAGS || exit 1
 fi
 

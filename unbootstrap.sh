@@ -6,10 +6,8 @@
 # around from the autotools - ie. leaving you with something resembling as
 # closely as possible the state of CVS.
 
-if [ -f Makefile ]; then
-	make distclean
-fi
-
+undo_stuff()
+{
 # Zilch any "Makefile.in" files, and zilch configure too
 find . -type f -name "Makefile.in" | xargs rm -f
 rm -f configure
@@ -36,4 +34,16 @@ rm -f distcache-*.tar.*
 
 # Clean autoconf stuff that autoconf itself doesn't clean
 rm -f config.status
+}
 
+# Before running the "rm" operations, use autotool cleanup
+if [ -f Makefile ]; then
+	make distclean
+fi
+if [ -f ssl/Makefile ]; then
+	(cd ssl/ && make distclean) || exit 1
+fi
+
+# Run the routine in all required sub-directories and then this directory
+(cd ssl/ && undo_stuff) || exit 1
+undo_stuff || exit 1
