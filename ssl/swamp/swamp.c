@@ -413,8 +413,7 @@ possible_reconnect:
 		 * and likewise for writes */
 		swamp_item_dirty_loop(item);
 		/* Case 2: it's still handshaking */
-		if(!item->handshake_complete &&
-				SSL_is_init_finished(item->ssl)) {
+		if(!item->handshake_complete && SSL_is_init_finished(item->ssl)) {
 			/* Check the cert verification didn't fail
 			 * (hint, CAfile needs to be set to match what
 			 * the server has!) */
@@ -452,6 +451,15 @@ possible_reconnect:
 				SSL_SESSION_free(temp_session);
 			}
 		}
+
+		/* FIXME: Put in a hook function here that allows any
+		 * read/request logic to be plugged in. The return value needs
+		 * to reflect any change of state - eg. error, continuing, do a
+		 * clean-shutdown, etc etc. This existing Step 3|4 stuff should
+		 * just be wrapped in a default "basic http" hook. Maybe even
+		 * build this stuff using shared-libs (might as well make
+		 * libtool work for a change). */
+
 		/* Case 3: we're writing the request. */
 		if(item->request_sent < item->request_size) {
 			/* Try and write some more */
