@@ -1308,11 +1308,8 @@ unsigned char *NAL_BUFFER_write_ptr(NAL_BUFFER *buf)
 	return (buf->_data + buf->_used);
 }
 
-unsigned int NAL_BUFFER_wrote(NAL_BUFFER *buf, unsigned int size)
+void NAL_BUFFER_wrote(NAL_BUFFER *buf, unsigned int size)
 {
-	unsigned int toadd = NAL_BUFFER_unused(buf);
-	if(toadd > size)
-		toadd = size;
-	buf->_used += toadd;
-	return toadd;
+	assert(size <= NAL_BUFFER_unused(buf));
+	buf->_used += size;
 }

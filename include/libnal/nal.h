@@ -152,11 +152,8 @@ unsigned int 	NAL_BUFFER_read(NAL_BUFFER *buf,
 unsigned char *	NAL_BUFFER_write_ptr(NAL_BUFFER *buf);
 /* If you wrote data directly to the buffer using ...write_ptr() rather than
  * NAL_BUFFER_write(), then use this call to indicate that the buffer has "size"
- * more bytes available to it at the position ...write_ptr() returned. NB: The
- * return value should never be less than size provided you wrote less than
- * NAL_BUFFER_unused(buf) bytes.  If you wrote more, you're in danger of a
- * SEGFAULT! :-) */
-unsigned int	NAL_BUFFER_wrote(NAL_BUFFER *buf,
+ * more bytes available to it at the position ...write_ptr() returned. */
+void		NAL_BUFFER_wrote(NAL_BUFFER *buf,
 				unsigned int size);
 
 /*************************/
