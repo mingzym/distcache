@@ -373,15 +373,11 @@ err:
 
 static void snoop_ctx_finish(snoop_ctx *ctx)
 {
-#if 0
-	exit(0);
-#else
 	unsigned int loop = 0;
 	snoop_item *i = ctx->items;
 	NAL_LISTENER_free(ctx->list);
 	while(loop++ < ctx->items_used)
 		snoop_item_finish(i++);
-#endif
 }
 
 static int snoop_ctx_to_sel(snoop_ctx *ctx)
