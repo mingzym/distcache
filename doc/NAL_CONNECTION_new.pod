@@ -40,7 +40,7 @@ usually TCP/IPv4 connect non-blocking, though this may not be true for some
 interfaces such as `localhost'. It should generally be assumed that the
 connection is in progress if this function succeeds. The size of the
 connection's underlying read and send B<NAL_BUFFER>s is initialised to the
-default that was created in B<addr>. See the L<NOTES> section for more
+default that was created in B<addr>. See the L</NOTES> section for more
 discussion of connection semantics.
 
 NAL_CONNECTION_create_pair() will initialise B<conn1> and B<conn2> to be
@@ -54,7 +54,7 @@ NAL_CONNECTION_create_dummy() will implement a virtual FIFO that has no
 underlying network resource associated with it. Writing data to the connection
 amounts to pushing data onto the front of the FIFO, and reading data from the
 connection amounts to popping data off the end of the FIFO. The size of the
-FIFO is specified by B<def_buffer_size>. See the L<BUGS> section for a note
+FIFO is specified by B<def_buffer_size>. See the L</BUGS> section for a note
 on using these connection types with B<NAL_SELECTOR>.
 
 NAL_CONNECTION_set_size() will resize the read and send buffers of B<conn> to
@@ -78,7 +78,7 @@ whatever reading or writing was required. If this function fails, that
 indicates that the connection is no longer valid - this represents a
 disconnection by the peer, the result of a non-blocking connect that had been
 initiated but was unable to connect, or some network error that makes B<conn>
-unusable. See the L<NOTES> section.
+unusable. See the L</NOTES> section.
 
 NAL_CONNECTION_io_cap() is a version of NAL_CONNECTION_io() that allows the
 caller to specify a limit on the maximum amount B<conn> should read from, or
@@ -92,7 +92,7 @@ NAL_CONNECTION_address() returns a pointer to B<conn>'s internal copy of the
 B<NAL_ADDRESS> object that it was created from.
 
 NAL_CONNECTION_is_established() is almost useful for determining when a
-non-blocking connect has completed, but the L<BUGS> section explains why it
+non-blocking connect has completed, but the L</BUGS> section explains why it
 doesn't yet work in the general case.
 
 NAL_CONNECTION_get_fd() returns the integer file-descriptor underlying B<conn>,
@@ -140,7 +140,7 @@ network functionality behaves. For TCP/IPv4 and unix domain socket based
 connections, as well as connection pairs from NAL_CONNECTION_create_pair(),
 operate very much as described here. The FIFO connection type, created by
 NAL_CONNECTION_create_dummy() is not yet consistent with this and is described
-in the L<BUGS> section.
+in the L</BUGS> section.
 
 =head1 BUGS
 

@@ -32,7 +32,7 @@ with B<addr> will inherent B<def_buffer_size> as the default size for its read
 and write buffers (see NAL_CONNECTION_set_size(2)). If B<addr> is used to
 create a B<NAL_LISTENER> object, then any B<NAL_CONNECTION> objects that are
 assigned connections from the listener will likewise have the given default
-size for its buffers. See the L<NOTES> section for information on the syntax of
+size for its buffers. See the L</NOTES> section for information on the syntax of
 B<addr>.
 
 NAL_ADDRESS_set_def_buffer_size() sets B<def_buffer_size> as the default buffer
@@ -45,7 +45,7 @@ creating a B<NAL_LISTENER> object. In other words, these functions determine
 whether the address can be ``connected to'' or ``listened on''. Depending on
 the type of transport and the string from which B<addr> was parsed, some
 addresses are only good for connecting or listening whereas others can be good
-for both. See L<NOTES>.
+for both. See L</NOTES>.
 
 NAL_ADDRESS_source_string() will return B<addr>'s internal copy of the string
 passed to it during a NAL_ADDRESS_create() call. This string is only valid

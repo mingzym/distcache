@@ -29,7 +29,7 @@ DC_CTX_new, DC_CTX_free, DC_CTX_add_session, DC_CTX_remove_session, DC_CTX_get_s
 DC_CTX_new() allocates and initialises a B<DC_CTX> structure with an address
 for sending session caching operation requests to, and flags controlling the
 behaviour of the B<DC_CTX> object. The address specified by B<target> should be
-compatible with the syntax defined by the I<libnal> API, see the L<NOTES>
+compatible with the syntax defined by the I<libnal> API, see the L</NOTES>
 section below. The B<flags> parameter can be zero to indicate that each cache
 operation should create and destroy a temporary connection, otherwise a bitmask
 combining one or more of the following flags;
