@@ -80,7 +80,7 @@ start_daemon "$DC_CLIENT" "dc_client" || exit 1
 
 echo ""
 
-sleep 1
+sleep 3
 
 echo "Testing direct to dc_server, using temporary connections ..."
 run_test "$TESTSESS -connect UNIX:$DC_SERVER_UNIX" "test_session" || echo "continuing anyway"
