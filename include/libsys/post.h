@@ -245,24 +245,72 @@ void *sys_memmove(void *dest, const void *src, size_t n);
 /* SYSTEM HELPER FUNCTIONS */
 /***************************/
 
+#define SYS_getpid	getpid
+#define SYS_timecmp(a,b) \
+		(((a)->tv_sec < (b)->tv_sec) ? -1 : \
+			(((a)->tv_sec > (b)->tv_sec) ? 1 : \
+			(((a)->tv_usec < (b)->tv_usec) ? -1 : \
+			(((a)->tv_usec > (b)->tv_usec) ? 1 : 0))))
+#define SYS_timecpy(d,s) SYS_memcpy(struct timeval, (d), (s))
+#define SYS_timeadd(res,I,msecs) \
+do { \
+	struct timeval *_tmp_res = (res); \
+	const struct timeval *_tmp_I = (I); \
+	unsigned long _tmp_carry = _tmp_I->tv_usec + ((msecs) * 1000); \
+	_tmp_res->tv_usec = _tmp_carry % 1000000; \
+	_tmp_carry /= 1000000; \
+	_tmp_res->tv_sec = _tmp_I->tv_sec + _tmp_carry; \
+} while(0)
+#ifdef WIN32
+#define SYS_gettime(tv) \
+do { \
+	FILETIME decimillisecs; \
+	unsigned __int64 crud; \
+	GetSystemTimeAsFileTime(&decimillisecs); \
+	crud = ((unsigned __int64)decimillisecs.dwHighDateTime << 32) + \
+		(unsigned __int64)decimillisecs.dwLowDateTime; \
+	crud /= 10; \
+	crud -= (unsigned __int64)12614400000 * (unsigned __int64)1000000; \
+	tv->tv_sec = (long)(crud / 1000000); \
+	tv->tv_usec = (long)(crud % 1000000); \
+} while(0)
+#else
+#define SYS_gettime(tv) \
+do { \
+	if(gettimeofday(tv, NULL) != 0)	abort(); \
+} while(0)
+#endif
+
+/* libsys functions shouldn't be exposed when generating library code, because
+ * they create linker dependencies on internal-only libsys. Those that we want to permit
+ * in library code must be declared inline instead. */
+
+#if defined(SYS_GENERATING_EXE) || defined(SYS_LOCAL)
+
 #ifdef WIN32
 int SYS_sockets_init(void);
 #else
 int SYS_sigpipe_ignore(void);
+#if 0	/* Redeclared as a macro for use in library code */
 pid_t SYS_getpid(void);
+#endif
 int SYS_daemon(int nochdir);
 #endif
+#if 0	/* Redeclared as macros */
 void SYS_gettime(struct timeval *tv);
 int SYS_timecmp(const struct timeval *a, const struct timeval *b);
 void SYS_timecpy(struct timeval *dest, const struct timeval *src);
 /* Arithmetic on timevals. 'res' can be the same as 'I' if desired. */
 void SYS_timeadd(struct timeval *res, const struct timeval *I,
 		unsigned long msecs);
+#endif
 void SYS_timesub(struct timeval *res, const struct timeval *I,
 		unsigned long msecs);
 int SYS_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
 		const struct timeval *timenow);
 unsigned long SYS_msecs_between(const struct timeval *a, const struct timeval *b);
+
+#endif /* defined(SYS_GENERATING_EXE) */
 
 #endif /* !defined(HEADER_LIBSYS_POST_H) */
 

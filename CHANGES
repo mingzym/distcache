@@ -12,9 +12,23 @@
                                                          -- W. Edwards Deming
 
 
-Current version: 0.4
+Current version: x.x
 --------------------
 
+
+Changes between 0.4 and x.x
+---------------------------
+
+  *) I discovered a rather annoying bug in the 0.4 release just as I was
+     updating apache-2 support. The s/NAL_/SYS_/ changes I made leading up to
+     the 0.4 release caused some linker dependencies in our installed libraries
+     upon libsys which is *internal-only*. The solution I have put in is that
+     libsys/pre.h requires the C file to have declared SYS_LOCAL,
+     SYS_GENERATING_EXE, or SYS_GENERATING_LIB. In the instance of
+     SYS_GENERATING_LIB, libsys/post.h will not declare any functions
+     implemented in libsys. Using this change, the offending dependencies were
+     found and have been converted to macros.
+     [Geoff Thorpe]
 
 Changes between 0.4pre2 and 0.4
 -------------------------------

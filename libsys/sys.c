@@ -18,6 +18,8 @@
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#define SYS_LOCAL
+
 #include <libsys/pre.h>
 #define IN_SYS_C
 #include <libsys/post.h>
@@ -45,10 +47,13 @@ int sockets_init(void)
 /* Process model related utility code */
 /**************************************/
 
+/* Redeclared as a macro */
+#if 0
 pid_t SYS_getpid(void)
 {
 	return getpid();
 }
+#endif
 
 /*
  * SYS_daemon() is a utility function to make the current process a "daemon"
@@ -122,6 +127,8 @@ int SYS_sigpipe_ignore(void)
 /* Time manipulation functions */
 /*******************************/
 
+/* Redeclared as macros */
+#if 0
 int SYS_timecmp(const struct timeval *a, const struct timeval *b)
 {
 	if(a->tv_sec < b->tv_sec)
@@ -168,6 +175,22 @@ void SYS_gettime(struct timeval *tv)
 #endif
 }
 
+void SYS_timecpy(struct timeval *dest, const struct timeval *src)
+{
+	SYS_memcpy(struct timeval, dest, src);
+}
+
+void SYS_timeadd(struct timeval *res, const struct timeval *I,
+		unsigned long msecs)
+{
+	unsigned long carry = I->tv_usec + (msecs * 1000);
+	res->tv_usec = carry % 1000000;
+	carry /= 1000000;
+	res->tv_sec = I->tv_sec + carry;
+}
+
+#endif
+
 int SYS_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
 		const struct timeval *timenow)
 {
@@ -185,20 +208,6 @@ int SYS_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
 		return 0;
 	/* Expired */
 	return 1;
-}
-
-void SYS_timecpy(struct timeval *dest, const struct timeval *src)
-{
-	SYS_memcpy(struct timeval, dest, src);
-}
-
-void SYS_timeadd(struct timeval *res, const struct timeval *I,
-		unsigned long msecs)
-{
-	unsigned long carry = I->tv_usec + (msecs * 1000);
-	res->tv_usec = carry % 1000000;
-	carry /= 1000000;
-	res->tv_sec = I->tv_sec + carry;
 }
 
 void SYS_timesub(struct timeval *res, const struct timeval *I,

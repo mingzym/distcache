@@ -18,6 +18,8 @@
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#define SYS_LOCAL
+
 #include <libsys/pre.h>
 #define IN_MEM_C
 #include <libsys/post.h>

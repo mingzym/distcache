@@ -20,6 +20,23 @@
 #ifndef HEADER_LIBSYS_PRE_H
 #define HEADER_LIBSYS_PRE_H
 
+/* As a form of self-discipline, we require that the C file(s) including pre.h
+ * (which is to say all C files) define whether they are building object code
+ * for libraries or exectuables. By enforcing this, we can then make sure that
+ * post.h doesn't expose any libsys functions for library code. The reason for
+ * this is to prevent libraries having linker dependencies on libsys which is
+ * *not* installed! This has already caught me out once, so this measure is
+ * useful to me at least. */
+#if !defined(SYS_GENERATING_LIB) && !defined(SYS_GENERATING_EXE) && !defined(SYS_LOCAL)
+#error "You must define SYS_GENERATING_LIB, SYS_GENERATING_EXE, or SYS_LOCAL"
+#elif defined(SYS_LOCAL)
+#if defined(SYS_GENERATING_LIB) || defined(SYS_GENERATING_EXE)
+#error "You cannot combine SYS_LOCAL with SYS_GENERATING_***"
+#endif
+#elif defined(SYS_GENERATING_LIB) && defined(SYS_GENERATING_EXE)
+#error "You cannot combine SYS_GENERATING_LIB and SYS_GENERATING_EXE"
+#endif
+
 #ifdef WIN32
 
 /* We're windows, include the headers we want explicitly */

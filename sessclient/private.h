@@ -20,6 +20,9 @@
 #ifndef HEADER_PRIVATE_SESSCLIENT_H
 #define HEADER_PRIVATE_SESSCLIENT_H
 
+/* All this code is for building/linking an executable */
+#define SYS_GENERATING_EXE
+
 /* Save space in the C files... */
 #include <libsys/pre.h>
 #include <libnal/nal.h>
