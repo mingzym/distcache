@@ -57,6 +57,7 @@ static const char *usage_msg[] = {
 "  -idle <num>       (idle timeout (msecs) for client connections, def: 0)",
 #ifndef WIN32
 "  -pidfile <path>   (a file to store the process ID in)",
+"  -killable         (exit cleanly on a SIGUSR1 or SIGUSR2 signal)",
 #endif
 "  -<h|help|?>       (display this usage message)",
 "",
@@ -71,6 +72,7 @@ static const char *CMD_HELP3 = "-?";
 #ifndef WIN32
 static const char *CMD_DAEMON = "-daemon";
 static const char *CMD_PIDFILE = "-pidfile";
+static const char *CMD_KILLABLE = "-killable";
 #endif
 static const char *CMD_LISTEN = "-listen";
 static const char *CMD_SERVER1 = "-server";
@@ -111,8 +113,12 @@ static int err_badswitch(const char *arg) {
 		return err_noarg(a); \
 	ARG_INC
 
+/* Used to spot if we have received a SIGUSR1 or SIGUSR2 */
+static int got_signal = 0;
+
 int main(int argc, char *argv[])
 {
+	int tmp_res, res = 1;
 	NAL_ADDRESS *addr;
 	NAL_SELECTOR *sel;
 	NAL_LISTENER *listener;
@@ -127,6 +133,7 @@ int main(int argc, char *argv[])
 #ifndef WIN32
 	int daemon_mode = 0;
 	const char *pidfile = def_pidfile;
+	int killable = 0;
 #endif
 	const char *listen_addr = def_listen_addr;
 	unsigned long retry_period = def_retry_period;
@@ -178,6 +185,8 @@ int main(int argc, char *argv[])
 		} else if(strcmp(*argv, CMD_PIDFILE) == 0) {
 			ARG_CHECK(*argv);
 			pidfile = *argv;
+		} else if(strcmp(*argv, CMD_KILLABLE) == 0) {
+			killable = 1;
 #endif
 		} else
 			return err_badswitch(*argv);
@@ -197,6 +206,12 @@ int main(int argc, char *argv[])
 #else
 	if(!SYS_sigpipe_ignore()) {
 		SYS_fprintf(SYS_stderr, "Error, couldn't ignore SIGPIPE\n");
+		return 1;
+	}
+	if(!SYS_sigusr_interrupt(&got_signal)) {
+#if SYS_DEBUG_LEVEL > 0
+		SYS_fprintf(SYS_stderr, "Error, couldn't ignore SIGUSR[1|2]\n");
+#endif
 		return 1;
 	}
 #endif
@@ -261,17 +276,29 @@ main_loop:
 	 * time). */
 	if(!conn && ((conn = NAL_CONNECTION_new()) == NULL)) {
 		SYS_fprintf(SYS_stderr, "Error, connection couldn't be created!!\n");
-		goto end;
+		goto err;
 	}
 	if(conn) NAL_LISTENER_add_to_selector(listener, sel);
 	clients_to_selector(clients, sel);
 	server_to_selector(server, sel, multiplexer, clients, &now);
-	if(NAL_SELECTOR_select(sel, timeout, 1) < 0) {
+	if(!killable || !got_signal)
+		tmp_res = NAL_SELECTOR_select(sel, timeout, 1);
+	else
+		tmp_res = -1;
+	if(tmp_res < 0) {
 		/* We try to be resistant against signal interruptions */
-		if(errno != EINTR)
-			SYS_fprintf(SYS_stderr, "Warning, selector returned an "
-					"error\n");
-		goto main_loop;
+		if(!killable)
+			goto main_loop;
+		if(got_signal)
+			/* We're killable and received SIGUSR1 or SIGUSR2 */
+			goto end;
+		if(errno != EINTR) {
+			SYS_fprintf(SYS_stderr, "Error, select interrupted for unknown "
+					"signal, continuing\n");
+			goto main_loop;
+		}
+		SYS_fprintf(SYS_stderr, "Error, select() failed\n");
+		goto err;
 	}
 	/* Set a "now" value that can be used throughout this post-select loop
 	 * (saving on redundant calls to gettimeofday()). */
@@ -290,16 +317,18 @@ main_loop:
 			!server_io(server, sel, multiplexer, clients, &now)) {
 		SYS_fprintf(SYS_stderr, "Error, a fatal problem with the "
 			"client or server code occured. Closing.\n");
-		goto end;
+		goto err;
 	}
 	/* Now the logic-loop, which is "multiplexer"-driven. */
 	if(!multiplexer_run(multiplexer, clients, server, &now)) {
 		SYS_fprintf(SYS_stderr, "Error, a fatal problem with the "
 			"multiplexer has occured. Closing.\n");
-		goto end;
+		goto err;
 	}
 	goto main_loop;
 end:
+	res = 0;
+err:
 	if(conn)
 		NAL_CONNECTION_free(conn);
 	NAL_SELECTOR_free(sel);
@@ -307,6 +336,6 @@ end:
 	clients_free(clients);
 	server_free(server);
 	multiplexer_free(multiplexer);
-	return 1;
+	return res;
 }
 

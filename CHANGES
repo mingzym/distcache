@@ -55,11 +55,11 @@ Changes between 1.4.1 and x.x
      headers can be exposed to facilitate external plugin implementations.
      [Geoff Thorpe]
 
-  *) Add a "-killable" switch to dc_server so that SIGUSR1 or SIGUSR2 cause a
-     clean shutdown, for memory leak checking mainly. However to make this sane
-     from a user/admin point of view, we make dc_server *ignore* either signal
-     if the switch is not specified (rather than the default behaviour which is
-     to automatically terminate the process).
+  *) Add a "-killable" switch to dc_server and dc_client so that SIGUSR1 or
+     SIGUSR2 cause a clean shutdown, for memory leak checking mainly. However
+     to make this sane from a user/admin point of view, we make them *ignore*
+     either signal if the switch is not specified (rather than the default
+     behaviour which is to automatically terminate the process).
      [Geoff Thorpe]
 
   *) Added a SYS_sigusr_interrupt() function to the libsys API for use by
