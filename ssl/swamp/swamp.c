@@ -279,6 +279,8 @@ static void swamp_thread_ctx_finish(swamp_thread_ctx *ctx)
 	for(loop = 0; loop < ctx->size; loop++) {
 		SYS_free(unsigned char, ctx->items[loop].response);
 		server_iterator_free(ctx->items[loop].server_iterator);
+		if(ctx->items[loop].conn)
+			NAL_CONNECTION_free(ctx->items[loop].conn);
 	}
 	SYS_free(swamp_item, ctx->items);
 	NAL_SELECTOR_free(ctx->sel);
