@@ -1,4 +1,38 @@
 dnl
+dnl IMPORTANT NOTE:
+dnl These two definitions are copied from the top-level acinclude.m4. Any
+dnl modifications to one should be reproduced in the other.
+dnl
+
+dnl
+dnl REMOVE_WERROR
+dnl
+AC_DEFUN([REMOVE_WERROR],[
+dc_werror_set="no"
+AC_MSG_CHECKING(whether -Werror is set)
+echo "$CFLAGS" | grep -e "-Werror" > /dev/null 2>&1 && dc_werror_set="yes"
+if test "$dc_werror_set" = "no"; then
+	AC_MSG_RESULT(no)
+else
+	AC_MSG_RESULT(yes)
+	CFLAGS=`echo $CFLAGS | sed -e "s/-Werror//g"`
+fi
+])
+
+dnl
+dnl REPLACE WERROR
+dnl
+AC_DEFUN([REPLACE_WERROR],[
+AC_MSG_CHECKING(whether to reinsert -Werror)
+if test "$dc_werror_set" = "yes"; then
+	AC_MSG_RESULT(yes)
+	CFLAGS="-Werror $CFLAGS"
+else
+	AC_MSG_RESULT(no)
+fi
+])
+
+dnl
 dnl TODO:
 dnl - Checks for further dependencies required by libssl.a or libcrypto.a
 dnl   (e.g. -ldl)

@@ -10,6 +10,9 @@ AM_INIT_AUTOMAKE()
 AC_CONFIG_SRCDIR(swamp/swamp.c)
 AM_CONFIG_HEADER(config.h)
 
+# Remove -Werror if it exists
+REMOVE_WERROR
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_MAKE_SET
@@ -50,6 +53,9 @@ DISTCACHE_WITH_SSL
 # define this, the following trick seems to fix that.
 VERSION=$PACKAGE_VERSION
 AC_SUBST(VERSION)
+
+# Put -Werror back in if it was wanted
+REPLACE_WERROR
 
 AC_CONFIG_FILES([Makefile
 		 swamp/Makefile])

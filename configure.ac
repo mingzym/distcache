@@ -11,6 +11,9 @@ AM_INIT_AUTOMAKE(distcache, 1.5.1dev)
 AC_CONFIG_SRCDIR(sessserver/server.c)
 AM_CONFIG_HEADER(config.h)
 
+# Remove -Werror if it exists
+REMOVE_WERROR
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_MAKE_SET
@@ -54,6 +57,9 @@ AC_SUBST(VERSION)
 
 # Declare all the SSL-related stuff
 TOP_LEVEL_SSL
+
+# Put -Werror back in if it was wanted
+REPLACE_WERROR
 
 AC_CONFIG_FILES([Makefile
 		 libdistcache/Makefile
