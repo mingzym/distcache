@@ -73,8 +73,9 @@ static FILE *int_get_stream(int_stream_t *s, FILE *normal)
 #if NAL_DEBUG_LEVEL > 1
 	/* This should never happen! */
 	abort();
-#endif
+#else
 	return NULL;
+#endif
 }
 
 FILE *NAL_stdin(void) {
@@ -113,8 +114,9 @@ static int int_close_stream(int_stream_t *s)
 #if NAL_DEBUG_LEVEL > 1
 	/* This should never happen! */
 	abort();
-#endif
+#else
 	return 0;
+#endif
 }
 
 int NAL_stdin_close(void) {
