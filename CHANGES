@@ -12,12 +12,12 @@
                                                          -- W. Edwards Deming
 
 
-Current version: x.x
---------------------
+Current version: 1.4.3
+----------------------
 
 
-Changes between 1.4.2 and x.x
------------------------------
+Changes between 1.4.2 and 1.4.3
+-------------------------------
 
   *) Fix a bug that can cause non-blocking connects to jam. If a non-blocking
      connect begins, the appropriate way to spot completion (or failure) is by
