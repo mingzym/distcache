@@ -1,0 +1,41 @@
+
+     _          _                   _
+  __| |o ___ __| |__ ___  __ _  ___| |__   ___     distcache
+ / _` |_/ __|__   __/ __|/ _` |/ __| '_ \ / , \    Distributed session caching
+| (_| | \__ \  | | | (__| (_| | (__| | | |  __/    www.distcache.org
+ \__,_|_|___/  |_|  \___|\__,_|\___|_| |_|\___|    distcache.sourceforge.net
+
+-------------------------------------------------------------------------------
+
+                                ``This argument repeats that already given in
+                                  paragraph 5 and partly contradicts paragraph
+                                  3.''  -- Dr. Edgar David Villanueva Nunez
+                                           responding to Microsoft,
+                                     http://www.gnu.org.pe/resmseng.html
+
+
+Installation
+------------
+
+For now, the compilation instructions are very straightforward.
+ o Type "make"
+ o Hope
+
+As for installation, that's also rather easy.
+ o Use 'cp' or 'mv'
+
+
+Something more useful
+---------------------
+
+Now that 'distcache' is open source, some efforts are being made to support it
+using the GNU autotools. The code, prior to being released as open source, was
+made to work on the required platforms on a case-by-case basis (by scripts in
+the "NotLinux" directory that would patch the build system). Likewise, packaging
+and installation was handled externally to the source tree.
+
+Before long, 'distcache' should be well supported on the standard Unix-like
+platforms as well as Win32 (using Cygwin) because of the GNU autotools suite.
+Please feel free to monitor ongoing development in CVS, and contributions are
+always welcome!
+
