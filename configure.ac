@@ -14,7 +14,7 @@ AM_INIT_AUTOMAKE([dist-bzip2 no-define])
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_MAKE_SET
-AC_DISABLE_SHARED
+#AC_DISABLE_SHARED
 AM_PROG_LIBTOOL
 
 # Checks for header files.

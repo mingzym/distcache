@@ -1,5 +1,6 @@
-INCLUDES=-I$(top_srcdir)/include -I$(top_builddir)
+INCLUDES		= -I$(top_srcdir)/include -I$(top_builddir)
 
-lib_LIBRARIES=libnal.a
-libnal_a_SOURCES=nal_internal.h bincoding.c net.c
+lib_LTLIBRARIES		= libnal.la
+libnal_la_SOURCES	= nal_internal.h bincoding.c net.c
+libnal_la_LDFLAGS	= -version-info 1:1:0
 

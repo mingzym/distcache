@@ -8,8 +8,8 @@ bin_PROGRAMS		= sslswamp
 sslswamp_SOURCES	= swamp.c text_msg.c utils.c swamp_conf.c \
 		 	  dist_pattern.c serv_iterator.c swamp.h
 sslswamp_CFLAGS		= -DCACERT_PATH=\"$(pemdir)/CA.pem\"
-sslswamp_LDADD		= $(top_builddir)/../libsys/libsys.a \
-			  $(top_builddir)/../libnal/libnal.a
+sslswamp_LDADD		= $(top_builddir)/../libsys/libsys.la \
+			  $(top_builddir)/../libnal/libnal.la
 
 sslswamp_manpagelist	= sslswamp.1
 sslswamp_podlist	= sslswamp.pod

@@ -47,7 +47,7 @@ if [ "x$PRECONF" = "x" ]; then
 	echo "Also PREFLAGS, if it is set, will be passed to ./configure"
 	echo ""
 else
-	CONFFLAGS="--enable-ssl --enable-swamp"
+	CONFFLAGS="--enable-ssl --enable-swamp --disable-shared"
 	if [ "$PRECONF" = "gcc-RELEASE" ]; then
 		export CFLAGS="-Wall -O3 -fomit-frame-pointer -DNDEBUG"
 	elif [ "$PRECONF" = "gcc-DEBUG" ]; then

@@ -19,6 +19,11 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Put libtool in charge of compilation and linking again and, by default,
+     build shared libraries again. For development purposes, the bootstrap
+     script uses "--disable-shared" when PRECONF is being used.
+     [Geoff Thorpe]
+
   *) Update copyright dates to 2003.
      [Geoff Thorpe]
 
