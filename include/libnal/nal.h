@@ -181,7 +181,7 @@ int NAL_decode_uint32(const unsigned char **bin, unsigned int *bin_len,
 int NAL_decode_uint16(const unsigned char **bin, unsigned int *bin_len,
 			unsigned int *val);
 int NAL_decode_char(const unsigned char **bin, unsigned int *bin_len,
-			unsigned char *c);
+			unsigned char *val);
 int NAL_decode_bin(const unsigned char **bin, unsigned int *bin_len,
 			unsigned char *val, unsigned int val_len);
 
@@ -190,9 +190,9 @@ int NAL_encode_uint32(unsigned char **bin, unsigned int *bin_len,
 int NAL_encode_uint16(unsigned char **bin, unsigned int *bin_len,
 			const unsigned int val);
 int NAL_encode_char(unsigned char **bin, unsigned int *bin_len,
-			const unsigned char c);
+			const unsigned char val);
 int NAL_encode_bin(unsigned char **bin, unsigned int *bin_len,
-			const unsigned char *data, const unsigned int len);
+			const unsigned char *val, const unsigned int val_len);
 
 #endif /* !defined(HEADER_LIBNAL_NAL_H) */
 
