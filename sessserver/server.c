@@ -29,6 +29,27 @@ static const unsigned long def_progress = 0;
 static const char *def_pidfile = NULL;
 #endif
 
+/* Avoid the dreaded "greater than the length `509' ISO C89 compilers are
+ * required to support" warning by splitting this into an array of strings. */
+static const char *usage_msg[] = {
+"",
+"Usage: dc_server [options]     where 'options' are from;",
+#ifndef WIN32
+"  -daemon          (detach and run in the background)",
+#endif
+"  -listen <addr>   (act as a server listening on address 'addr')",
+"  -sessions <num>  (make the cache hold a maximum of 'num' sessions)",
+"  -progress <num>  (report cache progress at least every 'num' operations)",
+#ifndef WIN32
+"  -pidfile <path>  (a file to store the process ID in)",
+#endif
+"  -<h|help|?>      (display this usage message)",
+"\n",
+"Eg. dc_server -listen IP:9001",
+"  will start a session cache server listening on port 9001 for all TCP/IP",
+"  interfaces.",
+"", NULL};
+
 #define MAX_SESSIONS		DC_CACHE_MAX_SIZE
 #define MAX_PROGRESS		(unsigned long)1000000
 #define SERVER_BUFFER_SIZE	4096
@@ -40,23 +61,9 @@ static int do_server(const char *address, unsigned int max_sessions,
 
 static int usage(void)
 {
-	NAL_fprintf(NAL_stderr(), "\n"
-"Usage: dc_server [options]     where 'options' are from;\n"
-#ifndef WIN32
-"  -daemon          (detach and run in the background)\n"
-#endif
-"  -listen <addr>   (act as a server listening on address 'addr')\n"
-"  -sessions <num>  (make the cache hold a maximum of 'num' sessions)\n"
-"  -progress <num>  (report cache progress at least every 'num' operations)\n"
-#ifndef WIN32
-"  -pidfile <path>  (a file to store the process ID in)\n"
-#endif
-"  -<h|help|?>      (display this usage message)\n"
-"\n"
-"Eg. dc_server -listen IP:9001\n"
-"  will start a session cache server listening on port 9001 for all TCP/IP\n"
-"  interfaces.\n"
-"\n");
+	const char **u = usage_msg;
+	while(*u)
+		NAL_fprintf(NAL_stderr(), "%s\n", *(u++));
 	/* Return 0 because main() can use this is as a help
 	 * screen which shouldn't return an "error" */
 	return 0;

@@ -35,6 +35,33 @@ static const unsigned int def_timeout = 60;
 static const unsigned int def_timevar = 5;
 static const unsigned long def_progress = 0;
 
+/* Avoid the dreaded "greater than the length `509' ISO C89 compilers are
+ * required to support" warning by splitting this into an array of strings. */
+static const char *usage_msg[] = {
+"",
+"Usage: test_session [options]     where 'options' are from;",
+"  -connect <addr>  (connect to server at address 'addr')",
+"  -progress <num>  (report transaction count every 'num' operations)",
+"  -sessions <num>  (create 'num' sessions to use for testing)",
+#ifdef HAVE_OPENSSL
+"  -withcert <num>  (make 'num' of the sessions use peer certificates)",
+#endif
+"  -timeout <secs>  (add sessions with a timeout of 'secs')",
+"  -timevar <secs>  (randomly offset '-timeout' +/- 'secs')",
+"  -ops <num>       (run <num> random tests, def: 10 * ('sessions')^2)",
+"  -persistent      (use a persistent connection for all operations)",
+"  -<h|help|?>      (display this usage message)",
+"",
+"Eg. test_session -connect UNIX:/tmp/session_cache -sessions 10 -withcert 3",
+"  will start connecting to a cache server (or a cache proxy like 'dc_client')",
+"  and will runs tests using 10 sample SSL/TLS sessions, 3 of which will be",
+"  large due to peer-certificate encoding.",
+"NB: '-progress' ensures that if 'num' operations have accumulated,",
+"  statistics are generated. However in server mode, statistics are also",
+"  generated due to cache activity, so '-progress' just ensures they are",
+"  generated at least as often as the number of operations grows by 'num'.",
+"", NULL};
+
 #define MAX_SESSIONS		512
 #define MAX_TIMEOUT		3600 /* 1 hour */
 #define MAX_OPS			1000000
@@ -52,29 +79,9 @@ static int do_client(const char *address, unsigned int num_sessions,
 
 static int usage(void)
 {
-	NAL_fprintf(NAL_stderr(), "\n"
-"Usage: test_session [options]     where 'options' are from;\n"
-"  -connect <addr>  (connect to server at address 'addr')\n"
-"  -progress <num>  (report transaction count every 'num' operations)\n"
-"  -sessions <num>  (create 'num' sessions to use for testing)\n"
-#ifdef HAVE_OPENSSL
-"  -withcert <num>  (make 'num' of the sessions use peer certificates)\n"
-#endif
-"  -timeout <secs>  (add sessions with a timeout of 'secs')\n"
-"  -timevar <secs>  (randomly offset '-timeout' +/- 'secs')\n"
-"  -ops <num>       (run <num> random tests, def: 10 * ('sessions')^2)\n"
-"  -persistent      (use a persistent connection for all operations)\n"
-"  -<h|help|?>      (display this usage message)\n"
-"\n"
-"Eg. test_session -connect UNIX:/tmp/session_cache -sessions 10 -withcert 3\n"
-"  will start connecting to a cache server (or a cache proxy like 'dc_client')\n"
-"  and will runs tests using 10 sample SSL/TLS sessions, 3 of which will be\n"
-"  large due to peer-certificate encoding.\n"
-"NB: '-progress' ensures that if 'num' operations have accumulated,\n"
-"  statistics are generated. However in server mode, statistics are also\n"
-"  generated due to cache activity, so '-progress' just ensures they are\n"
-"  generated at least as often as the number of operations grows by 'num'.\n"
-"\n");
+	const char **u = usage_msg;
+	while(*u)
+		NAL_fprintf(NAL_stderr(), "%s\n", *(u++));
 	/* Return 0 because main() can use this is as a help
 	 * screen which shouldn't return an "error" */
 	return 0;
@@ -230,7 +237,7 @@ static void generate_random_bytes(unsigned char *buf, unsigned int num)
 #else
 	static int first_time = 1;
 	static FILE *urandom = NULL;
-	int i;
+	unsigned int i;
 	if(first_time) {
 		urandom = fopen("/dev/urandom", "r");
 	}

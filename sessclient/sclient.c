@@ -45,26 +45,29 @@ static const unsigned long def_idle_timeout = 0;
 static const char *def_pidfile = NULL;
 #endif
 
-/* Little message used by main() */
-static const char *usage_string =
-"Usage: dc_client [options]      where 'options' are from;\n"
+/* Avoid the dreaded "greater than the length `509' ISO C89 compilers are
+ * required to support" warning by splitting this into an array of strings. */
+static const char *usage_msg[] = {
+"",
+"Usage: dc_client [options]      where 'options' are from;",
 #ifndef WIN32
-"  -daemon           (detach and run in the background)\n"
+"  -daemon           (detach and run in the background)",
 #endif
-"  -listen <addr>    (listen on address 'addr', def: UNIX:/tmp/scache)\n"
-"  -server <addr>    (connects to a cache server at 'addr')\n"
-"  -connect <addr>   (alias for '-server')\n"
-"  -retry <num>      (retry period (msecs) for cache servers, def: 5000)\n"
-"  -idle <num>       (idle timeout (msecs) for client connections, def: 0)\n"
+"  -listen <addr>    (listen on address 'addr', def: UNIX:/tmp/scache)",
+"  -server <addr>    (connects to a cache server at 'addr')",
+"  -connect <addr>   (alias for '-server')",
+"  -retry <num>      (retry period (msecs) for cache servers, def: 5000)",
+"  -idle <num>       (idle timeout (msecs) for client connections, def: 0)",
 #ifndef WIN32
-"  -pidfile <path>   (a file to store the process ID in)\n"
+"  -pidfile <path>   (a file to store the process ID in)",
 #endif
-"  -<h|help|?>       (display this usage message)\n"
-"\n"
-" Eg. dc_client -listen UNIX:/tmp/scache -server IP:192.168.2.5:9003\n"
-" will listen on a unix domain socket at /tmp/scache and will manage\n"
-" forwarding requests and responses to and from two the cache server.\n"
-"\n";
+"  -<h|help|?>       (display this usage message)",
+"",
+" Eg. dc_client -listen UNIX:/tmp/scache -server IP:192.168.2.5:9003",
+" will listen on a unix domain socket at /tmp/scache and will manage",
+" forwarding requests and responses to and from two the cache server.",
+"", NULL};
+
 static const char *CMD_HELP1 = "-h";
 static const char *CMD_HELP2 = "-help";
 static const char *CMD_HELP3 = "-?";
@@ -80,7 +83,9 @@ static const char *CMD_IDLE = "-idle";
 
 /* Little help functions to keep main() from bloating. */
 static int usage(void) {
-	NAL_fprintf(NAL_stderr(), "\n%s\n", usage_string);
+	const char **u = usage_msg;
+	while(*u)
+		NAL_fprintf(NAL_stderr(), "%s\n", *(u++));
 	return 0;
 }
 static int err_noarg(const char *arg) {
