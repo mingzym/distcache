@@ -345,7 +345,7 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 		*buf_used -= moved;
 		if(*buf_used)
 			/* Shift the remaining data left */
-			SYS_memcpy_n(unsigned char, buf, buf + moved, *buf_used);
+			SYS_memmove_n(unsigned char, buf, buf + moved, *buf_used);
 		return SNOOP_PARSE_COMPLETE;
 	}
 	return SNOOP_PARSE_INCOMPLETE;
