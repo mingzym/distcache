@@ -21,6 +21,7 @@ rm -f conftest*
 rm -f depcomp compile libtool
 rm -f install-sh ltmain.sh missing mkinstalldirs
 rm -f stamp-h*
+rm -f .sweepfile
 
 # Residual backup files and what-not
 find . -type f -name "*~" | xargs rm -f
