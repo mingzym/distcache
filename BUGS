@@ -36,3 +36,8 @@
 - I'm pretty sure the building of the documents is not 100% kosher. Eg. the
   links don't seem to do anything useful in the HTML versions at least, and
   there's loads of cross-link errors/warnings when building.
+
+- I think installing the libtool things doesn't make much sense. I just started
+  getting warnings from my apache-2 hacking which indicates that the presence
+  of libdistcache.la and libnal.la is misleading ("file moved" type of
+  warning). So we should only install (and package) static libs.
