@@ -44,6 +44,8 @@ AC_DEFUN([DO_SSL_CONFIG],
 	if test "x$dc_ssl_enable" = "xyes"; then
 		echo ""
 		echo "Configuring SSL/TLS-specific targets;"
+		dnl Add any --prefix to the configure arguments
+		dc_ssl_params="--prefix=$prefix $dc_ssl_params"
 		(cd ssl && echo "./configure $dc_ssl_params" | sh) || exit 1
 	fi
 ])
