@@ -25,19 +25,21 @@ For now, the compilation instructions are very straightforward.
 As for installation, that's also rather easy.
  o As the root user, type "make install"
 
+There is currently experimental support for producing source and binary RPM
+packages. The ".spec" file for doing this is in the ./devel/ directory and
+contains comments that can be read to get help with building RPMs.
 
 Something more useful
 ---------------------
 
-Now that 'distcache' is open source, some efforts are being made to support it
-better using the GNU autotools. The current version of the code has the standard
-GNU autotools framework in place already ("./configure" with all the normal
-supported options such as "--prefix"), but there is quite likely some work
-required to have the code *use* the facilities of the autotools for better
-portability, particularly in the "libnal" networking code. If you have a target
-platform that has compilation problems, please give us some information - if you
-can provide fixes or allow us shell access to such a machine to fix it ourselves
-we would be most grateful; please mail distcache-team@lists.sourceforge.net.
+The current version of the code has the standard GNU autotools framework in
+place already ("./configure" with all the normal supported options such as
+"--prefix"), but there is quite likely some work required to have the code
+*use* the facilities of the autotools for better portability, particularly in
+the "libnal" networking code. If you have a target platform that has
+compilation problems, please give us some information - if you can provide
+fixes or allow us shell access to such a machine to fix it ourselves we would
+be most grateful; please mail distcache-team@lists.sourceforge.net.
 
 Before long, 'distcache' should be well supported on the standard Unix-like
 platforms as well as Win32 (using Cygwin) because of the GNU autotools suite.
