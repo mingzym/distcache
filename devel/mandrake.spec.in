@@ -1,5 +1,11 @@
 ###############################################################################
 #
+# Note: mandrake.spec is automatically generated from mandrake.spec.in
+# If you are looking at "mandrake.spec", any changes you make will be
+# overwritten next time "mandrake.spec.in" is processed.
+#
+###############################################################################
+#
 # To build RPMs from this spec file, you need some basic RPM stuff set up in
 # your account. Do not do any of this stuff as root, and consider even setting
 # up an account for nothing other than making RPMs...
@@ -31,12 +37,9 @@
 # instructions will apply to a released distcache 'bz2' tarball. If you're
 # working from a fresh CVS checkout, do the following to create such a tarball;
 #
-# (1) verify that the version in the "configure.ac" file, the second parameter
-#     to the AC_INIT() macro, matches exactly the "%define version ..." setting
-#     further down in this file.
-# (2) run ./bootstrap.sh to generate "./configure" and Makefile.in files
-# (3) run "./configure"
-# (4) run "make dist-bzip2"
+# (1) run ./bootstrap.sh to generate "./configure" and Makefile.in files
+# (2) run "./configure"
+# (3) run "make dist-bzip2"
 #
 # The resulting distcache-X.X.tar.bz2 tarball should be in the top-level
 # directory.
@@ -52,7 +55,7 @@
 # (1) copy the tarball to the RPM 'SOURCES' directory;
 #         mv distcache-X.X.tar.bz2 ~/rpm/SOURCES/
 # (2) point directly to this spec file when running the rpm build command;
-#         rpm -ba distcache-X.X/devel/distcache.spec
+#         rpm -ba distcache-X.X/devel/mandrake.spec
 #
 # If all goes well, the last line of output should mention "exit 0" and there
 # should be new RPMs living in ~/rpm/RPMS/i586 and ~/rpm/SRPMS.
