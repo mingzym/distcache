@@ -1,5 +1,5 @@
 /* distcache, Distributed Session Caching technology
- * Copyright (C) 2000-2003  Geoff Thorpe, and Cryptographic Appliances, Inc.
+ * Copyright (C) 2000-2004  Geoff Thorpe, and Cryptographic Appliances, Inc.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -28,7 +28,7 @@ void copyright(int nologo)
 		SYS_fprintf(SYS_stderr,
 			"\nThis is SWAMP (%s), an OpenSSL-based SSL/TLS load-tester\n"
 			"Distributed as part of the Distcache Project (www.distcache.org)\n"
-			"Copyright (c) 2001-2003 Geoff Thorpe, http://www.geoffthorpe.net/\n"
+			"Copyright (c) 2001-2004 Geoff Thorpe, http://www.geoffthorpe.net/\n"
 			"With thanks to Red Hat (http://www.redhat.com/) and\n"
 			"Cryptographic Appliances (http://www.cryptoapps.com/)\n\n",
 			PACKAGE_VERSION);
