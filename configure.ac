@@ -1,12 +1,12 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(distcache, 1.4.5dev, distcache-users@lists.sourceforge.net)
+AC_INIT(distcache, 1.5.0, distcache-users@lists.sourceforge.net)
 
 echo ""
 echo "---------------------------------------------"
 echo "Configuring Distcache libraries and utilities"
 echo "---------------------------------------------"
 
-AM_INIT_AUTOMAKE(distcache, 1.4.5dev)
+AM_INIT_AUTOMAKE(distcache, 1.5.0)
 
 AC_CONFIG_SRCDIR(sessserver/server.c)
 AM_CONFIG_HEADER(config.h)

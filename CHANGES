@@ -12,11 +12,11 @@
                                                          -- W. Edwards Deming
 
 
-Current version: x.x.x
+Current version: 1.5.0
 ----------------------
 
 
-Changes between 1.4.4 and x.x.x
+Changes between 1.4.4 and 1.5.0
 -------------------------------
 
   *) The memory functions used in the case SYS_DEBUG_LEVEL is set high were
