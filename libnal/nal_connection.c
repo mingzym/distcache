@@ -113,6 +113,13 @@ NAL_SELECTOR *nal_connection_get_selector(const NAL_CONNECTION *c,
 	return c->sel;
 }
 
+void nal_connection_set_selector_raw(NAL_CONNECTION *c, NAL_SELECTOR *sel,
+					NAL_SELECTOR_TOKEN token)
+{
+	c->sel = sel;
+	c->sel_token = token;
+}
+
 /*******************/
 /* nal.h functions */
 /*******************/

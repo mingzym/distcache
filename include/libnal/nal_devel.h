@@ -130,6 +130,8 @@ void nal_listener_pre_select(NAL_LISTENER *);
 void nal_listener_post_select(NAL_LISTENER *);
 NAL_SELECTOR *nal_listener_get_selector(const NAL_LISTENER *,
 					NAL_SELECTOR_TOKEN *);
+void nal_listener_set_selector_raw(NAL_LISTENER *, NAL_SELECTOR *,
+					NAL_SELECTOR_TOKEN);
 
 /******************/
 /* NAL_CONNECTION */
@@ -180,6 +182,8 @@ void nal_connection_pre_select(NAL_CONNECTION *);
 void nal_connection_post_select(NAL_CONNECTION *);
 NAL_SELECTOR *nal_connection_get_selector(const NAL_CONNECTION *,
 					NAL_SELECTOR_TOKEN *);
+void nal_connection_set_selector_raw(NAL_CONNECTION *, NAL_SELECTOR *,
+					NAL_SELECTOR_TOKEN);
 
 /***************************/
 /* Builtin address vtables */

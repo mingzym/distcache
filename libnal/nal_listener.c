@@ -137,6 +137,13 @@ NAL_SELECTOR *nal_listener_get_selector(const NAL_LISTENER *l,
 	return l->sel;
 }
 
+void nal_listener_set_selector_raw(NAL_LISTENER *l, NAL_SELECTOR *sel,
+					NAL_SELECTOR_TOKEN token)
+{
+	l->sel = sel;
+	l->sel_token = token;
+}
+
 /*******************/
 /* nal.h functions */
 /*******************/
