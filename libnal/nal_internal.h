@@ -143,15 +143,14 @@ struct st_NAL_ADDRESS {
 };
 
 struct st_NAL_LISTENER {
-	/* The address we're listening on */
-	NAL_ADDRESS addr;
 	/* The underlying file-descriptor */
 	int fd;
+	/* The default buffer size of the address we were created from (used to
+	 * set buffer sizes in accepted NAL_CONNECTION objects). */
+	unsigned int def_buffer_size;
 };
 
 struct st_NAL_CONNECTION {
-	/* The address we're connected to */
-	NAL_ADDRESS addr;
 	/* The underlying file-descriptor */
 	int fd;
 	/* A curious little entry. As most of the libnal code uses non-blocking

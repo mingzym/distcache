@@ -70,6 +70,11 @@ void NAL_ADDRESS_free(NAL_ADDRESS *a)
 	SYS_free(NAL_ADDRESS, a);
 }
 
+unsigned int NAL_ADDRESS_get_def_buffer_size(const NAL_ADDRESS *addr)
+{
+	return addr->def_buffer_size;
+}
+
 int NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
 		unsigned int def_buffer_size)
 {
@@ -180,8 +185,8 @@ NAL_LISTENER *NAL_LISTENER_new(void)
 {
 	NAL_LISTENER *l = SYS_malloc(NAL_LISTENER, 1);
 	if(l) {
-		nal_address_init(&l->addr);
 		l->fd = -1;
+		l->def_buffer_size = 0;
 	}
 	return l;
 }
@@ -189,7 +194,6 @@ NAL_LISTENER *NAL_LISTENER_new(void)
 void NAL_LISTENER_free(NAL_LISTENER *list)
 {
 	nal_fd_close(&list->fd);
-	nal_address_close(&list->addr);
 	SYS_free(NAL_LISTENER, list);
 }
 
@@ -201,9 +205,8 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 		/* also should never happen */
 		abort();
 	/* Try to catch any cases of being called with a used 'list' */
-	assert(list->addr.family == NAL_ADDRESS_TYPE_NULL);
-	if(list->addr.family != NAL_ADDRESS_TYPE_NULL)
-		goto err;
+	assert(list->fd == -1);
+	if(list->fd != -1) goto err;
 	if((addr->caps & NAL_ADDRESS_CAN_LISTEN) == 0) {
 		/* Perhaps the string for the address was invalid? */
 #if SYS_DEBUG_LEVEL > 1
@@ -228,8 +231,8 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 			!nal_sock_listen(listen_fd))
 		goto err;
 	/* Success! */
-	SYS_memcpy(NAL_ADDRESS, &(list->addr), addr);
 	list->fd = listen_fd;
+	list->def_buffer_size = NAL_ADDRESS_get_def_buffer_size(addr);
 	return 1;
 err:
 	nal_fd_close(&listen_fd);
@@ -241,22 +244,20 @@ int NAL_LISTENER_accept_block(const NAL_LISTENER *list, NAL_CONNECTION *conn)
 	int conn_fd = -1;
 
 	/* Try to catch any cases of being called with a used 'conn' */
-	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) &&
-			(conn->fd == -1));
-	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
-		goto err;
+	assert(conn->fd == -1);
+	if(conn->fd != -1) goto err;
 	/* Do the accept */
 	if(!nal_sock_accept(list->fd, &conn_fd) ||
 			!nal_fd_make_non_blocking(conn_fd, 1))
 		goto err;
-	/* If appropriate, apply "nagle" setting */
-	if((list->addr.family == NAL_ADDRESS_TYPE_IPv4) &&
-			!nal_sock_set_nagle(conn_fd, gb_use_nagle))
-		goto err;
-	if(!NAL_CONNECTION_set_size(conn, list->addr.def_buffer_size))
+	/* apply "nagle" setting. FIXME: once the protocol-specific
+	 * implementations are factored out of the libnal API code, we can do
+	 * things like "nagle" selectively and so we can check the return code.
+	 * For now, we call it and ignore the result. */
+	nal_sock_set_nagle(conn_fd, gb_use_nagle);
+	if(!NAL_CONNECTION_set_size(conn, list->def_buffer_size))
 		goto err;
 	/* Success! */
-	SYS_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
 	conn->fd = conn_fd;
 	conn->established = 1;
 	return 1;
@@ -272,10 +273,8 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 	int conn_fd = -1;
 
 	/* Try to catch any cases of being called with a used 'conn' */
-	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) &&
-			(conn->fd == -1));
-	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
-		goto err;
+	assert(conn->fd == -1);
+	if(conn->fd != -1) goto err;
 	flags = nal_selector_fd_test(sel, list->fd);
 	if(flags & SELECTOR_FLAG_EXCEPT) {
 #if SYS_DEBUG_LEVEL > 1
@@ -290,13 +289,10 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 	if(!nal_sock_accept(list->fd, &conn_fd) ||
 			!nal_fd_make_non_blocking(conn_fd, 1))
 		goto err;
-	/* If appropriate, apply "nagle" setting */
-	if((list->addr.family == NAL_ADDRESS_TYPE_IPv4) &&
-			!nal_sock_set_nagle(conn_fd, gb_use_nagle))
+	/* Same comment as in NAL_LISTENER_accept_block */
+	nal_sock_set_nagle(conn_fd, gb_use_nagle);
+	if(!NAL_CONNECTION_set_size(conn, list->def_buffer_size))
 		goto err;
-	if(!NAL_CONNECTION_set_size(conn, list->addr.def_buffer_size))
-		goto err;
-	SYS_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
 	conn->fd = conn_fd;
 	conn->established = 1;
 	nal_selector_fd_clear(sel, list->fd);
@@ -334,11 +330,8 @@ NAL_CONNECTION *NAL_CONNECTION_new(void)
 		SYS_free(NAL_CONNECTION, conn);
 		return NULL;
 	}
-	if(conn) {
-		nal_address_init(&conn->addr);
-		conn->fd = -1;
-		conn->established = 0;
-	}
+	conn->fd = -1;
+	conn->established = 0;
 	return conn;
 }
 
@@ -348,8 +341,6 @@ void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 	/* destroy the buffers */
 	NAL_BUFFER_free(conn->read);
 	NAL_BUFFER_free(conn->send);
-	/* good (unnecessary) aggregation programming practice. :-) */
-	nal_address_close(&conn->addr);
 	SYS_free(NAL_CONNECTION, conn);
 }
 
@@ -359,9 +350,8 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 	int fd = -1;
 
 	/* Try to catch any cases of being called with a used 'conn' */
-	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn->fd == -1));
-	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
-		goto err;
+	assert(conn->fd == -1);
+	if(conn->fd != -1) goto err;
 	if(addr->family == NAL_ADDRESS_TYPE_NULL)
 		/* also should never happen */
 		abort();
@@ -383,7 +373,6 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 	if(!NAL_CONNECTION_set_size(conn, addr->def_buffer_size))
 		goto err;
 	/* Success! */
-	SYS_memcpy(NAL_ADDRESS, &(conn->addr), addr);
 	conn->fd = fd;
 	conn->established = established;
 	return 1;
@@ -402,12 +391,9 @@ int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1, NAL_CONNECTION *conn2,
 	if(!nal_check_buffer_size(def_buffer_size))
 		return 0;
 	/* Try to catch any cases of being called with used 'conns' */
-	assert((conn1->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn1->fd == -1));
-	assert((conn2->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn2->fd == -1));
-	if((conn1->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn1->fd != -1))
-		goto err;
-	if((conn2->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn2->fd != -1))
-		goto err;
+	assert(conn1->fd == -1);
+	assert(conn2->fd == -1);
+	if((conn1->fd != -1) || (conn1->fd != -1)) goto err;
 	if(!nal_sock_create_unix_pair(sv) ||
 			!nal_fd_make_non_blocking(sv[0], 1) ||
 			!nal_fd_make_non_blocking(sv[1], 1) ||
@@ -419,8 +405,6 @@ int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1, NAL_CONNECTION *conn2,
 	conn2->fd = sv[1];
 	/* socketpair()s are automatically "established" */
 	conn1->established = conn2->established = 1;
-	/* The address type should be set though */
-	conn1->addr.family = conn2->addr.family = NAL_ADDRESS_TYPE_PAIR;
 	return 1;
 err:
 	nal_fd_close(sv);
@@ -435,8 +419,8 @@ int NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 	if(!nal_check_buffer_size(def_buffer_size))
 		return 0;
 	/* Try to catch any cases of being called with used a 'conn' */
-	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn->fd == -1));
-	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
+	assert(conn->fd == -1);
+	if(conn->fd != -1)
 		return 0;
 	/* We only use one buffer, so only expand one */
 	if(!NAL_BUFFER_set_size(conn->read, def_buffer_size))
@@ -445,7 +429,6 @@ int NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 	 * connection. Basically, you read and write into the same buffer, there
 	 * *is no file-descriptor*, and selectors and I/O are 'nop's. */
 	conn->fd = -2;
-	conn->addr.family = NAL_ADDRESS_TYPE_DUMMY;
 	/* The "dummy" is pretty much automatically established! */
 	conn->established = 1;
 	return 1;
@@ -455,8 +438,7 @@ int NAL_CONNECTION_set_size(NAL_CONNECTION *conn, unsigned int size)
 {
 	if(!nal_check_buffer_size(size))
 		return 0;
-	if(!NAL_BUFFER_set_size(conn->read, size) ||
-			((conn->addr.family != NAL_ADDRESS_TYPE_DUMMY) &&
+	if(!NAL_BUFFER_set_size(conn->read, size) || ((conn->fd != -2) &&
 				!NAL_BUFFER_set_size(conn->send, size))) {
 #if SYS_DEBUG_LEVEL > 1
 		SYS_fprintf(SYS_stderr, "Error, couldn't set buffer sizes\n");

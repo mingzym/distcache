@@ -46,6 +46,7 @@ NAL_ADDRESS *	NAL_ADDRESS_new(void);
 void		NAL_ADDRESS_free(NAL_ADDRESS *a);
 int		NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 				unsigned int def_buffer_size);
+unsigned int	NAL_ADDRESS_get_def_buffer_size(const NAL_ADDRESS *addr);
 int		NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
 				unsigned int def_buffer_size);
 int		NAL_ADDRESS_can_connect(NAL_ADDRESS *addr);
