@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_create_pair, NAL_CONNECTION_create_dummy, NAL_CONNECTION_set_size, NAL_CONNECTION_get_read, NAL_CONNECTION_get_send, NAL_CONNECTION_io, NAL_CONNECTION_io_cap, NAL_CONNECTION_address, NAL_CONNECTION_is_established, NAL_CONNECTION_get_fd - libnal addressing functions
+NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_create_pair, NAL_CONNECTION_create_dummy, NAL_CONNECTION_set_size, NAL_CONNECTION_get_read, NAL_CONNECTION_get_send, NAL_CONNECTION_io, NAL_CONNECTION_io_cap, NAL_CONNECTION_address, NAL_CONNECTION_is_established, NAL_CONNECTION_get_fd - libnal connection functions
 
 =head1 SYNOPSIS
 
@@ -181,8 +181,9 @@ here (without error-checking);
         ...
 	... user code
 	...
-	/* Prepare to block on (relevant) network events for 'conn' */
+	/* block on (relevant) network events for 'conn' */
 	NAL_SELECTOR_add_conn(sel, conn);
+	NAL_SELECTOR_select(sel);
 	/* Do network I/O after the above blocking select and continue looping
 	 * only if the connection is still alive. */
     } while(NAL_CONNECTION_io(conn, sel);
