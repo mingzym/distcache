@@ -57,7 +57,11 @@ char *do_tokenising(tokeniser_t *t)
         if (t->position == NULL)
             return NULL;
 
-        for (p = t->position; *p != '\0'; p++) {
+        p = t->position;
+        while ( (strchr(t->delimiters, *p)) != NULL && *p != '\0')
+            p++;
+
+        for (; *p != '\0'; p++) {
             /*
              * Check to see if the "cursor" ('p') is over one of the
              * delimiters, and if so, move forward until a character
