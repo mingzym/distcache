@@ -300,12 +300,14 @@ static int list_set_fs_owner(NAL_LISTENER *l, const char *ownername,
 				const char *groupname)
 {
 	list_ctx *ctx = nal_listener_get_vtdata(l);
+	if(ctx->type != nal_sockaddr_type_unix) return 0;
 	return nal_fd_fchown(ctx->fd, ownername, groupname);
 }
 
 static int list_set_fs_perms(NAL_LISTENER *l, const char *octal_string)
 {
 	list_ctx *ctx = nal_listener_get_vtdata(l);
+	if(ctx->type != nal_sockaddr_type_unix) return 0;
 	return nal_fd_fchmod(ctx->fd, octal_string);
 }
 
