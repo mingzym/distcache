@@ -300,7 +300,7 @@ post_process:
 	 * determined later when the swamping begins). */
 	num_servers = dist_pattern_num(sc->distribution);
 	if(num_servers == 0) {
-		SYS_fprintf(SYS_stderr, "Error, no servers specified. See 'swamp -h' for usage on '-connect'\n");
+		SYS_fprintf(SYS_stderr, "Error, no servers specified. See 'sslswamp -h' for usage on '-connect'\n");
 		return 0;
 	}
 

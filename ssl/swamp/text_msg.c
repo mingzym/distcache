@@ -37,7 +37,7 @@ void copyright(int nologo)
 void main_usage(void)
 {
 	SYS_fprintf(SYS_stdout,
-		"usage: swamp [options ...]    where the options are\n");
+		"usage: sslswamp [options ...]    where the options are\n");
 	SYS_fprintf(SYS_stdout,
 		"    -connect [ IP:<host>:<port> | UNIX:<path> ]\n");
 	SYS_fprintf(SYS_stdout,
@@ -105,7 +105,7 @@ void main_usage(void)
 int unknown_switch(const char *str)
 {
 	SYS_fprintf(SYS_stderr,
-		"invalid switch \"%s\" (or invalid value). See 'swamp -h' for usage\n",
+		"invalid switch \"%s\" (or invalid value). See 'sslswamp -h' for usage\n",
 		str);
 	return 0;
 }
