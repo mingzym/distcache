@@ -2,7 +2,6 @@
 
 distcache - Distributed session caching
 
-
 =head1 DESCRIPTION
 
 The distcache architecture provides a protocol and set of accompanying tools to

@@ -49,7 +49,7 @@ pid_t NAL_getpid(void)
 	return getpid();
 }
 
-/* 
+/*
  * NAL_daemon() is a utility function to make the current process a "daemon"
  * such that it detaches from the current terminal and holds the attributes
  * normally associated with daemon processes.

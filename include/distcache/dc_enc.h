@@ -42,7 +42,7 @@
  * help by allowing the possibility for more recent tools to be backwards
  * compatible with older versions. When a bug-fix or enhancement can not do
  * this, an incompatible bump in the protocol version is necessary.
- * 
+ *
  * For the current protocol version, 0x0010, each message is of this basic
  * format;
  *

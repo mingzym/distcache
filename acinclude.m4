@@ -90,7 +90,7 @@ AC_HELP_STRING(
 			ossl_found_libs=0
 			ossl_not_found_reason="can't find libraries"
 		])
-	
+
 	AC_CHECK_HEADERS(openssl/ssl.h, [],
 		[
 			ossl_found_headers=0

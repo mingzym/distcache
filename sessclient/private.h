@@ -64,7 +64,7 @@ int server_io(server_t *s, NAL_SELECTOR *sel, multiplexer_t *m,
 			clients_t *c, const struct timeval *now);
 int server_to_clients(server_t *s, clients_t *c, multiplexer_t *m,
 			const struct timeval *now);
-int server_place_request(server_t *s, unsigned long uid, DC_CMD cmd, 
+int server_place_request(server_t *s, unsigned long uid, DC_CMD cmd,
 			const unsigned char *data, unsigned int data_len);
 int server_is_active(server_t *s);
 unsigned long server_get_uid(server_t *s);

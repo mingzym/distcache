@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # This script handles unwinding the GNU autotools.
-# 
+#
 # Running this script should (hopefully) clean up any/all gunge left lying
 # around from the autotools - ie. leaving you with something resembling as
 # closely as possible the state of CVS.

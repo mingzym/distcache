@@ -160,7 +160,7 @@ Changes between 0.2 and 0.3
      forth - meanwhile it is analysed and various information can be displayed
      to the console.
      [Geoff Thorpe]
-  
+
   *) Correct some comments, and make sure *all* code agrees on a fragmentation
      size of 2048 for messages broken into fragments. This affects binary
      compatibility with 0.2, but 0.2 was (in some cases) broken in this respect

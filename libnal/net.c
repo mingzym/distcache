@@ -533,7 +533,7 @@ do_ipv4:
 	start_ptr = fini_ptr + 1;
 	/* Ok, this is an address that could be used for connecting */
 	addr->caps |= NAL_ADDRESS_CAN_CONNECT;
-	
+
 ipv4_port:
 	if(strlen(start_ptr) < 1)
 		goto err;
@@ -626,7 +626,7 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 	if((list == NULL) || (addr == NULL))
 		/* should *never* happen */
 		abort();
-	if(addr->family == NAL_ADDRESS_TYPE_NULL) 
+	if(addr->family == NAL_ADDRESS_TYPE_NULL)
 		/* also should never happen */
 		abort();
 	/* Try to catch any cases of being called with a used 'list' */
@@ -760,7 +760,6 @@ NAL_CONNECTION *NAL_CONNECTION_new(void)
 		nal_buffer_init(&conn->send);
 	}
 	return conn;
-	
 }
 
 void NAL_CONNECTION_free(NAL_CONNECTION *conn)
@@ -787,7 +786,7 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 	assert((conn->addr.family == NAL_ADDRESS_TYPE_NULL) && (conn->fd == -1));
 	if((conn->addr.family != NAL_ADDRESS_TYPE_NULL) || (conn->fd != -1))
 		goto err;
-	if(addr->family == NAL_ADDRESS_TYPE_NULL) 
+	if(addr->family == NAL_ADDRESS_TYPE_NULL)
 		/* also should never happen */
 		abort();
 	if((addr->caps & NAL_ADDRESS_CAN_CONNECT) == 0) {
