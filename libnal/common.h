@@ -20,20 +20,16 @@
 #ifndef HEADER_LIBNAL_COMMON_H
 #define HEADER_LIBNAL_COMMON_H
 
-/* We use the makedepend utility to build the dependencies in the Makefile.
- * However, we invoke makedepend with our normal symbols *plus* IN_MAKEDEPEND so
- * that it does not build dependencies based on system header files. */
-#ifndef IN_MAKEDEPEND
-
-/* Do windows stuff */
 #ifdef WIN32
+
+/* We're windows, include the headers we want explicitly */
+
 #if _MSC_VER > 1000
 #pragma once
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
-#endif
 
 #include <assert.h>
 #include <errno.h>
@@ -45,18 +41,82 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef WIN32 /* These don't exist on win32 */
+
+#else
+
+/* We're a less disabled system - use autoconf results */
+#include "config/config.h"
+
+#if !defined(HAVE_SELECT)
+#error "'select()' must be supported on your system, sorry"
+#endif
+#if !defined(HAVE_SOCKET)
+#error "'socket()' must be supported on your system, sorry"
+#endif
+#if !defined(HAVE_GETTIMEOFDAY)
+#error "'gettimeofday()' must be supported on your system, sorry"
+#endif
+
+#if defined(HAVE_ASSERT_H)
+#include <assert.h>
+#endif
+#if defined(HAVE_DIRENT_H)
 #include <dirent.h>
+#endif
+#if defined(HAVE_DLFCN_H)
 #include <dlfcn.h>
+#endif
+#if defined(HAVE_ERRNO_H)
+#include <errno.h>
+#endif
+#if defined(HAVE_FCNTL_H)
+#include <fcntl.h>
+#endif
+#if defined(HAVE_NETDB_H)
 #include <netdb.h>
+#endif
+#if defined(HAVE_SIGNAL_H)
+#include <signal.h>
+#endif
+#if defined(HAVE_STDARG_H)
+#include <stdarg.h>
+#endif
+#if defined(HAVE_STDIO_H)
+#include <stdio.h>
+#endif
+#if defined(HAVE_STDLIB_H)
+#include <stdlib.h>
+#endif
+#if defined(HAVE_STRING_H)
+#include <string.h>
+#endif
+#if defined(HAVE_UNISTD_H)
 #include <unistd.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/wait.h>
-#include <sys/un.h>
+#endif
+#if defined(HAVE_NETINET_IN_H)
 #include <netinet/in.h>
+#endif
+#if defined(HAVE_NETINET_TCP_H)
 #include <netinet/tcp.h>
-#endif /* !defined(WIN32) */
+#endif
+#if defined(HAVE_SYS_SOCKET_H)
+#include <sys/socket.h>
+#endif
+#if defined(HAVE_SYS_STAT_H)
+#include <sys/stat.h>
+#endif
+#if defined(HAVE_SYS_TIME_H)
+#include <sys/time.h>
+#endif
+#if defined(HAVE_SYS_TYPES_H)
+#include <sys/types.h>
+#endif
+#if defined(HAVE_SYS_UN_H)
+#include <sys/un.h>
+#endif
+#if defined(HAVE_SYS_WAIT_H)
+#include <sys/wait.h>
+#endif
 
 #endif
 
@@ -141,9 +201,6 @@ int NAL_fprintf(FILE *fp, const char *fmt, ...);
 #ifndef LEAVE_PROCESSES_ALONE
 
 #ifndef IN_SYS_C
-	#define fork dont_use_fork_but_use_int_fork_instead
-	#define wait dont_use_wait_but_use_int_wait_instead
-	#define waitpid dont_use_waitpid_but_use_int_waitpid_instead
 	#define daemon dont_use_daemon_but_use_NAL_daemon_instead
 #endif
 

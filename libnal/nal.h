@@ -96,7 +96,6 @@ int		NAL_CONNECTION_get_fd(const NAL_CONNECTION *conn);
 
 /**********************/
 /* Selector functions */
-int		NAL_SELECTOR_create(NAL_SELECTOR *sel);
 int		NAL_SELECTOR_add_conn(NAL_SELECTOR *sel,
 				const NAL_CONNECTION *conn);
 int		NAL_SELECTOR_del_conn(NAL_SELECTOR *sel,

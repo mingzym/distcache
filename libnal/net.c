@@ -462,8 +462,10 @@ int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 	if((addr == NULL) || (addr_string == NULL))
 		/* should *never* happen */
 		abort();
-	/* Create initialised "null" data so error cleanup is well-defined */
-	NAL_ADDRESS_init(addr);
+	/* Try to catch any cases of being called with a used 'addr' */
+	assert(addr->family == NAL_ADDRESS_TYPE_NULL);
+	if(addr->family != NAL_ADDRESS_TYPE_NULL)
+		goto err;
 	/* Ensure the buffer size is acceptable */
 	if(!int_check_buffer_size(def_buffer_size))
 		goto err;
@@ -591,7 +593,10 @@ int NAL_ADDRESS_move(NAL_ADDRESS *to, NAL_ADDRESS *from)
 {
 	if((to == NULL) || (from == NULL))
 		return 0;
-	NAL_ADDRESS_init(to);
+	/* Try to catch any cases of being called with a used 'to' */
+	assert(to->family == NAL_ADDRESS_TYPE_NULL);
+	if(to->family != NAL_ADDRESS_TYPE_NULL)
+		return 0;
 	/* Fortunately, NAL_ADDRESS (for now) is a static structure and has no
 	 * aggregation of other types, so we don't need to run any checks or
 	 * call any functions for aggregated types, we just copy and init :-) */
@@ -657,11 +662,13 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 	if((list == NULL) || (addr == NULL))
 		/* should *never* happen */
 		abort();
-	/* Create initialised "null" data so error cleanup is well-defined */
-	NAL_LISTENER_init(list);
 	if(addr->family == NAL_ADDRESS_TYPE_NULL) 
 		/* also should never happen */
 		abort();
+	/* Try to catch any cases of being called with a used 'list' */
+	assert(list->addr.family == NAL_ADDRESS_TYPE_NULL);
+	if(list->addr.family != NAL_ADDRESS_TYPE_NULL)
+		goto err;
 	if((addr->caps & NAL_ADDRESS_CAN_LISTEN) == 0) {
 		/* Perhaps the string for the address was invalid? */
 #if NAL_DEBUG_LEVEL > 1
@@ -702,8 +709,10 @@ int NAL_LISTENER_accept_block(const NAL_LISTENER *list, NAL_CONNECTION *conn)
 	if((list == NULL) || (conn == NULL))
 		/* should never happen */
 		abort();
-	/* Create initialised "null" data so error cleanup is well-defined */
-	NAL_CONNECTION_init(conn);
+	/* Try to catch any cases of being called with a used 'conn' */
+	assert(conn->addr.family == NAL_ADDRESS_TYPE_NULL);
+	if(conn->addr.family != NAL_ADDRESS_TYPE_NULL)
+		goto err;
 	/* Do the accept */
 	if(!int_accept(list->fd, &conn_fd) ||
 			!int_make_non_blocking(conn_fd, 1) ||
@@ -733,7 +742,10 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 
 	if((list == NULL) || (sel == NULL) || (conn == NULL))
 		abort();
-	NAL_CONNECTION_init(conn);
+	/* Try to catch any cases of being called with a used 'conn' */
+	assert(conn->addr.family == NAL_ADDRESS_TYPE_NULL);
+	if(conn->addr.family != NAL_ADDRESS_TYPE_NULL)
+		goto err;
 	int_selector_get_list(sel, list, &flags);
 	if(flags & SELECTOR_FLAG_EXCEPT) {
 #if NAL_DEBUG_LEVEL > 1
@@ -768,7 +780,10 @@ int NAL_LISTENER_move(NAL_LISTENER *to, NAL_LISTENER *from)
 {
 	if((to == NULL) || (from == NULL))
 		return 0;
-	NAL_LISTENER_init(to);
+	/* Try to catch any cases of being called with a used 'to' */
+	assert(to->addr.family == NAL_ADDRESS_TYPE_NULL);
+	if(to->addr.family != NAL_ADDRESS_TYPE_NULL)
+		goto err;
 	/* Now move the address across */
 	if(!NAL_ADDRESS_move(&to->addr, &from->addr)) {
 #if NAL_DEBUG_LEVEL > 2
@@ -844,10 +859,10 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 	if((conn == NULL) || (addr == NULL))
 		/* should *never* happen */
 		abort();
-	/* Clear immediately, so that any call to NAL_CONNECTION_close() (which
-	 * is needed to avoid memory leaks) does not deal with uninitialised
-	 * pointer data! */
-	NAL_CONNECTION_init(conn);
+	/* Try to catch any cases of being called with a used 'conn' */
+	assert(conn->addr.family == NAL_ADDRESS_TYPE_NULL);
+	if(conn->addr.family != NAL_ADDRESS_TYPE_NULL)
+		goto err;
 	if(addr->family == NAL_ADDRESS_TYPE_NULL) 
 		/* also should never happen */
 		abort();
@@ -889,10 +904,13 @@ int NAL_CONNECTION_create_pair(NAL_CONNECTION *conn1, NAL_CONNECTION *conn2,
 		abort();
 	if(!int_check_buffer_size(def_buffer_size))
 		return 0;
-	/* Need to clear first thing, so any error handling is not trying to
-	 * cleanup on uninitialised pointer data! */
-	NAL_CONNECTION_init(conn1);
-	NAL_CONNECTION_init(conn2);
+	/* Try to catch any cases of being called with used 'conns' */
+	assert(conn1->addr.family == NAL_ADDRESS_TYPE_NULL);
+	assert(conn2->addr.family == NAL_ADDRESS_TYPE_NULL);
+	if(conn1->addr.family != NAL_ADDRESS_TYPE_NULL)
+		goto err;
+	if(conn2->addr.family != NAL_ADDRESS_TYPE_NULL)
+		goto err;
 	if(!int_create_unix_pair(sv) ||
 			!int_make_non_blocking(sv[0], 1) ||
 			!int_make_non_blocking(sv[1], 1) ||
@@ -924,7 +942,10 @@ int NAL_CONNECTION_create_dummy(NAL_CONNECTION *conn,
 		abort();
 	if(!int_check_buffer_size(def_buffer_size))
 		return 0;
-	NAL_CONNECTION_init(conn);
+	/* Try to catch any cases of being called with used a 'conn' */
+	assert(conn->addr.family == NAL_ADDRESS_TYPE_NULL);
+	if(conn->addr.family != NAL_ADDRESS_TYPE_NULL)
+		return 0;
 	/* We only use one buffer, so only expand one */
 	if(!NAL_BUFFER_set_size(&conn->read, def_buffer_size))
 		return 0;
@@ -1053,7 +1074,10 @@ int NAL_CONNECTION_move(NAL_CONNECTION *to, NAL_CONNECTION *from)
 {
 	if((to == NULL) || (from == NULL))
 		return 0;
-	NAL_CONNECTION_init(to);
+	/* Try to catch any cases of being called with used a 'to' */
+	assert(to->addr.family == NAL_ADDRESS_TYPE_NULL);
+	if(to->addr.family != NAL_ADDRESS_TYPE_NULL)
+		goto err;
 	/* First, the new connection needs identical buffers */
 	if(!NAL_BUFFER_set_size(&to->read, NAL_BUFFER_size(&from->read)) ||
 			!NAL_BUFFER_set_size(&to->send,
@@ -1144,14 +1168,6 @@ static int NAL_SELECTOR_close(NAL_SELECTOR *sel)
 	if(sel == NULL)
 		return 0;
 	/* No cleanup required */
-	NAL_SELECTOR_init(sel);
-	return 1;
-}
-
-int NAL_SELECTOR_create(NAL_SELECTOR *sel)
-{
-	if(sel == NULL)
-		return 0;
 	NAL_SELECTOR_init(sel);
 	return 1;
 }
