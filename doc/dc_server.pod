@@ -1,0 +1,84 @@
+=head1 NAME
+
+dc_server - Distributed session cache server
+
+
+=head1 SYNOPSIS
+
+B<dc_server> [ ... ]
+
+
+=head1 DESCRIPTION
+
+B<dc_server> runs a cache server and starts listening on a configurable network
+address for connections. Incoming connections are expected to communicate using
+the L<distcache(8)> protocol, and would typically be instances of
+L<dc_client(1)> running on other machines.
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-daemon>
+
+After initialising, B<dc_server> will detach from the parent process, close
+standard file-descriptors, etc. If this flag is not set, B<dc_server> will run in
+the foreground. It is recommended to use this flag in combination with the
+I<pidfile> flag to simplify stopping and restarting services.
+
+=item B<-listen> address
+
+Configures the address on which B<dc_server> should listen for incoming connections.
+The syntax is that defined by the I<libnal> API. Some examples follow;
+
+    # Listen on port 9001 for all TCP/IPv4 interfaces
+    dc_server -listen IP:9001
+
+    # Listen on port 9001 on a specific TCP/IPv4 interface
+    dc_server -listen IP:192.168.0.1:9001
+    dc_server -listen IP:cacheserver.localnet:9001
+
+    # Listen on a unix domain socket in the /tmp directory
+    dc_server -listen UNIX:/tmp/cacheserver
+
+=item B<-sessions> num
+
+Specifies a maximum number of sessions that should be stored in the cache. All
+sessions in a cache have an expiry time so that they will, if they have not
+been forcibly removed before that time, be expired out of the cache. Default
+value: 512.
+
+=item B<-progress> num
+
+...
+
+=item B<-pidfile> path
+
+...
+
+=item B<-h>, B<-help>, B<-?>
+
+...
+
+=back
+
+
+=head1 SEE ALSO
+
+=item L<distcache(8)>
+
+=item F<http://www.distcache.org/>
+
+=back
+
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe at Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised.
+
+Distcache Home Page F<http://www.distcache.org>
+

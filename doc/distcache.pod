@@ -1,0 +1,121 @@
+=head1 NAME
+
+distcache - Distributed session caching
+
+
+=head1 DESCRIPTION
+
+The distcache architecture provides a protocol and set of accompanying tools to
+allow applications, and indeed machines, to share session state between them by
+way of a network service.
+
+The primary use of distcache right now is for SSL/TLS session caching. This
+allows SSL/TLS servers (eg. a secure Apache web server providing HTTPS support)
+to use a centralised session cache. This allows any server to resume any
+SSL/TLS sessions negotiated by another server on the network. The advantages to
+this approach include increased freedom on mechanisms for load-balancing -
+there is no need nor motivation to route incoming connections to the same
+server to improve the chances for SSL/TLS, and indeed doing so defeats the
+point of load-balancing, is a complex task requiring a lot of state, and the
+resulting routers can become a bottleneck and a single point of failure.
+
+Future versions of distcache will expand on the protocol and should provide for
+a variety of "shared-state" uses besides SSL/TLS session caching.
+
+
+=head1 TOOLS
+
+=over 4
+
+=item B<dc_server>
+
+Runs a cache server listening on a configurable network address.
+
+=item B<dc_client>
+
+Runs a local client proxy. This presents an interface to applications much like
+B<dc_server> but itself manages multiplexing application requests to/from a
+cache server through a single persistent connection.
+
+=back
+
+=head1 APIS
+
+=head2 libnal
+
+This is the underlying Network Abstraction Library (hence "NAL") used by the
+distcache libraries and tools. libnal uses non-blocking sockets, with an
+addressing abstraction that allows tools to transparently work over unix domain
+sockets or TCP/IPv4 sockets by a change of address text. For this reason, all
+the distcache tools can have their "-listen" and "-connect" switches set to
+work over either kind of transport.
+
+libnal defines various object types;
+
+=over 4
+
+=item NAL_ADDRESS
+
+The addressing abstraction converts to and from text representations, indicates
+whether given addresses are valid for listening on, connecting to, or both.
+
+=item NAL_CONNECTION
+
+This encapsulates a network connection that can be used for sending and receiving
+arbitrary binary data.
+
+=item NAL_LISTENER
+
+This encapsulates a listening socket that can be used to accept incoming
+connection requests on a configured address, creating a NAL_CONNECTION wrapper
+for each accepted connection.
+
+=item NAL_SELECTOR
+
+This provides an object that can be prepared with various NAL_LISTENER and
+NAL_CONNECTION objects, and then can block waiting for network activity up to
+some configurable limit of time. This is the basis of non-blocking I/O and is
+an encapsulation of the traditional select(2) function.
+
+=item NAL_BUFFER
+
+This abstraction implements a FIFO data array and is used primarily for
+representing the read and send parts of a NAL_CONNECTION object.
+
+=back
+
+=head2 libdistcache
+
+... [todo] ...
+
+=head2 libdistcacheserver
+
+... [todo] ...
+
+
+=head1 SEE ALSO
+
+=over 4
+
+=item L<dc_server(1)>
+
+Distributed caching server
+
+=item L<dc_client(1)>
+
+Distributed caching client proxy
+
+=item F<http://www.distcache.org/>
+
+=back
+
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe at Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised.
+
+Distcache Home Page F<http://www.distcache.org>
+
