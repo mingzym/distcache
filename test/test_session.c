@@ -23,6 +23,17 @@
 #include <libdistcache/dc_enc.h>
 #include <libdistcacheserver/dc_server.h>
 
+/* I want to take OpenSSL out of the picture for now but am reluctant to simply
+ * axe all code relating to it. Eg. the "-withcert" option may be useful one
+ * day if it's important to test behaviour with session data coming from
+ * SSL_SESSION serialisation with and without client certificate information.
+ * So this hack just forces HAVE_OPENSSL to be off, no matter what autoconf
+ * decided. */
+#ifdef HAVE_OPENSSL
+#undef HAVE_OPENSSL
+#endif
+/* and now we return you to your scheduled viewing ... */
+
 #ifdef HAVE_OPENSSL
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
