@@ -1,14 +1,28 @@
+- I need to migrate and/or rewrite the swamp 1.1.0 documentation to the
+  sslswamp man-page. Right now the man page is very incomplete.
+
+- Need to fix up snoop for the new libnal model.
+
+- All the executables need a review to make sure they're safe w.r.t. proper
+  use of NAL_LISTENER_finished() and also NAL_SELECTOR_new_objects() for
+  program termination.
+
+- snoop does not do any flush-handling when one side of the proxy disconnects,
+  but immediately closes the other side and destroys the context. What should
+  happen is that we should not close the other side until all data accepted
+  from the closing side has been sent out the other side.
+
+- I'm pretty sure the building of the documents is not 100% kosher. Eg. the
+  links don't seem to do anything useful in the HTML versions at least, and
+  there's loads of cross-link errors/warnings when building. (NOTE: I've
+  disabled compilation of HTML documents for now).
+
 - dummy FIFO connections created using NAL_CONNECTION_create_dummy should be
   trivially selectable if anyone's daft enough to try. Ie. if you add a FIFO
   to a selector, the select() should break instantly if the FIFO is non-empty
   otherwise the FIFO should have no influence at all on the real select(2).
   Right now, NAL_SELECTOR_add_conn() silently ignores dummy connections
   completely.
-
-- snoop does not do any flush-handling when one side of the proxy disconnects,
-  but immediately closes the other side and destroys the context. What should
-  happen is that we should not close the other side until all data accepted
-  from the closing side has been sent out the other side.
 
 - dc_test should in theory avoid the case that a session it added could have
   been expired (we can't say definitively because of races). If it gets within
@@ -17,16 +31,7 @@
   seconds after the expiry where dc_test should then assume it was removed by
   the server so future ADDs succeed, DELETEs fail, etc.
 
-- I'm pretty sure the building of the documents is not 100% kosher. Eg. the
-  links don't seem to do anything useful in the HTML versions at least, and
-  there's loads of cross-link errors/warnings when building. (NOTE: I've
-  disabled compilation of HTML documents for now).
-
-- I need to migrate and/or rewrite the swamp 1.1.0 documentation to the
-  sslswamp man-page. Right now the man page is very incomplete.
-
 - Since overhauling libnal for the alternative selector model, piper ceases
   working between dc_test and dc_server. It works between nal_ping and nal_echo
   though, so it's probably a layer in libdistcache or something (sigh).
 
-- Need to fix up snoop for the new libnal model.
