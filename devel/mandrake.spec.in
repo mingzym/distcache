@@ -80,7 +80,7 @@
 
 %define name distcache
 %define version @VERSION@
-%define release 1
+%define release 2
 
 # RPM information
 Name: %{name}
@@ -170,6 +170,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/d*.1*
 %{_mandir}/man8/d*.8*
 %{_bindir}/d*
+%{_bindir}/nal_test
+%{_bindir}/piper
 
 # RPM files: "devel"
 %files devel
@@ -191,6 +193,9 @@ rm -rf $RPM_BUILD_ROOT
 #########
 
 %changelog
+* Wed Oct 15 2003 Geoff Thorpe <geoff@geoffthorpe.net> 1.4.2-2
+- The RPM spec tagged in the 1.4.2 release was buggy after all, this fixes the packaging.
+
 * Wed Oct 15 2003 Geoff Thorpe <geoff@geoffthorpe.net> 1.4.2-1
 - Release distcache version 1.4.2
 
