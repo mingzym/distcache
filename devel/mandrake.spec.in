@@ -17,7 +17,8 @@
 #   mkdir -p ~/rpm/RPMS/i586
 #
 # You then need two config files setup in your account (ignore the asterisk and
-# space at the beginning of each line);
+# space at the beginning of each line, and replace "$HOME" with your home
+# directory as it will not be expanded automatically);
 #
 # cat > ~/.rpmrc << EOF
 # buildarchtranslate: i386: i586
@@ -30,7 +31,7 @@
 # %_topdir               $HOME/rpm
 # %_tmppath              $HOME/rpm/tmp
 # %distribution          Mandrake Linux
-# %vendor                MandrakeSoft
+# %vendor                none
 # EOF
 #
 # Once all that's done you're almost ready to go. The main step-by-step
