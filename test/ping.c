@@ -125,7 +125,7 @@ static void bindump(const unsigned char *data, unsigned int len)
 	unsigned int tot = 0, pos = 0;
 	while(len--) {
 		if(!pos)
-			SYS_fprintf(SYS_stdout, "%04d: ", tot);
+			SYS_fprintf(SYS_stdout, "0x%04x: ", tot);
 		SYS_fprintf(SYS_stdout, "0x%02x ", *(data++));
 		if(++pos == LINEWIDTH) {
 			SYS_fprintf(SYS_stdout, "\n");
@@ -218,14 +218,12 @@ static int pingctx_checkpacket(pingctx *ctx)
 		while(ctx->packet[loop] == ctx->response[loop])
 			loop++;
 		SYS_fprintf(SYS_stderr,
-"(%d) Read error: bad match at offset %d\n",
+"(%d) Read error: bad match at offset 0x%04x\n",
 			ctx->id, loop);
-		if(!ctx->quiet) {
-			SYS_fprintf(SYS_stdout, "output packet was;\n");
-			bindump(ctx->packet, ctx->num_size);
-			SYS_fprintf(SYS_stdout, "response packet was;\n");
-			bindump(ctx->response, ctx->num_size);
-		}
+		SYS_fprintf(SYS_stdout, "output packet was;\n");
+		bindump(ctx->packet, ctx->num_size);
+		SYS_fprintf(SYS_stdout, "response packet was;\n");
+		bindump(ctx->response, ctx->num_size);
 		return 0;
 	}
 	ctx->loop++;
