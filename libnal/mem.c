@@ -28,4 +28,4 @@ void *nal_realloc_int(void *ptr, size_t size)
 { return realloc(ptr, size); }
 
 void nal_free_int(void *ptr)
-{ return free(ptr); }
+{ free(ptr); }
