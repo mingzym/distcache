@@ -530,12 +530,6 @@ int main(int argc, char *argv[])
 	/* Prefix the text header */
 	copyright(config.nologo);
 
-	/* Are we missing anything? */
-	if(!dist_pattern_num(config.distribution)) {
-		SYS_fprintf(SYS_stderr, "error: no servers specified\n");
-		return 1;
-	}
-
 	/* Set up the 'thread_ctx' containing our list of swamp items */
 	if(!swamp_thread_ctx_init(&ctx, &config)) {
 		SYS_fprintf(SYS_stderr, "error setting up swamp_thread_ctx");

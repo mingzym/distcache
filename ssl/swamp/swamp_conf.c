@@ -299,6 +299,10 @@ post_process:
 	 * pattern elements (not all servers may be up, but that will be
 	 * determined later when the swamping begins). */
 	num_servers = dist_pattern_num(sc->distribution);
+	if(num_servers == 0) {
+		SYS_fprintf(SYS_stderr, "Error, no servers specified. See 'swamp -h' for usage on '-connect'\n");
+		return 0;
+	}
 
 	err = dist_pattern_parse(sc->distribution, dist_pattern_str);
 	if (err != ERR_DIST_PAT_OKAY) {
