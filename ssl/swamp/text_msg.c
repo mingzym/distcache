@@ -51,6 +51,10 @@ void main_usage(void)
 	SYS_fprintf(SYS_stdout,
 		"                        (default, no client certificate)\n");
 	SYS_fprintf(SYS_stdout,
+		"    -sslmeth <meth>   - specifies an SSL/TLS handshake version\n");
+	SYS_fprintf(SYS_stdout,
+		"                        (default = normal, alternatives: sslv2, sslv3, tlsv1)\n");
+	SYS_fprintf(SYS_stdout,
 		"    -num <n>          - the number of simultaneous connections to use\n");
 	SYS_fprintf(SYS_stdout,
 		"                        (default = 5)\n");

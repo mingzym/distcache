@@ -19,7 +19,12 @@ Current version: x.x.x
 Changes between 1.4.3 and x.x.x
 -------------------------------
 
-  *)
+  *) Add a new switch "-sslmeth <meth>" to the 'sslswamp' tool to allow the
+     user to stipulate the record and handshake layer version required. Apart
+     from fixing the record layer version in advance, this switch is also the
+     easiest way of avoiding the use of SSLv2-compatible ClientHello records.
+     The values for "<meth>" are "normal", "sslv2", "sslv3", and "tlsv1".
+     [Geoff Thorpe]
 
 Changes between 1.4.2 and 1.4.3
 -------------------------------

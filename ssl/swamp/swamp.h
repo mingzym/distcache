@@ -159,6 +159,16 @@ int int_substrtoul(const char *str, unsigned long *val, const char *valid_terms)
  * line-feed control-characters. */
 char *util_parse_escaped_string(const char *str_toconvert);
 
+typedef enum st_swamp_sslmeth {
+	SWAMP_SSLMETH_NORMAL,	/* SSLv23_client_method() */
+	SWAMP_SSLMETH_SSLv2,	/* SSLv2_client_method() */
+	SWAMP_SSLMETH_SSLv3,	/* SSLv3_client_method() */
+	SWAMP_SSLMETH_TLSv1	/* TLSv1_client_method() */
+} swamp_sslmeth;
+
+/* Take a string input and map it to one of the SSLMETH types. */
+int util_parse_sslmeth(const char *str_toconvert, swamp_sslmeth *val);
+
 /*********************************************************/
 /* types and defines implemented/used in;   swamp_conf.c */
 /*********************************************************/
@@ -193,6 +203,7 @@ struct st_swamp_config {
 	const char *cacert;
 	const char *cert;
 	const char *cipher_string;
+	swamp_sslmeth sslmeth;
 #ifdef HAVE_ENGINE
 	const char *engine_id;
 #endif
@@ -246,6 +257,7 @@ int swamp_config_process_command_line(swamp_config *sc,
 	CMD_STR(CONNECT, "-connect") \
 	CMD_STR(CAFILE, "-CAfile") \
 	CMD_STR(CERT, "-cert") \
+	CMD_STR(SSLMETH, "-sslmeth") \
 	CMD_STR(NUM, "-num") \
 	CMD_STR(COUNT, "-count") \
 	CMD_STR(TIME, "-time") \
@@ -273,6 +285,7 @@ typedef enum {
 	CMD_NUM(CONNECT),
 	CMD_NUM(CAFILE),
 	CMD_NUM(CERT),
+	CMD_NUM(SSLMETH),
 	CMD_NUM(NUM),
 	CMD_NUM(COUNT),
 	CMD_NUM(TIME),
@@ -303,7 +316,7 @@ typedef struct st_cmd_defn {
 	/* Commands that take no arguments */ \
 	CMD0(SESSION_IDS), CMD0(NOLOGO), CMD0(HELP1), CMD0(HELP2), CMD0(HELP3), \
 	/* Commands that take a single argument */ \
-	CMD1(CONNECT), CMD1(CAFILE), CMD1(CERT), CMD1(NUM), CMD1(COUNT), \
+	CMD1(CONNECT), CMD1(CAFILE), CMD1(CERT), CMD1(SSLMETH), CMD1(NUM), CMD1(COUNT), \
 	CMD1(TIME), CMD1(EXPECT), CMD1(REQUEST), CMD1(SESSION), CMD1(UPDATE), \
 	CMD1(CIPHER), CMD1(CSV), CMD1(DISTRIBUTE),
 #ifndef HAVE_ENGINE

@@ -74,6 +74,7 @@ static SSL_CTX *ossl_setup_ssl_ctx(const swamp_config *config)
 	RSA *rsa = NULL;
 	SSL_CTX *ctx = NULL;
 	const char **paths;
+	SSL_METHOD *sslmethod = NULL;
 #ifdef HAVE_ENGINE
 	ENGINE *e = NULL;
 #endif
@@ -100,9 +101,20 @@ static SSL_CTX *ossl_setup_ssl_ctx(const swamp_config *config)
 #endif
 
 	/* Create the SSL_CTX */
-	ctx = SSL_CTX_new(SSLv23_client_method());
-	if(!ctx)
+	switch(config->sslmeth) {
+	case SWAMP_SSLMETH_NORMAL:
+		sslmethod = SSLv23_client_method(); break;
+	case SWAMP_SSLMETH_SSLv2:
+		sslmethod = SSLv2_client_method(); break;
+	case SWAMP_SSLMETH_SSLv3:
+		sslmethod = SSLv3_client_method(); break;
+	case SWAMP_SSLMETH_TLSv1:
+		sslmethod = TLSv1_client_method(); break;
+	default:
 		return NULL;
+	}
+	ctx = SSL_CTX_new(sslmethod);
+	if(!ctx) return NULL;
 
 	/* Add the CA cert */
 	if(config->cacert) {

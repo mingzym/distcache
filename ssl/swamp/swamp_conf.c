@@ -25,6 +25,7 @@
 
 static char *def_cacert = NULL;
 static char *def_cert = NULL;
+static swamp_sslmeth def_sslmeth = SWAMP_SSLMETH_NORMAL;
 static unsigned int def_list_size = 5;
 static unsigned int def_total_max = 0; /* Keep running */
 static unsigned int def_time_max = 0; /* Keep running */
@@ -132,6 +133,7 @@ void swamp_config_init(swamp_config *sc)
 	/* Direct assignments */
 	sc->cacert = def_cacert;
 	sc->cert = def_cert;
+	sc->sslmeth = def_sslmeth;
 	sc->list_size = def_list_size;
 	sc->total_max = def_total_max;
 	sc->time_max = def_time_max;
@@ -206,6 +208,12 @@ cmd_loop:
 		sc->cacert = val; break;
 	case CMD_NUM(CERT):
 		sc->cert = val; break;
+	case CMD_NUM(SSLMETH):
+		if(!util_parse_sslmeth(val, &sc->sslmeth)) {
+			SYS_fprintf(SYS_stderr, "invalid ssl/tls method\n");
+			return 0;
+		}
+		break;
 	case CMD_NUM(NUM):
 		if(!int_strtoul(val, &sc->list_size) || !sc->list_size ||
 					(sc->list_size > MAX_LIST_SIZE)) {

@@ -264,3 +264,18 @@ char *util_parse_escaped_string(const char *str_toconvert)
 	*dest = 0;
 	return toreturn;
 }
+
+int util_parse_sslmeth(const char *str_toconvert, swamp_sslmeth *val)
+{
+	if(!strcmp(str_toconvert, "normal"))
+		*val = SWAMP_SSLMETH_NORMAL;
+	else if(!strcmp(str_toconvert, "sslv2"))
+		*val = SWAMP_SSLMETH_SSLv2;
+	else if(!strcmp(str_toconvert, "sslv3"))
+		*val = SWAMP_SSLMETH_SSLv3;
+	else if(!strcmp(str_toconvert, "tlsv1"))
+		*val = SWAMP_SSLMETH_TLSv1;
+	else
+		return 0;
+	return 1;
+}
