@@ -20,6 +20,19 @@
 #ifndef HEADER_LIBDISTCACHE_DC_CLIENT_H
 #define HEADER_LIBDISTCACHE_DC_CLIENT_H
 
+/* This is an "API" version - it will be bumped each time an API change is
+ * introduced to this header. NB: This version number does not track changes to
+ * the implementation of these functions that might affect binary or behavioural
+ * compatibility. It merely provides a way for dependant source code to provide
+ * pre-processing rules that ensure that source code is being compiled using an
+ * acceptable version of the distcache API. */
+#define DISTCACHE_CLIENT_API	0x0001
+
+/* This is an "implementation" version - it will be bumped each time a change is
+ * made that could affect binary compatibility with dependant libraries or a
+ * behavioural change takes place that could affect interoperation. */
+#define DISTCACHE_CLIENT_BINARY	0x0001
+
 /* Our black-box type */
 typedef struct st_DC_CTX DC_CTX;
 
