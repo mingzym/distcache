@@ -142,6 +142,8 @@ const NAL_CONNECTION_vtable *nal_listener_accept_connection(NAL_LISTENER *l,
 /***************/
 
 typedef struct st_NAL_ADDRESS_vtable {
+	/* As we have a global list of available types, this gives namespace */
+	const char *unique_name;
 	/* The size of "vtdata" the NAL_CONNECTION should provide */
 	size_t vtdata_size;
 	/* NULL-terminated array of string prefixes that correspond to this
@@ -167,7 +169,10 @@ const NAL_CONNECTION_vtable *nal_address_get_connection(const NAL_ADDRESS *addr)
 /* Builtin address vtables */
 /***************************/
 
+/* Returns the (linked-list of) address types currently available. */
 const NAL_ADDRESS_vtable *NAL_ADDRESS_vtable_builtins(void);
+/* Links in one or more new address types making them immediately available. */
+void NAL_ADDRESS_vtable_link(NAL_ADDRESS_vtable *vt);
 
 /**************/
 /* NAL_BUFFER */

@@ -25,6 +25,56 @@
 #include "nal_internal.h"
 #include <libsys/post.h>
 
+/*****************************************************/
+/* First some global address-type registry stuff ... */
+/*****************************************************/
+
+/* We make various address types automatically available by having them linked
+ * in by default. I'm simply "extern"ing a reference here to the builtin
+ * address type in proto_std.c, which will be our initial start-up list (its
+ * "next" pointer is NULL at start-up). This avoids having various functions
+ * pointing back and forth (that could get confused when exposing the
+ * "internal" API for address type providers), and it also avoids maintaining a
+ * separate table for registering address types (which would require the
+ * builtins to be registered by the application on startup and would also
+ * require cleanup on exit, both of which are undesirable). */
+
+extern NAL_ADDRESS_vtable builtin_addr_vtable;
+
+/* API functions */
+
+const NAL_ADDRESS_vtable *NAL_ADDRESS_vtable_builtins(void)
+{
+	return &builtin_addr_vtable;
+}
+
+void NAL_ADDRESS_vtable_link(NAL_ADDRESS_vtable *vt)
+{
+	NAL_ADDRESS_vtable *i, *next;
+	do {
+		/* We do things this way so that we already have 'next' set
+		 * as/when we NULL-terminate 'vt' for the linked-list. */
+		next = vt->next;
+		/* Check the existing global list doesn't have 'vt' */
+		i = &builtin_addr_vtable;
+conflict_loop:
+		if(strcmp(i->unique_name, vt->unique_name) == 0)
+			/* Already got it, ignore 'vt' */
+			continue;
+		if(i->next) {
+			i = i->next;
+			goto conflict_loop;
+		}
+		/* Add 'vt' and null terminate */
+		i->next = vt;
+		vt->next = NULL;
+	} while((vt = next) != NULL);
+}
+
+/**********************************************************/
+/* Now, on to nice (non-global) NAL_ADDRESS API stuff ... */
+/**********************************************************/
+
 struct st_NAL_ADDRESS {
 	/* Implementation (or NULL if not set) */
 	const NAL_ADDRESS_vtable *vt;

@@ -37,7 +37,9 @@ static int addr_can_listen(const NAL_ADDRESS *addr);
 static const NAL_LISTENER_vtable *addr_create_listener(const NAL_ADDRESS *addr);
 static const NAL_CONNECTION_vtable *addr_create_connection(const NAL_ADDRESS *addr);
 const char *addr_prefixes[] = {"IP:", "IPv4:", "UNIX:", NULL};
-static const NAL_ADDRESS_vtable addr_vtable = {
+extern NAL_ADDRESS_vtable builtin_addr_vtable;
+NAL_ADDRESS_vtable builtin_addr_vtable = {
+	"proto_std",
 	sizeof(nal_sockaddr),
 	addr_prefixes,
 	addr_on_create,
@@ -119,19 +121,14 @@ static int gb_use_nagle = 1;
 /* API functions */
 /*****************/
 
-const NAL_ADDRESS_vtable *NAL_ADDRESS_vtable_builtins(void)
-{
-	return &addr_vtable;
-}
-
 void NAL_config_set_nagle(int enabled)
 {
 	gb_use_nagle = enabled;
 }
 
-/******************************************/
-/* Implementation of addr_vtable handlers */
-/******************************************/
+/**************************************/
+/* Implementation of address handlers */
+/**************************************/
 
 static int addr_on_create(NAL_ADDRESS *addr, const char *addr_string)
 {

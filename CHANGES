@@ -19,6 +19,13 @@ Current version: x.x
 Changes between 1.4.1 and x.x
 -----------------------------
 
+  *) Allow NAL_ADDRESS_vtable implementations to register themeselves with the
+     libnal core so they become automatically available to applications via
+     their string syntax. As with the builtin (IPv4/UNIX) vtable
+     implementation, this provides the single point of entry to any associated
+     implementations of listener and connection types.
+     [Geoff Thorpe]
+
   *) Compact the AC_CHECK_*** macros so we save space in the generated
      configure scripts.
      [Joe Orton]
