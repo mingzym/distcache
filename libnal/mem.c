@@ -21,24 +21,24 @@
 
 #include <libnal/common.h>
 
-void *nal_malloc_int(size_t size)
-{ return malloc(size); }
-
-void *nal_realloc_int(void *ptr, size_t size)
-{ return realloc(ptr, size); }
-
-void nal_free_int(void *ptr)
-{ free(ptr); }
-
 #if NAL_DEBUG_LEVEL > 2
 
-void *NAL_MEMSET(void *s, int c, size_t n)
+void *nal_malloc(size_t size)
+{ return malloc(size); }
+
+void *nal_realloc(void *ptr, size_t size)
+{ return realloc(ptr, size); }
+
+void nal_free(void *ptr)
+{ free(ptr); }
+
+void *nal_memset(void *s, int c, size_t n)
 { return memset(s, c, n); }
 
-void *NAL_MEMCPY(void *dest, const void *src, size_t n)
+void *nal_memcpy(void *dest, const void *src, size_t n)
 { return memcpy(dest, src, n); }
 
-void *NAL_MEMMOVE(void *dest, const void *src, size_t n)
+void *nal_memmove(void *dest, const void *src, size_t n)
 { return memmove(dest, src, n); }
 
 #endif

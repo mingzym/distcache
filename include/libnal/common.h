@@ -198,56 +198,34 @@ int NAL_fprintf(FILE *fp, const char *fmt, ...);
 
 #endif /* !LEAVE_PROCESSES_ALONE */
 
-/******************************************/
-/* MEMORY MANAGEMENT FUNCTIONS AND MACROS */
-/******************************************/
-
-/* All code except mem.c should use the NAL_[malloc|realloc|free] wrapper macros
- * to improve type-safety. This logic prevents direct use of malloc, etc. */
-#ifndef IN_MEM_C
-#undef malloc
-#undef realloc
-#undef free
-#define malloc dont_use_malloc_use_NAL_malloc_instead
-#define realloc dont_use_realloc_use_NAL_realloc_instead
-#define free dont_use_free_use_NAL_free_instead
-#endif
-
-/* These functions are implemented in libnal but should not be called directly
- * (hence the lower-case naming). Use the NAL_[malloc|realloc|free] macros
- * instead. */
-void *nal_malloc_int(size_t size);
-void *nal_realloc_int(void *ptr, size_t size);
-void nal_free_int(void *ptr);
-
-/* The return value provides type-safety matching with the allocation size */
-#define NAL_malloc(t,n)		(t *)nal_malloc_int((n) * sizeof(t))
-/* The return value is type-safe, but no checking of 'p' seems possible */
-#define NAL_realloc(t,p,n)	(t *)nal_realloc_int((p), (n) * sizeof(t))
-/* Ensures 'p' is of type 't' */
-#define NAL_free(t,p)		do { \
-					t *tmp_nal_free_4765 = (p); \
-					nal_free_int(tmp_nal_free_4765); \
-				} while(0)
-
 /*********************/
 /* TYPESAFE WRAPPERS */
 /*********************/
 
-/* We always (for now) use type-safe macro wrappers for memset, memcpy, and
- * memmove. However to verify that the original versions aren't being used as
- * well, define NAL_DEBUG_LEVEL to something greater than 2; */
+/* We always (for now) use type-safe macro wrappers for malloc, realloc, free,
+ * memset, memcpy, and memmove. However to verify that the original versions
+ * aren't being used as well, define NAL_DEBUG_LEVEL to something greater than
+ * 2; */
 
 #if NAL_DEBUG_LEVEL > 2
 
 /* Declare replacement functions for those we will #undef. */
-void *NAL_MEMSET(void *s, int c, size_t n);
-void *NAL_MEMCPY(void *dest, const void *src, size_t n);
-void *NAL_MEMMOVE(void *dest, const void *src, size_t n);
+void *nal_malloc(size_t size);
+void *nal_realloc(void *ptr, size_t size);
+void nal_free(void *ptr);
+void *nal_memset(void *s, int c, size_t n);
+void *nal_memcpy(void *dest, const void *src, size_t n);
+void *nal_memmove(void *dest, const void *src, size_t n);
 #ifndef IN_MEM_C /* and #undef the versions we want * code to avoid. */
+#undef malloc
+#undef realloc
+#undef free
 #undef memset
 #undef memcpy
 #undef memmove
+#define malloc dont_use_malloc
+#define realloc dont_use_realloc
+#define free dont_use_free
 #define memset dont_use_memset
 #define memcpy dont_use_memcpy
 #define memmove dont_use_memmove
@@ -256,9 +234,12 @@ void *NAL_MEMMOVE(void *dest, const void *src, size_t n);
 #else
 
 /* We use the system functions directly from our macros */
-#define NAL_MEMSET	memset
-#define NAL_MEMCPY	memcpy
-#define NAL_MEMMOVE	memmove
+#define nal_malloc	malloc
+#define nal_realloc	realloc
+#define nal_free	free
+#define nal_memset	memset
+#define nal_memcpy	memcpy
+#define nal_memmove	memmove
 
 #endif
 
@@ -266,6 +247,9 @@ void *NAL_MEMMOVE(void *dest, const void *src, size_t n);
  * speed differences we can put these back. Note, a decent compiler should boil
  * the type-safe wrappers down to these forms anyway after type-checking. */
 #if 0
+#define NAL_malloc(t,n)		(t *)malloc((n) * sizeof(t))
+#define NAL_realloc(t,p,n)	(t *)realloc((p), (n) * sizeof(t))
+#define NAL_free(t,p)		free((p))
 #define NAL_cover(c,t,p)	memset((p), (c), sizeof(t))
 #define NAL_cover_n(c,t,p,n)	memset((p), (c), (n) * sizeof(t))
 #define NAL_memcpy(t,d,s)	memcpy((d), (s), sizeof(t))
@@ -275,41 +259,47 @@ void *NAL_MEMMOVE(void *dest, const void *src, size_t n);
 #else
 
 /* Type-safe macro wrappers */
+#define NAL_malloc(t,n)		(t *)nal_malloc((n) * sizeof(t))
+#define NAL_realloc(t,p,n)	(t *)nal_realloc((p), (n) * sizeof(t))
+#define NAL_free(t,p)		do { \
+				t *tmp_nal_free_4765 = (p); \
+				nal_free(tmp_nal_free_4765); \
+				} while(0)
 #define NAL_cover(c,t,p)	do { \
 				t *temp_NAL_cover_ptr = (p); \
-				NAL_MEMSET(temp_NAL_cover_ptr, (c), \
+				nal_memset(temp_NAL_cover_ptr, (c), \
 						sizeof(t)); \
 				} while(0)
 #define NAL_cover_n(c,t,p,n)	do { \
 				t *temp_NAL_cover_n_ptr = (p); \
-				NAL_MEMSET(temp_NAL_cover_n_ptr, (c), \
+				nal_memset(temp_NAL_cover_n_ptr, (c), \
 						(n) * sizeof(t)); \
 				} while(0)
 #define NAL_memcpy(t,d,s)	do { \
 				t *temp_NAL_memcpy_ptr1 = (d); \
 				const t *temp_NAL_memcpy_ptr2 = (s); \
-				NAL_MEMCPY(temp_NAL_memcpy_ptr1, \
+				nal_memcpy(temp_NAL_memcpy_ptr1, \
 					temp_NAL_memcpy_ptr2, \
 					sizeof(t)); \
 				} while(0)
 #define NAL_memcpy_n(t,d,s,n)	do { \
 				t *temp_NAL_memcpy_ptr1 = (d); \
 				const t *temp_NAL_memcpy_ptr2 = (s); \
-				NAL_MEMCPY(temp_NAL_memcpy_ptr1, \
+				nal_memcpy(temp_NAL_memcpy_ptr1, \
 					temp_NAL_memcpy_ptr2, \
 					(n) * sizeof(t)); \
 				} while(0)
 #define NAL_memmove(t,d,s)	do { \
 				t *temp_NAL_memmove_ptr1 = (d); \
 				const t *temp_NAL_memmove_ptr2 = (s); \
-				NAL_MEMMOVE(temp_NAL_memmove_ptr1, \
+				nal_memmove(temp_NAL_memmove_ptr1, \
 					temp_NAL_memmove_ptr2, \
 					sizeof(t)); \
 				} while(0)
 #define NAL_memmove_n(t,d,s,n)	do { \
 				t *temp_NAL_memmove_ptr1 = (d); \
 				const t *temp_NAL_memmove_ptr2 = (s); \
-				NAL_MEMMOVE(temp_NAL_memmove_ptr1, \
+				nal_memmove(temp_NAL_memmove_ptr1, \
 					temp_NAL_memmove_ptr2, \
 					(n) * sizeof(t)); \
 				} while(0)
