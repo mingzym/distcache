@@ -9,7 +9,8 @@ NAL_LISTENER_new, NAL_LISTENER_free, NAL_LISTENER_create - libnal listener funct
  #include <libnal/nal.h>
 
  NAL_LISTENER *NAL_LISTENER_new(void);
- void NAL_LISTENER_free(NAL_LISTENER *a);
+ void NAL_LISTENER_free(NAL_LISTENER *list);
+ void NAL_LISTENER_reset(NAL_LISTENER *list);
  int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr);
  void NAL_LISTENER_add_to_selector(const NAL_LISTENER *list,
                                    NAL_SELECTOR *sel);
@@ -21,6 +22,13 @@ NAL_LISTENER_new, NAL_LISTENER_free, NAL_LISTENER_create - libnal listener funct
 NAL_LISTENER_new() allocates and initialises a new B<NAL_LISTENER> object.
 
 NAL_LISTENER_free() destroys a B<NAL_LISTENER> object.
+
+NAL_LISTENER_reset() will, if necessary, cleanup any prior state in B<list> so
+that it can be reused in NAL_LISTENER_create(). Internally, there are other
+optimisations and benefits to using NAL_LISTENER_reset() instead of
+NAL_LISTENER_free() and NAL_LISTENER_new() - the implementation can try to
+avoid repeated reallocation and reinitialisation of state, only doing full
+cleanup and reinitialisation when necessary.
 
 NAL_LISTENER_create() will attempt to create and bind a listener to the address
 represented by B<addr>. Semantics of how this binding works with respect to
@@ -37,7 +45,7 @@ reverse this if called before any subsequent call to NAL_SELECTOR_select().
 NAL_LISTENER_new() returns a valid B<NAL_LISTENER> object on success, NULL
 otherwise.
 
-NAL_LISTENER_free(), NAL_LISTENER_add_to_selector(), and
+NAL_LISTENER_free(), NAL_LISTENER_reset(), NAL_LISTENER_add_to_selector(), and
 NAL_LISTENER_del_from_selector() have no return value.
 
 All other B<NAL_LISTENER> functions return zero for failure, and non-zero for

@@ -10,18 +10,27 @@ NAL_ADDRESS_new, NAL_ADDRESS_free, NAL_ADDRESS_create, NAL_ADDRESS_set_def_buffe
 
  NAL_ADDRESS *NAL_ADDRESS_new(void);
  void NAL_ADDRESS_free(NAL_ADDRESS *a);
+ void NAL_ADDRESS_reset(NAL_ADDRESS *a);
  int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
                         unsigned int def_buffer_size);
+ unsigned int NAL_ADDRESS_get_def_buffers_size(const NAL_ADDRESS *addr);
  int NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
                                      unsigned int def_buffer_size);
- int NAL_ADDRESS_can_connect(NAL_ADDRESS *addr);
- int NAL_ADDRESS_can_listen(NAL_ADDRESS *addr);
+ int NAL_ADDRESS_can_connect(const NAL_ADDRESS *addr);
+ int NAL_ADDRESS_can_listen(const NAL_ADDRESS *addr);
 
 =head1 DESCRIPTION
 
 NAL_ADDRESS_new() allocates and initialises a new B<NAL_ADDRESS> object.
 
 NAL_ADDRESS_free() destroys a B<NAL_ADDRESS> object.
+
+NAL_ADDRESS_reset() will, if necessary, cleanup any prior state in B<a> so that
+it can be reused in NAL_ADDRESS_create(). Internally, there are other
+optimisations and benefits to using NAL_ADDRESS_reset() instead of
+NAL_ADDRESS_free() and NAL_ADDRESS_new() - the implementation can try to avoid
+repeated reallocation and reinitialisation of state, only doing full cleanup
+and reinitialisation when necessary.
 
 NAL_ADDRESS_create() will attempt to parse a network address from the string
 constant provided in B<addr_string>. If this succeeds, then B<addr> will
@@ -36,6 +45,8 @@ B<addr>.
 
 NAL_ADDRESS_set_def_buffer_size() sets B<def_buffer_size> as the default buffer
 size in B<addr>. This operation is built into NAL_ADDRESS_create() already.
+NAL_ADDRESS_get_def_buffer_size() returns the current default buffer size of
+B<addr>.
 
 NAL_ADDRESS_can_connect() will indicate whether the address represented by
 B<addr> is of an appropriate form for creating a B<NAL_CONNECTION> object.
@@ -51,7 +62,10 @@ for both. See L</NOTES>.
 NAL_ADDRESS_new() returns a valid B<NAL_ADDRESS> object on success, NULL
 otherwise.
 
-NAL_ADDRESS_free() has no return value.
+NAL_ADDRESS_free() and NAL_ADDRESS_reset() have no return value.
+
+NAL_ADDRESS_get_def_buffer_size() returns the size of the current default buffer
+size in a B<NAL_ADDRESS> object.
 
 All other B<NAL_ADDRESS> functions return zero for failure or false, and
 non-zero for success or true.

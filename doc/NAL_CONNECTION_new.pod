@@ -9,7 +9,8 @@ NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_c
  #include <libnal/nal.h>
 
  NAL_CONNECTION *NAL_CONNECTION_new(void);
- void NAL_CONNECTION_free(NAL_CONNECTION *a);
+ void NAL_CONNECTION_free(NAL_CONNECTION *conn);
+ void NAL_CONNECTION_reset(NAL_CONNECTION *conn);
  int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr);
  int NAL_CONNECTION_accept(NAL_CONNECTION *conn, NAL_LISTENER *list,
  				NAL_SELECTOR *sel);
@@ -38,6 +39,13 @@ NAL_CONNECTION_new, NAL_CONNECTION_free, NAL_CONNECTION_create, NAL_CONNECTION_c
 NAL_CONNECTION_new() allocates and initialises a new B<NAL_CONNECTION> object.
 
 NAL_CONNECTION_free() destroys a B<NAL_CONNECTION> object.
+
+NAL_CONNECTION_reset() will, if necessary, cleanup any prior state in B<conn>
+so that it can be reused in NAL_CONNECTION_create(). Internally, there are
+other optimisations and benefits to using NAL_CONNECTION_reset() instead of
+NAL_CONNECTION_free() and NAL_CONNECTION_new() - the implementation can try to
+avoid repeated reallocation and reinitialisation of state, only doing full
+cleanup and reinitialisation when necessary.
 
 NAL_CONNECTION_create() will attempt to connect to the address represented by
 B<addr>. If this succeeds, it means either that the underlying connection of
@@ -115,8 +123,9 @@ reverse this if called before any subsequent call to NAL_SELECTOR_select().
 NAL_CONNECTION_new() returns a valid B<NAL_CONNECTION> object on success, NULL
 otherwise.
 
-NAL_CONNECTION_free(), NAL_CONNECTION_add_to_selector(), and
-NAL_CONNECTION_del_from_selector() have no return value.
+NAL_CONNECTION_free(), NAL_CONNECTION_reset(),
+NAL_CONNECTION_add_to_selector(), and NAL_CONNECTION_del_from_selector() have
+no return value.
 
 NAL_CONNECTION_get_read(), NAL_CONNECTION_get_send(),
 NAL_CONNECTION_get_read_c(), and NAL_CONNECTION_get_send_c() return pointers to
