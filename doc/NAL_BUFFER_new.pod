@@ -1,0 +1,137 @@
+=pod
+
+=head1 NAME
+
+NAL_BUFFER_new, NAL_BUFFER_free, NAL_BUFFER_set_size, NAL_BUFFER_empty, NAL_BUFFER_full, NAL_BUFFER_notempty, NAL_BUFFER_notfull, NAL_BUFFER_used, NAL_BUFFER_unused, NAL_BUFFER_data, NAL_BUFFER_size, NAL_BUFFER_write, NAL_BUFFER_read, NAL_BUFFER_write_ptr, NAL_BUFFER_takedata, NAL_BUFFER_wrote - libnal buffer functions
+
+=head1 SYNOPSIS
+
+ #include <libnal/nal.h>
+
+ NAL_BUFFER *NAL_BUFFER_new(void);
+ void NAL_BUFFER_free(NAL_BUFFER *a);
+ int NAL_BUFFER_set_size(NAL_BUFFER *buf, unsigned int size);
+ int NAL_BUFFER_empty(const NAL_BUFFER *buf);
+ int NAL_BUFFER_full(const NAL_BUFFER *buf);
+ int NAL_BUFFER_notempty(const NAL_BUFFER *buf);
+ int NAL_BUFFER_notfull(const NAL_BUFFER *buf);
+ unsigned int NAL_BUFFER_used(const NAL_BUFFER *buf);
+ unsigned int NAL_BUFFER_unused(const NAL_BUFFER *buf);
+ unsigned int NAL_BUFFER_size(const NAL_BUFFER *buf);
+ const unsigned char *NAL_BUFFER_data(const NAL_BUFFER *buf);
+ unsigned int NAL_BUFFER_write(NAL_BUFFER *buf, const unsigned char *ptr,
+                               unsigned int size);
+ unsigned int NAL_BUFFER_read(NAL_BUFFER *buf, unsigned char *ptr,
+                              unsigned int size);
+ unsigned char *NAL_BUFFER_write_ptr(NAL_BUFFER *buf);
+ void NAL_BUFFER_wrote(NAL_BUFFER *buf, unsigned int size);
+
+=head1 DESCRIPTION
+
+NAL_BUFFER_new() allocates and initialises a new B<NAL_BUFFER> object.
+
+NAL_BUFFER_free() destroys a B<NAL_BUFFER> object.
+
+NAL_BUFFER_set_size() sets the size of the buffer in B<buf> to B<size> bytes.
+
+NAL_BUFFER_empty(), NAL_BUFFER_full(), NAL_BUFFER_notempty(), and
+NAL_BUFFER_notfull() are functions that return a boolean result according to
+the size of the buffer in B<buf> and how much of that buffer is occupied by
+data.
+
+NAL_BUFFER_used() indicates how much of B<buf>'s storage is occupied by data
+and NAL_BUFFER_unused() indicates how much space is available for more data.
+
+NAL_BUFFER_size() indicates the size of B<buf>'s storage as specified by the last
+(successful) call to NAL_BUFFER_set_size(). This should always match the total of
+NAL_BUFFER_used() and NAL_BUFFER_unused().
+
+NAL_BUFFER_data() provides a const pointer to B<buf>'s internal storage for
+reading. This return value is valid until B<buf> is either destroyed or resized
+via NAL_BUFFER_set_size().
+
+NAL_BUFFER_write() writes into B<buf> as much as possible of the data specified
+by B<ptr> and B<size>.
+
+NAL_BUFFER_read() reads from B<buf> as much data as possible into the storage area
+specified by B<ptr> and B<size>.
+
+NAL_BUFFER_write_ptr() returns a pointer for direct write operations into the
+internal storage of B<buf>. This pointer must be used with care, see L</NOTES>.
+
+NAL_BUFFER_wrote() allows an application to indicate how much data was directly
+written into B<buf> following NAL_BUFFER_write_ptr(), see L</NOTES>.
+
+=head1 RETURN VALUES
+
+NAL_BUFFER_new() returns a valid B<NAL_BUFFER> object on success, NULL
+otherwise.
+
+NAL_BUFFER_free() has no return value.
+
+NAL_BUFFER_empty(), NAL_BUFFER_full(), NAL_BUFFER_notempty(), and
+NAL_BUFFER_notfull() return boolean results (non-zero for true).
+
+NAL_BUFFER_set_size() returns non-zero for success, zero for failure.
+
+NAL_BUFFER_used(), NAL_BUFFER_unused(), and NAL_BUFFER_size() return the number
+of bytes of data stored, available, or allocated (respectively) in B<buf>.
+
+NAL_BUFFER_data() returns a pointer to the head of the data buffer in B<buf>.
+
+NAL_BUFFER_write() returns the number of bytes successfully written to B<buf>.
+This may be less than B<size> if there was less space than that available for
+writing. NAL_BUFFER_read() likewise returns the number of bytes read from
+B<buf> which can be less than B<size> if there was less data than that
+available for reading.
+
+NAL_BUFFER_write_ptr() returns a pointer to the first unused byte of the data
+buffer in B<buf> to allow writing.
+
+NAL_BUFFER_wrote() has no return value.
+
+=head1 NOTES
+
+The principal use of B<NAL_BUFFER> objects is in manipulating the read and send
+buffers of a B<NAL_CONNECTION> object, as returned from
+NAL_CONNECTION_get_read(2) and NAL_CONNECTION_get_send(2). This includes
+resizing these buffers directly (instead of NAL_CONNECTION_set_size(2) which
+sets both buffers jointly), reading data from the buffer, writing data to the
+buffer, or enquiring as to the state of the buffer (empty, full, bytes used,
+space available, current size, etc).
+
+Use of the NAL_BUFFER_write_ptr() and NAL_BUFFER_wrote() functions is not
+generally recommended as they directly manipulate the internals of a
+B<NAL_BUFFER> object. The return value of NAL_BUFFER_write_ptr() is only valid
+for writing so long as no other operations on B<buf> occur before the
+subsequent call to NAL_BUFFER_wrote(), and this can create difficulties in
+state-machine logic or multi-threading situations (if accesses to a buffer are
+locked, but logic occuring between these two function calls is not locked).
+The NAL_BUFFER_unused() function should be used to determine the maximum range
+available to write to at the location returned by NAL_BUFFER_write_ptr().
+
+=head1 SEE ALSO
+
+L<NAL_ADDRESS_new(2)> - Functions for the NAL_ADDRESS type.
+
+L<NAL_CONNECTION_new(2)> - Functions for the NAL_CONNECTION type.
+
+L<NAL_LISTENER_new(2)> - Functions for the NAL_LISTENER type.
+
+L<NAL_SELECTOR_new(2)> - Functions for the NAL_SELECTOR type.
+
+L<distcache(8)> - Overview of the distcache architecture.
+
+F<http://www.distcache.org/> - Distcache home page.
+
+=head1 AUTHOR
+
+This toolkit was designed and implemented by Geoff Thorpe for Cryptographic
+Appliances Incorporated. Since the project was released into open source, it
+has a home page and a project environment where development, mailing lists, and
+releases are organised. For problems with the software or this man page please
+check for new releases at the project web-site below, mail the users mailing
+list described there, or contact the author at F<geoff@geoffthorpe.net>.
+
+Home Page: F<http://www.distcache.org>
+
