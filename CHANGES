@@ -19,6 +19,13 @@ Current version: x.x
 Changes between 0.4pre1 and x.x
 -------------------------------
 
+  *) The type-safe wrappers for malloc/realloc/free and memset/memcpy/memmove,
+     as well as their replacement functions (only created during debug builds
+     to verify that the raw functions aren't called), have been re-organised
+     and consolidated. This results in one less function call each time for the
+     malloc stuff in the non-debugging case, and more readable code.
+     [Geoff Thorpe]
+
   *) Removed the unnecessary NAL_BUFFER_read_ptr() function as it is equivalent
      to NAL_BUFFER_data() except the latter (correctly) returns a const
      pointer. This function was apparently written when I was too distracted to
