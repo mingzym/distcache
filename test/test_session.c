@@ -30,6 +30,8 @@
 
 static const char *def_client = NULL;
 static const unsigned int def_sessions = 10;
+static const unsigned int def_datamin = 50;
+static const unsigned int def_datamax = 2100;
 static const unsigned int def_withcert = 0;
 static const unsigned int def_timeout = 60;
 static const unsigned int def_timevar = 5;
@@ -43,6 +45,8 @@ static const char *usage_msg[] = {
 "  -connect <addr>  (connect to server at address 'addr')",
 "  -progress <num>  (report transaction count every 'num' operations)",
 "  -sessions <num>  (create 'num' sessions to use for testing)",
+"  -datamin <num>   (each session's data must be at least <num> bytes)",
+"  -datamax <num>   (each session's data must be at most <num> bytes)",
 #ifdef HAVE_OPENSSL
 "  -withcert <num>  (make 'num' of the sessions use peer certificates)",
 #endif
@@ -73,6 +77,7 @@ static const char *usage_msg[] = {
 /* Prototypes */
 static void generate_random_bytes(unsigned char *buf, unsigned int num);
 static int do_client(const char *address, unsigned int num_sessions,
+			unsigned int datamin, unsigned int datamax,
 			unsigned int withcert, unsigned int timeout,
 			unsigned int timevar, unsigned int tests,
 			unsigned long progress, int persistent);
@@ -91,6 +96,8 @@ static const char *CMD_HELP2 = "-help";
 static const char *CMD_HELP3 = "-?";
 static const char *CMD_CLIENT = "-connect";
 static const char *CMD_SESSIONS = "-sessions";
+static const char *CMD_DATAMIN = "-datamin";
+static const char *CMD_DATAMAX = "-datamax";
 static const char *CMD_WITHCERT = "-withcert";
 static const char *CMD_TIMEOUT = "-timeout";
 static const char *CMD_TIMEVAR = "-timevar";
@@ -132,6 +139,8 @@ int main(int argc, char *argv[])
 	int sessions_set = 0;
 	/* Overridables */
 	unsigned int sessions = 0;
+	unsigned int datamin = def_datamin;
+	unsigned int datamax = def_datamax;
 	const char *client = def_client;
 	unsigned int withcert = def_withcert;
 	unsigned int timeout = def_timeout;
@@ -155,6 +164,12 @@ int main(int argc, char *argv[])
 			ARG_CHECK(CMD_SESSIONS);
 			sessions = (unsigned int)atoi(*argv);
 			sessions_set = 1;
+		} else if(strcmp(*argv, CMD_DATAMIN) == 0) {
+			ARG_CHECK(CMD_DATAMIN);
+			datamin = (unsigned int)atoi(*argv);
+		} else if(strcmp(*argv, CMD_DATAMAX) == 0) {
+			ARG_CHECK(CMD_DATAMAX);
+			datamax = (unsigned int)atoi(*argv);
 		} else if(strcmp(*argv, CMD_WITHCERT) == 0) {
 #ifndef HAVE_OPENSSL
 			NAL_fprintf(NAL_stderr(), "Error, no OpenSSL support "
@@ -208,6 +223,14 @@ int main(int argc, char *argv[])
 				"smaller than -timeout\n");
 		return 1;
 	}
+	if(datamin < 4) {
+		NAL_fprintf(NAL_stderr(), "Error, -datamin should be at least 4\n");
+		return 1;
+	}
+	if(datamax > 4096) {
+		NAL_fprintf(NAL_stderr(), "Error, -datamax should be at most 4096\n");
+		return 1;
+	}
 
 	if(!NAL_sigpipe_ignore()) {
 #if NAL_DEBUG_LEVEL > 0
@@ -223,7 +246,7 @@ int main(int argc, char *argv[])
 	/* Since we're using rand() in places, the generator needs seeding */
 	srand(time(NULL));
 
-	return do_client(client, sessions, withcert, timeout, timevar,
+	return do_client(client, sessions, datamin, datamax, withcert, timeout, timevar,
 			ops, progress, persistent);
 }
 
@@ -272,6 +295,7 @@ static unsigned char *int_new_noise(unsigned int len)
 #endif
 
 static int do_client(const char *address, unsigned int num_sessions,
+			unsigned int datamin, unsigned int datamax,
 			unsigned int withcert, unsigned int timeout,
 			unsigned int timevar, unsigned int tests,
 			unsigned long progress, int persistent)
@@ -330,7 +354,7 @@ static int do_client(const char *address, unsigned int num_sessions,
 		/* We generate some kind of arbitrary nonsense due to having no
 		 * OpenSSL support. */
 		sessions_idlen[idx] = 10+(int)(54.0*rand()/(RAND_MAX+1.0));
-		sessions_len[idx] = 50+(int)(2048.0*rand()/(RAND_MAX+1.0));
+		sessions_len[idx] = datamin +(int)((1.0*datamax-datamin)*rand()/(RAND_MAX+1.0));
 		if((sessions_id[idx] = int_new_noise(sessions_idlen[idx])) == NULL) {
 			NAL_fprintf(NAL_stderr(), "Error, malloc failure\n");
 			return 1;
