@@ -19,6 +19,10 @@ Current version: 0.4-dev
 Changes between 0.3 and 0.xx
 ----------------------------
 
+  *) Make "-connect" and "-server" aliases in dc_snoop for consistency with the
+     syntax used by dc_client.
+     [Geoff Thorpe]
+
   *) Started creating 'pod' documentation. This work is incomple
      [Geoff Thorpe]
 

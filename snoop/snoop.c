@@ -94,7 +94,8 @@ static const char *usage_msg[] = {
 "",
 "Usage: dc_snoop [options]     where 'options' are from;",
 "  -listen <addr>   (accept incoming connections on address 'addr')",
-"  -connect <addr>  (proxy incoming connections to server at address 'addr')",
+"  -server <addr>   (proxy incoming connections to server at address 'addr')",
+"  -connect <addr>  (alias for '-server')",
 "  -<h|help|?>      (display this usage message)",
 "", NULL};
 
@@ -115,7 +116,8 @@ static const char *CMD_HELP1 = "-h";
 static const char *CMD_HELP2 = "-help";
 static const char *CMD_HELP3 = "-?";
 static const char *CMD_LISTEN = "-listen";
-static const char *CMD_CONNECT = "-connect";
+static const char *CMD_SERVER1 = "-server";
+static const char *CMD_SERVER2 = "-connect";
 
 static int err_noarg(const char *arg)
 {
@@ -161,8 +163,11 @@ int main(int argc, char *argv[])
 				(strcmp(*argv, CMD_HELP2) == 0) ||
 				(strcmp(*argv, CMD_HELP3) == 0))
 			return usage();
-		else if(strcmp(*argv, CMD_CONNECT) == 0) {
-			ARG_CHECK(CMD_CONNECT);
+		else if(strcmp(*argv, CMD_SERVER1) == 0) {
+			ARG_CHECK(CMD_SERVER1);
+			addr_connect = *argv;
+		} else if(strcmp(*argv, CMD_SERVER2) == 0) {
+			ARG_CHECK(CMD_SERVER2);
 			addr_connect = *argv;
 		} else if(strcmp(*argv, CMD_LISTEN) == 0) {
 			ARG_CHECK(CMD_LISTEN);
