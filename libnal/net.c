@@ -84,12 +84,6 @@ int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 {
 	int len;
 	const char *start_ptr;
-	char *fini_ptr, *tmp_ptr;
-	/* IPv4 bits */
-	unsigned long in_ip_piece;
-	unsigned char in_ip[4];
-	struct hostent *ip_lookup;
-	int no_ip = 0;
 
 	/* Try to catch any cases of being called with a used 'addr' */
 	assert(addr->family == NAL_ADDRESS_TYPE_NULL);
@@ -132,60 +126,9 @@ int NAL_ADDRESS_create(NAL_ADDRESS *addr, const char *addr_string,
 	goto err;
 
 do_ipv4:
-	/* We're an IPv4 address, and start_ptr points to the first character
-	 * of the address part */
-	len = strlen(start_ptr);
-	if(len < 1)
+	if((addr->caps = nal_sock_sockaddr_from_ipv4(&addr->addr, start_ptr)) == 0)
 		goto err;
-	/* Logic: if our string contains another ":" we assume it's of the form
-	 * IP[v4]:nnn.nnn.nnn.nnn:nnn, otherwise assume IP[v4]:nnn. Exception,
-	 * if it's of the form IP[v4]::nnn, we treat it as equivalent to one
-	 * colon. */
-	if(((fini_ptr = strstr(start_ptr, ":")) == NULL) ||
-			(start_ptr == fini_ptr)) {
-		/* No colon, skip the IP address - this is listen-only */
-		no_ip = 1;
-		/* If it's a double colon, we need to increment start_ptr */
-		if(fini_ptr)
-			start_ptr++;
-		goto ipv4_port;
-	}
-	/* Create a temporary string for the isolated hostname/ip-address */
-	tmp_ptr = SYS_malloc(char, (int)(fini_ptr - start_ptr) + 1);
-	if(!tmp_ptr)
-		goto err;
-	SYS_memcpy_n(char, tmp_ptr, start_ptr,
-		(int)(fini_ptr - start_ptr));
-	tmp_ptr[(int)(fini_ptr - start_ptr)] = '\0';
-	ip_lookup = gethostbyname(tmp_ptr);
-	SYS_free(char, tmp_ptr);
-	if(!ip_lookup)
-		/* Host not understood or recognised */
-		goto err;
-	/* Grab the IP address and move on (h_addr_list[0] is signed char?!) */
-	SYS_memcpy_n(char, (char *)in_ip, ip_lookup->h_addr_list[0], 4);
-	/* Align start_ptr to the start of the "port" number. */
-	start_ptr = fini_ptr + 1;
-	/* Ok, this is an address that could be used for connecting */
-	addr->caps |= NAL_ADDRESS_CAN_CONNECT;
-
-ipv4_port:
-	if(strlen(start_ptr) < 1)
-		goto err;
-	/* start_ptr points to the first character of the port part */
-	in_ip_piece = strtoul(start_ptr, &fini_ptr, 10);
-	if((in_ip_piece > 65535) || (*fini_ptr != '\0'))
-		goto err;
-	/* Plonk the ipv4 stuff into the sockaddr structure */
-	nal_sock_sockaddr_from_ipv4(&addr->addr, (no_ip ? NULL : in_ip),
-				(unsigned short)in_ip_piece);
-	addr->caps |= NAL_ADDRESS_CAN_LISTEN;
 	addr->family = NAL_ADDRESS_TYPE_IP;
-
-#if SYS_DEBUG_LEVEL > 2
-	SYS_fprintf(SYS_stderr, "Info, successfully parsed '%s' as an IPv4 listen "
-			"address\n", addr_string);
-#endif
 	return 1;
 
 #ifndef WIN32
@@ -201,10 +144,6 @@ do_unix:
 	nal_sock_sockaddr_from_unix(&addr->addr, start_ptr);
 	addr->caps = NAL_ADDRESS_CAN_LISTEN | NAL_ADDRESS_CAN_CONNECT;
 	addr->family = NAL_ADDRESS_TYPE_UNIX;
-#if SYS_DEBUG_LEVEL > 2
-	SYS_fprintf(SYS_stderr, "Info, successfully parsed '%s' as a unix domain listen"
-			" address\n", addr_string);
-#endif
 	return 1;
 #endif
 

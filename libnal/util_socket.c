@@ -83,22 +83,82 @@ int nal_sock_set_nagle(int fd, int use_nagle)
 	return 1;
 }
 
-void nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr, unsigned char *ip,
-				unsigned short port)
+/* Returns the bitwise-OR'd capabilities (or zero for failure) */
+unsigned char nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr,
+				const char *start_ptr)
 {
-	struct sockaddr_in in_addr;
+	char *tmp_ptr;
+	char *fini_ptr;
+	struct hostent *ip_lookup;
+	/* struct sockaddr_in in_addr; */
+	unsigned long in_ip_piece;
+	unsigned char in_ip[4];
+	int len, no_ip = 0;
+	unsigned char ret = 0;
 
-	in_addr.sin_family = AF_INET;
-	if(ip == NULL)
-		in_addr.sin_addr.s_addr = INADDR_ANY;
+	/* We're an IPv4 address, and start_ptr points to the first character
+	 * of the address part */
+	len = strlen(start_ptr);
+	/* This function should be robust when passed a raw "[addr:]port"
+	 * string as well as with the accepted "IP:" or "IPv4:" prefixes. */
+	if((len >= 5) && (strncmp(start_ptr, "IPv4:", 5) == 0)) {
+		start_ptr += 5;
+		len -= 5;
+	} else if((len >=3) && (strncmp(start_ptr, "IP:", 3) == 0)) {
+		start_ptr += 3;
+		len -= 3;
+	}
+	if(len < 1) return 0;
+	/* Logic: if our string contains another ":" we assume it's of the form
+	 * nnn.nnn.nnn.nnn:nnn, otherwise assume IP[v4]:nnn. Exception,
+	 * if it's of the form IP[v4]::nnn, we treat it as equivalent to one
+	 * colon. */
+	if(((fini_ptr = strstr(start_ptr, ":")) == NULL) ||
+			(start_ptr == fini_ptr)) {
+		/* No colon, skip the IP address - this is listen-only */
+		no_ip = 1;
+		/* If it's a double colon, we need to increment start_ptr */
+		if(fini_ptr)
+			start_ptr++;
+		goto ipv4_port;
+	}
+	/* Create a temporary string for the isolated hostname/ip-address */
+	tmp_ptr = SYS_malloc(char, (int)(fini_ptr - start_ptr) + 1);
+	if(!tmp_ptr)
+		return 0;
+	SYS_memcpy_n(char, tmp_ptr, start_ptr,
+		(int)(fini_ptr - start_ptr));
+	tmp_ptr[(int)(fini_ptr - start_ptr)] = '\0';
+	ip_lookup = gethostbyname(tmp_ptr);
+	SYS_free(char, tmp_ptr);
+	if(!ip_lookup)
+		/* Host not understood or recognised */
+		return 0;
+	/* Grab the IP address and move on (h_addr_list[0] is signed char?!) */
+	SYS_memcpy_n(char, (char *)in_ip, ip_lookup->h_addr_list[0], 4);
+	/* Align start_ptr to the start of the "port" number. */
+	start_ptr = fini_ptr + 1;
+	/* Ok, this is an address that could be used for connecting */
+	ret |= NAL_ADDRESS_CAN_CONNECT;
+
+ipv4_port:
+	if(strlen(start_ptr) < 1)
+		return 0;
+	/* start_ptr points to the first character of the port part */
+	in_ip_piece = strtoul(start_ptr, &fini_ptr, 10);
+	if((in_ip_piece > 65535) || (*fini_ptr != '\0'))
+		return 0;
+	/* populate the sockaddr_in structure */
+	addr->val_in.sin_family = AF_INET;
+	if(no_ip)
+		addr->val_in.sin_addr.s_addr = INADDR_ANY;
 	else
 		SYS_memcpy_n(unsigned char,
-			(unsigned char *)&in_addr.sin_addr.s_addr, ip, 4);
-	in_addr.sin_port = htons(port);
-	/* Now sandblast the sockaddr_in structure onto the sockaddr structure
-	 * (which one hopes is greater than or equal to it in size :-). */
-	SYS_zero(nal_sockaddr, addr);
-	SYS_memcpy(struct sockaddr_in, &addr->val_in, &in_addr);
+			(unsigned char *)&addr->val_in.sin_addr.s_addr, in_ip, 4);
+	addr->val_in.sin_port = htons((unsigned short)in_ip_piece);
+	/* ipv4 addresses are always good for listening */
+	ret |= NAL_ADDRESS_CAN_LISTEN;
+	return ret;
 }
 
 #ifndef WIN32

@@ -71,8 +71,8 @@ void nal_fd_close(int *fd);
 /***************/
 
 int nal_sock_set_nagle(int fd, int use_nagle);
-void nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr, unsigned char *ip,
-			unsigned short port);
+unsigned char nal_sock_sockaddr_from_ipv4(nal_sockaddr *addr,
+			const char *start_ptr);
 void nal_sock_sockaddr_from_unix(nal_sockaddr *addr, const char *start_ptr);
 int nal_sock_create_socket(int *fd, int type);
 int nal_sock_create_unix_pair(int sv[2]);

@@ -40,6 +40,8 @@ Changes between 1.4.1 and x.x
        nal_sock_*** instead of int_***.
      - int_check_buffer_size() is now nal_check_buffer_size.
      - libnal's internal sockaddr_safe type is now nal_sockaddr.
+     - nal_sock_sockaddr_from_ipv4() now handles name resolution and other
+       aspects of address parsing, removing complexity from NAL_ADDRESS code.
      - minor tidy-ups and bug-fixes
      [Geoff Thorpe]
 
