@@ -1,5 +1,2 @@
-SUBDIRS		=
+SUBDIRS		= @subdirs@
 
-if HAVE_SWAMP
-SUBDIRS		+= swamp
-endif

@@ -5,7 +5,6 @@ dnl   (e.g. -ldl)
 dnl
 AC_DEFUN([DISTCACHE_WITH_SSL],[
 AH_TEMPLATE(HAVE_ENGINE, [Define to 1 if your OpenSSL has ENGINE support])
-AH_TEMPLATE(HAVE_SWAMP, [Define to 1 if you are building sslswamp])
 if test "x$dc_ssltk_base" = "x"; then
 	dnl initialise the variables we use
 	dc_ssltk_base=""
@@ -77,8 +76,8 @@ if test "x$dc_ssltk_base" = "x"; then
 	dc_ssl_swamp="yes"
 	AC_ARG_ENABLE(swamp,
 	AC_HELP_STRING(
-		[--enable-swamp],
-		[build the 'sslswamp' SSL/TLS utility]),
+		[--disable-swamp],
+		[don't build the 'sslswamp' SSL/TLS utility]),
 [
 	if test "x$enableval" != "x"; then
 		if test "$enableval" != "yes" -a "$enableval" != "no"; then
@@ -89,11 +88,10 @@ if test "x$dc_ssltk_base" = "x"; then
 ])
 	AC_MSG_CHECKING(whether to build sslswamp)
 	if test "$dc_ssl_swamp" = "yes"; then
-		AC_DEFINE(HAVE_SWAMP)
 		AC_MSG_RESULT(yes)
+		AC_CONFIG_SUBDIRS(swamp)
 	else
 		AC_MSG_RESULT(no)
 	fi
-	AM_CONDITIONAL(HAVE_SWAMP, test "$dc_ssl_swamp" = yes)
 fi
 ])
