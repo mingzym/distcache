@@ -19,6 +19,21 @@ Current version: 0.4-dev
 Changes between 0.3 and 0.xx
 ----------------------------
 
+  *) Added a BUGS file, with an initial list of the bugs I'm aware of.
+     [Geoff Thorpe]
+
+  *) autoconf/automake-generated sludge files are now left in the top-level
+     directory rather than having them in a config directory created and
+     destroyed by (un)bootstrap.sh. This is because "make dist" is broken in at
+     least one version of the tools and this is the only safe solution I can
+     see.
+     [Geoff Thorpe]
+
+  *) Add more API documents, now for libnal;
+     - NAL_ADDRESS_new.pod (all NAL_ADDRESS functions)
+     - NAL_CONNECTION_new.pod (all NAL_CONNECTION functions)
+     [Geoff Thorpe]
+
   *) Rename all libnal allocation functions to NAL_***_new() rather than
      NAL_***_malloc().
      [Geoff Thorpe]

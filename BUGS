@@ -1,0 +1,30 @@
+- dummy FIFO connections created using NAL_CONNECTION_create_dummy should be
+  trivially selectable if anyone's daft enough to try. Ie. if you add a FIFO
+  to a selector, the select() should break instantly if the FIFO is non-empty
+  otherwise the FIFO should have no influence at all on the real select(2).
+  Right now, NAL_SELECTOR_add_conn() silently ignores dummy connections
+  completely.
+
+- non-blocking connects and NAL_CONNECTION_is_established() have to be improved
+  to correctly tell if (and *when*) a connect is successful or not. Right now,
+  I *think* failed connects will essentially break the next select() and fail
+  the subsequent NAL_CONNECTION_io() call. However, IIRC, successful connects
+  won't be known until at least one byte of data has been successfully written
+  or read from the stream. This works for distcache, but needs fixing for
+  general use.
+
+- snoop does not do any flush-handling when one side of the proxy disconnects,
+  but immediately closes the other side and destroys the context. What should
+  happen is that we should not close the other side until all data accepted
+  from the closing side has been sent out the other side.
+
+- dc_test should in theory avoid the case that a session it added could have
+  been expired (we can't say definitively because of races). If it gets within
+  a couple of seconds of expected session expiry, the session should be marked
+  unusable by dc_test for further cache requests until at least a couple of
+  seconds after the expiry where dc_test should then assume it was removed by
+  the server so future ADDs succeed, DELETEs fail, etc.
+
+- "make dist" currently fails to copy lots of files that should arguably be
+  copied when producing a source distribution. Eg. this BUGS file, READMEs
+  besides the top-level one (which gets copied automatically), etc.
