@@ -70,7 +70,7 @@
  * unsigned char (1-byte)               op_class
  * unsigned char (1-byte)               operation
  * unsigned char (1-byte)               complete
- * unsigned int (2-bytes)               data_len    (max: 1024)
+ * unsigned int (2-bytes)               data_len    (max: DC_MSG_MAX_DATA)
  * unsigned char[] ('data_len' bytes)   data
  *
  * proto_level;
@@ -97,12 +97,14 @@
  *            0 -> there is more data to come
  *            1 -> this is the final message.
  *    NB: To make the protocol more sturdy, each "incomplete" message must send
- *    at least 1024 bytes of data. Only the final message can send less.
+ *    at least DC_MSG_MAX_DATA bytes of data. Only the final message can send
+ *    less.
  * data_len;
  *    This value indicates how many bytes are in the 'data_len' field that
  *    follows it. It allows multiple requests/responses to be concatenated one
  *    after another without ambiguity. To ensure dead-locks don't occur in the
- *    framing of these messages, 'data_len' has a maximum valid value of 1024.
+ *    framing of these messages, 'data_len' has a maximum valid value of
+ *    DC_MSG_MAX_DATA.
  * data;
  *    This is the "input" to a request and the "output" for a response. The
  *    length of the field depends on 'data_len', and the interpretation of this
