@@ -33,6 +33,9 @@ static const unsigned long def_progress = 0;
 #ifndef WIN32
 static const char *def_pidfile = NULL;
 static const char *def_user = NULL;
+static const char *def_sockowner = NULL;
+static const char *def_sockgroup = NULL;
+static const char *def_sockperms = NULL;
 #endif
 
 /* Avoid the dreaded "greater than the length `509' ISO C89 compilers are
@@ -41,17 +44,20 @@ static const char *usage_msg[] = {
 "",
 "Usage: dc_server [options]     where 'options' are from;",
 #ifndef WIN32
-"  -daemon          (detach and run in the background)",
-"  -user <user>     (run daemon as given user)",
+"  -daemon           (detach and run in the background)",
 #endif
-"  -listen <addr>   (act as a server listening on address 'addr')",
-"  -sessions <num>  (make the cache hold a maximum of 'num' sessions)",
-"  -progress <num>  (report cache progress at least every 'num' operations)",
+"  -listen <addr>    (act as a server listening on address 'addr')",
+"  -sessions <num>   (make the cache hold a maximum of 'num' sessions)",
+"  -progress <num>   (report cache progress at least every 'num' operations)",
 #ifndef WIN32
-"  -pidfile <path>  (a file to store the process ID in)",
-"  -killable        (exit cleanly on a SIGUSR1 or SIGUSR2 signal)",
+"  -user <user>      (run daemon as given user)",
+"  -sockowner <user> (controls ownership of unix domain listening socket)",
+"  -sockgroup <user> (controls ownership of unix domain listening socket)",
+"  -sockperms <oct>  (set permissions of unix domain listening socket)",
+"  -pidfile <path>   (a file to store the process ID in)",
+"  -killable         (exit cleanly on a SIGUSR1 or SIGUSR2 signal)",
 #endif
-"  -<h|help|?>      (display this usage message)",
+"  -<h|help|?>       (display this usage message)",
 "\n",
 "Eg. dc_server -listen IP:9001",
 "  will start a session cache server listening on port 9001 for all TCP/IP",
@@ -65,7 +71,9 @@ static const char *usage_msg[] = {
 /* Prototypes used by main() */
 static int do_server(const char *address, unsigned int max_sessions,
 			unsigned long progress, int daemon_mode,
-			const char *pidfile, int killable, const char *user);
+			const char *pidfile, int killable, const char *user,
+			const char *sockowner, const char *sockgroup,
+			const char *sockperms);
 
 static int usage(void)
 {
@@ -82,6 +90,9 @@ static const char *CMD_HELP3 = "-?";
 #ifndef WIN32
 static const char *CMD_DAEMON = "-daemon";
 static const char *CMD_USER = "-user";
+static const char *CMD_SOCKOWNER = "-sockowner";
+static const char *CMD_SOCKGROUP = "-sockgroup";
+static const char *CMD_SOCKPERMS = "-sockperms";
 static const char *CMD_PIDFILE = "-pidfile";
 static const char *CMD_KILLABLE = "-killable";
 #endif
@@ -133,6 +144,9 @@ int main(int argc, char *argv[])
 	int killable = 0;
 	const char *pidfile = def_pidfile;
 	const char *user = def_user;
+	const char *sockowner = def_sockowner;
+	const char *sockgroup = def_sockgroup;
+	const char *sockperms = def_sockperms;
 #endif
 
 	ARG_INC;
@@ -152,6 +166,15 @@ int main(int argc, char *argv[])
 		} else if(strcmp(*argv, CMD_USER) == 0) {
 			ARG_CHECK(CMD_USER);
 			user = *argv;
+		} else if(strcmp(*argv, CMD_SOCKOWNER) == 0) {
+			ARG_CHECK(CMD_SOCKOWNER);
+			sockowner = *argv;
+		} else if(strcmp(*argv, CMD_SOCKGROUP) == 0) {
+			ARG_CHECK(CMD_SOCKGROUP);
+			sockgroup = *argv;
+		} else if(strcmp(*argv, CMD_SOCKPERMS) == 0) {
+			ARG_CHECK(CMD_SOCKPERMS);
+			sockperms = *argv;
 		} else
 #endif
 		if(strcmp(*argv, CMD_SERVER) == 0) {
@@ -192,12 +215,15 @@ int main(int argc, char *argv[])
 #endif
 		return 1;
 	}
-	return do_server(server, sessions, progress, daemon_mode, pidfile, killable, user);
+	return do_server(server, sessions, progress, daemon_mode, pidfile,
+			killable, user, sockowner, sockgroup, sockperms);
 }
 
 static int do_server(const char *address, unsigned int max_sessions,
 			unsigned long progress, int daemon_mode,
-			const char *pidfile, int killable, const char *user)
+			const char *pidfile, int killable, const char *user,
+			const char *sockowner, const char *sockgroup,
+			const char *sockperms)
 {
 	int res, ret = 1;
 	struct timeval now, last_now;
@@ -222,6 +248,15 @@ static int do_server(const char *address, unsigned int max_sessions,
 				address);
 		goto err;
 	}
+	if((sockowner || sockgroup) && !NAL_LISTENER_set_fs_owner(listener,
+						sockowner, sockgroup))
+		SYS_fprintf(SYS_stderr, "Warning, can't set socket ownership "
+				"to uid='%s'/gid='%s', continuing anyway\n",
+				sockowner ? sockowner : "(null)",
+				sockgroup ? sockgroup : "(null)");
+	if(sockperms && !NAL_LISTENER_set_fs_perms(listener, sockperms))
+		SYS_fprintf(SYS_stderr, "Warning, can't set socket permissions "
+				"to '%s', continuing anyway\n", sockperms);
 #ifndef WIN32
 	/* If we're going daemon() mode, do it now */
 	if(daemon_mode) {

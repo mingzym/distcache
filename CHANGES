@@ -19,6 +19,14 @@ Current version: x.x
 Changes between 1.4.2 and x.x
 -----------------------------
 
+  *) Add "-sockowner", "-sockgroup", and "-sockperms" command-line switches to
+     dc_server to allow ownership and permission controls when listening on
+     unix domain sockets. On most systems, these would only succeed if
+     dc_server was started as root (in which case, the "-user" switch would be
+     wise too). If autoconf is unable to build support for these options, they
+     will automatically fail at run-time.
+     [Geoff Thorpe, based on an idea/patch from Joe Orton <jorton@redhat.com>]
+
   *) Add chown/chmod support to libnal listener objects via two new API
      functions;
        NAL_LISTENER_set_fs_owner();
