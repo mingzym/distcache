@@ -16,7 +16,43 @@
 Frequently Asked Questions (FAQ)
 --------------------------------
 
-Q: Do you ever provide answers to questions?
 
-A:
+Q: What does a typical distcache network look like?
+
+A: The most common use of distcache is in an network of apache web-servers. The
+   diagram below shows a series of web-servers (serv1, serv2, etc) each running
+   a multi-forked apache web-server. Each of these servers runs a single
+   instance of the cache client "dc_client", and these all communicate with a
+   single instance of the cache server "dc_server" running on a host called
+   "cache".
+
+      "serv1.localnet"
+ +---------------------------+
+ | (Apache server processes) |
+ |  httpd  httpd  httpd  ... |
+ |    \___   |   __/ ____/   |
+ |        \  |  /   /        |
+ |    (UNIX:/tmp/dc_client)  |
+ |        dc_client -->-->-->|-
+ +---------------------------+ \                       "cache.localnet"
+                                 IP:cache:9001     +-------------------------+
+      "serv2.localnet"                        \    |                         |
+ +---------------------------+                 --> | --+                     |
+ | (Apache server processes) |                     |   +---- "dc_server"     |
+ |  httpd  httpd  httpd  ... |                     |   |          |          |
+ |    \___   |   __/ ____/   |                  -> | --+       _--+--_       |
+ |        \  |  /   /        |   IP:cache:9001 /   |   |      /       \      |
+ |    (UNIX:/tmp/dc_client)  | /                   |   |     |  cache  |     |
+ |        dc_client ---------|                     |   |     | storage |     |
+ +---------------------------+                ---> | --+      \       /      |
+                                             /     |           -_____-       |
+             .                              /      |                         |
+             . -----------------------------       +-------------------------+
+             .
+
+   Each instance of "dc_client" would be started as;
+     # dc_client -listen UNIX:/tmp/dc_client \
+                 -server IP:cache.localnet:9001 [-daemon]
+   The instance of "dc_server" would be started as;
+     # dc_server -listen IP:cache.localnet:9001 [-daemon]
 

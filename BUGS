@@ -17,10 +17,6 @@
   seconds after the expiry where dc_test should then assume it was removed by
   the server so future ADDs succeed, DELETEs fail, etc.
 
-- The remainder of README.API and README.TOOLS needs to find its way into man
-  pages so that these can be deleted from CVS. Until then, these files will
-  continue to live in CVS but won't be included in "make dist".
-
 - I'm pretty sure the building of the documents is not 100% kosher. Eg. the
   links don't seem to do anything useful in the HTML versions at least, and
   there's loads of cross-link errors/warnings when building. (NOTE: I've

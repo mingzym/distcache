@@ -19,6 +19,10 @@ Current version: x.x
 Changes between 0.4pre2 and x.x
 -------------------------------
 
+  *) Added the ASCII-art from README.TOOLS to the FAQ so that README.API and
+     README.TOOLS can been removed.
+     [Geoff Thorpe]
+
   *) The headers have been re-organised to better guard against the possibility
      of API headers dependending on internal headers. To this end, the libsys
      header has been split in two - one header to include system headers based
