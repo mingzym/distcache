@@ -112,20 +112,6 @@ static DC_CMD DC_MSG_get_cmd(const DC_MSG *msg)
 	return int_get_cmd(msg->op_class, msg->operation);
 }
 
-static int DC_MSG_start_response(const DC_MSG *request,
-				DC_MSG *response)
-{
-	if(request->is_response)
-		return 0;
-	response->is_response = 1;
-	response->request_uid = request->request_uid;
-	response->op_class = request->op_class;
-	response->operation = request->operation;
-	response->complete = 1;
-	response->data_len = 0;
-	return 1;
-}
-
 /********************
  * Encoding functions
  ********************
