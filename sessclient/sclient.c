@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
 	if(pidfile) {
 		FILE *fp = fopen(pidfile, "w");
 		if(!fp) {
-			NAL_fprintf(NAL_stderr(), "Error, couldn't open 'pidfile'"
+			NAL_fprintf(NAL_stderr(), "Error, couldn't open 'pidfile' "
 					"at '%s'.\n", pidfile);
 			return 1;
 		}
