@@ -25,8 +25,3 @@
 - I need to migrate and/or rewrite the swamp 1.1.0 documentation to the
   sslswamp man-page. Right now the man page is very incomplete.
 
-- Running "ssl/foo/footest" with;
-      valgrind --leak-check=yes --show-reachable=yes
-  gives some reachable leak in openssl. Unfortunately, the autoconf stuff
-  doesn't allow me to build against a specific SSL tree so this is not easy
-  to find. Fix this, then build against a debugging build of openssl.
