@@ -104,25 +104,24 @@ There are two APIs implemented by the B<libdistcache> library;
 
 =over 4
 
-=item distcache/dc_enc.h
+=item distcache/dc_plug.h
 
-This header declares the raw message structure type DC_MSG as well the
-associated constants, enumerated types [etc]. In addition it provides the
-DC_PLUG abstraction which provides an encapsulation of a connection supporting
-the distcache protocol and various functions for manipulating the reading and
-writing of distcache messages (requests or responses). This abstraction can
-support client and server implementations of the distcache protocol and
-supports asynchronous behaviour by interacting with I<libnal>'s NAL_SELECTOR
-type. For more information, see L<DC_PLUG_new(2)>.
+This header provides the DC_PLUG abstraction. This encapsulates a connection
+and implements the distcache protocol and various functions for manipulating
+the reading and writing of distcache messages (requests or responses). This
+abstraction can support client and server implementations of the distcache
+protocol and supports asynchronous behaviour by interacting with I<libnal>'s
+NAL_SELECTOR type. For more information, see L<DC_PLUG_new(2)>.
 
 =item distcache/dc_client.h
 
-This header declares a higher-level (and much simpler) API than dc_enc.h, and
+This header declares a higher-level (and much simpler) API than dc_plug.h, and
 is useful in applications that want API functions that ``do cache operations''.
 The API is blocking, and provides simplistic ``add'', ``remove'', and ``get''
 functions that only return once the full request/response cycle is complete or
-an error has occured. This is the API used to add distcache support to applications
-like Apache, stunnel, etc. For more information, see L<DC_CTX_new(2)>.
+an error has occured. This is the API used to add distcache support to
+applications like Apache, stunnel, etc. For more information, see
+L<DC_CTX_new(2)>.
 
 =back
 

@@ -6,7 +6,7 @@ DC_PLUG_new, DC_PLUG_free, DC_PLUG_to_select, DC_PLUG_io - basic DC_PLUG functio
 
 =head1 SYNOPSIS
 
- #include <distcache/dc_enc.h>
+ #include <distcache/dc_plug.h>
 
  DC_PLUG *DC_PLUG_new(NAL_CONNECTION *conn, unsigned int flags);
  int DC_PLUG_free(DC_PLUG *plug);

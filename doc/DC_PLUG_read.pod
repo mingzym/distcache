@@ -6,7 +6,7 @@ DC_PLUG_read, DC_PLUG_consume, DC_PLUG_write, DC_PLUG_write_more, DC_PLUG_commit
 
 =head1 SYNOPSIS
 
- #include <distcache/dc_enc.h>
+ #include <distcache/dc_plug.h>
 
  int DC_PLUG_read(DC_PLUG *plug, int resume, unsigned long *request_uid,
                   DC_CMD *cmd, const unsigned char **payload_data,
