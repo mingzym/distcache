@@ -79,6 +79,9 @@
 #if defined(HAVE_NETDB_H)
 #include <netdb.h>
 #endif
+#if defined(HAVE_TIME_H)
+#include <time.h>
+#endif
 #if defined(HAVE_UNISTD_H)
 #include <unistd.h>
 #endif
