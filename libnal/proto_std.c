@@ -303,6 +303,8 @@ static void conn_on_reset(NAL_CONNECTION *conn)
 {
 	conn_ctx *ctx = nal_connection_get_vtdata(conn);
 	nal_fd_close(&ctx->fd);
+	NAL_BUFFER_reset(ctx->b_read);
+	NAL_BUFFER_reset(ctx->b_send);
 }
 
 static int conn_set_size(NAL_CONNECTION *conn, unsigned int size)

@@ -32,25 +32,6 @@ struct st_NAL_BUFFER {
 	unsigned int used, size;
 };
 
-/**********************/
-/* internal functions */
-/**********************/
-
-static void nal_buffer_init(NAL_BUFFER *buf)
-{
-	SYS_zero(NAL_BUFFER, buf);
-}
-
-static int nal_buffer_close(NAL_BUFFER *buf)
-{
-	if(buf == NULL)
-		return 0;
-	/* Deallocate anything we allocated before zeroing the structure */
-	NAL_BUFFER_set_size(buf, 0);
-	nal_buffer_init(buf);
-	return 1;
-}
-
 /********************/
 /* BUFFER FUNCTIONS */
 /********************/
@@ -58,15 +39,22 @@ static int nal_buffer_close(NAL_BUFFER *buf)
 NAL_BUFFER *NAL_BUFFER_new(void)
 {
 	NAL_BUFFER *b = SYS_malloc(NAL_BUFFER, 1);
-	if(b)
-		nal_buffer_init(b);
+	if(b) {
+		b->data = NULL;
+		b->used = b->size = 0;
+	}
 	return b;
 }
 
-void NAL_BUFFER_free(NAL_BUFFER *a)
+void NAL_BUFFER_free(NAL_BUFFER *b)
 {
-	nal_buffer_close(a);
-	SYS_free(NAL_BUFFER, a);
+	if(b->data) SYS_free(unsigned char, b->data);
+	SYS_free(NAL_BUFFER, b);
+}
+
+void NAL_BUFFER_reset(NAL_BUFFER *b)
+{
+	b->used = 0;
 }
 
 int NAL_BUFFER_set_size(NAL_BUFFER *buf, unsigned int size)

@@ -138,6 +138,7 @@ int		NAL_stdin_set_non_blocking(int non_blocking);
 
 NAL_BUFFER *	NAL_BUFFER_new(void);
 void		NAL_BUFFER_free(NAL_BUFFER *a);
+void		NAL_BUFFER_reset(NAL_BUFFER *a);
 int		NAL_BUFFER_set_size(NAL_BUFFER *buf,
 				unsigned int size);
 int		NAL_BUFFER_empty(const NAL_BUFFER *buf);
