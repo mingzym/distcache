@@ -34,7 +34,7 @@
 
 static void usage(void)
 {
-	SYS_fprintf(SYS_stderr, "Usage:   PING [options ...]\n");
+	SYS_fprintf(SYS_stderr, "Usage:   nal_ping [options ...]\n");
 	SYS_fprintf(SYS_stderr, "where options include;\n");
 	SYS_fprintf(SYS_stderr, "   -connect <addr>   - default='%s'\n", DEF_SERVER_ADDRESS);
 	SYS_fprintf(SYS_stderr, "   -num <num>        - default=%d\n", DEF_NUM_CONNS);

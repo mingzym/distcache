@@ -60,7 +60,7 @@ static const char *UNITS_str[] = {
 
 static void usage(void)
 {
-	SYS_fprintf(SYS_stderr, "Usage:   ECHO [options ...]\n");
+	SYS_fprintf(SYS_stderr, "Usage:   nal_echo [options ...]\n");
 	SYS_fprintf(SYS_stderr, "where options include;\n");
 	SYS_fprintf(SYS_stderr, "   -accept <addr>    - default='%s'\n", DEF_SERVER_ADDRESS);
 	SYS_fprintf(SYS_stderr, "   -max <num>        - default=%d\n", MAX_CONNS);
