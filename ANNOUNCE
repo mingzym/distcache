@@ -13,26 +13,30 @@
                                                        -- George Orwell
 
 
-distcache release: 0.3
-----------------------
+distcache release: 0.4pre1
+--------------------------
 
-We are pleased to announce the release of version 0.3 of the distcache package.
-For more information on what distcache is and how to use it, please see the
-README as it provides a good introduction and a guide to the other documents in
-this package.
+We are pleased to announce the release of version 0.4pre1 of the distcache
+package. For more information on what distcache is and how to use it, please
+see the README as it provides a good introduction and a guide to the other
+documents in this package.
 
-The main changes in version 0.3 are predominantly bug-fixes of glitches that
-were found in 0.2 under various conditions. However, a new tool "dc_snoop" has
-also been introduced that acts as a transparent proxy to monitors distcache
-protocol traffic passing through it. Also, the existing tools have been renamed
-for consistency and to avoid name-clashes with the Kerberos distribution. Ie.
-{"sserver", "sclient", and "test_session"} have become {"dc_server",
-"dc_client", and "dc_test"}.
+The main changes in version 0.4pre1 from version 0.3 are packaging and
+documention related. The functionality of the tools and libraries have not
+changed in any consequential way. The release of 0.4pre1 is an attempt to drive
+towards a stable 0.4 release. The arrangement of the source code has been
+organised quite a bit, many improvements have been made to the installation and
+packaging support, and documentation is well underway and requires only a few
+additions plus some fixes to the build system. There is also experimental
+support for RPM packaging available.
 
-This release is being labelled "alpha". This is an improvement from the
-"pre-alpha" state that we used in prior releases, but should still indicate
-that we are fishing for bugs and auditing and would like to see some mileage
-before we go "beta" or "stable".
+This release is being labelled "alpha". The intention is to work towards a 0.4
+release that will be (conservatively) labelled "beta". The target there is for
+the tools, libraries, and documentation in 0.4 to be stable and without known
+bugs. At that point a distcache beta will be ready to be more widely publicised
+and tested by others. I define the difference between "beta" and "stable" to be
+linguistic; they both mean 'solid', but the former is in the language of the
+project's developers and the latter is in the language of its users.
 
 ----------------------------------------------------------------------------
 
