@@ -15,7 +15,7 @@ to be an installed API header?
 
 if NO -> do 4(a) only, if YES -> do 4(b) only;
 
-4(a) Add the header to the EXTRA_SOURCES directive in the Makefile.am for the
+4(a) Add the header to the EXTRA_DIST directive in the Makefile.am for the
 corresponding directory.
 
 4(b) Add the header to the EXTRA_include_HEADERS directive in the Makefile.am
