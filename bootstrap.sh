@@ -44,7 +44,9 @@ if [ "x$PRECONF" = "x" ]; then
 	echo "To preconfigure, set PRECONF to one of the following;"
 	echo "   gcc-RELEASE"
 	echo "   gcc-DEBUG"
-	echo "Also PREFLAGS, if it is set, will be passed to ./configure"
+	echo "PREFLAGS, if it is set, will be passed to ./configure in"
+	echo "addition to any parameters provided to this script on the"
+	echo "command line."
 	echo ""
 else
 	CONFFLAGS="--enable-ssl --enable-swamp --disable-shared"
@@ -60,6 +62,6 @@ else
 		echo "Error, '$PRECONF' is not recognised as a value for PRECONF"
 		exit 1
 	fi
-	./configure $CONFFLAGS $PREFLAGS || exit 1
+	./configure $CONFFLAGS $PREFLAGS $@ || exit 1
 fi
 
