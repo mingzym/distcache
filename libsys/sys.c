@@ -124,14 +124,14 @@ int SYS_fchown(int fd, const char *username, const char *groupname)
 int SYS_fchmod(int fd, const char *perms)
 {
 #if defined(HAVE_FCHMOD) && defined(HAVE_STRTOUL)
-        unsigned long n;
+	unsigned long n;
 	char *endptr;
-        n = strtol(perms, &endptr, 8);
+	n = strtol(perms, &endptr, 8);
 	if ((endptr == perms) || (*endptr != '\0') || (n == ULONG_MAX))
 		/* invalid string */
 		return 0;
-        if (fchmod(fd, n) != 0)
-                return 0;
+	if (fchmod(fd, n) != 0)
+		return 0;
 	return 1;
 #else
 	return 0;
