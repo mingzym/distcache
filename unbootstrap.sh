@@ -18,7 +18,7 @@ rm -f aclocal.m4
 rm -rf autom4te*.cache
 rm -f config.*
 rm -f conftest*
-rm -f depcomp
+rm -f depcomp compile
 rm -f install-sh ltmain.sh missing mkinstalldirs
 rm -f stamp-h.in
 
