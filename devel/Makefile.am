@@ -1,2 +1,2 @@
-EXTRA_DIST	= distcache.spec test.sh
+EXTRA_DIST	= mandrake.spec test.sh
 
