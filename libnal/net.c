@@ -93,8 +93,8 @@ static int int_make_non_blocking(int fd, int non_blocking)
 	if(((flags = fcntl(fd, F_GETFL, 0)) < 0) ||
 			(fcntl(fd, F_SETFL, (non_blocking ?
 			(flags | O_NONBLOCK) : (flags & ~O_NONBLOCK))) < 0)) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, couldn't make socket non-blocking.\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, couldn't make socket non-blocking.\n");
 #endif
 		return 0;
 	}
@@ -111,8 +111,8 @@ static int int_set_nagle(int fd)
 	if(sol_tcp == -1) {
 		struct protoent *p = getprotobyname("tcp");
 		if(!p) {
-#if NAL_DEBUG_LEVEL > 1
-			NAL_fprintf(NAL_stderr, "Error, couldn't obtain SOL_TCP\n");
+#if SYS_DEBUG_LEVEL > 1
+			SYS_fprintf(SYS_stderr, "Error, couldn't obtain SOL_TCP\n");
 #endif
 			return 0;
 		}
@@ -121,8 +121,8 @@ static int int_set_nagle(int fd)
 
 	if(setsockopt(fd, sol_tcp, TCP_NODELAY, &int_always_one,
 			sizeof(int_always_one)) != 0) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, couldn't disable Nagle algorithm\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, couldn't disable Nagle algorithm\n");
 #endif
 		return 0;
 	}
@@ -166,8 +166,8 @@ static int int_buffer_to_fd(NAL_BUFFER *buf, int fd, unsigned int max_send)
 		unsigned int uret = (unsigned int)ret;
 		/* Scroll the buffer forward */
 		NAL_BUFFER_read(buf, NULL, uret);
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stdout, "Debug: net.c (fd=%d) sent %lu bytes\n",
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stdout, "Debug: net.c (fd=%d) sent %lu bytes\n",
 			fd, (unsigned long)uret);
 #endif
 	}
@@ -206,8 +206,8 @@ static int int_buffer_from_fd(NAL_BUFFER *buf, int fd, unsigned int max_read)
 	if(ret > 0) {
 		unsigned int uret = (unsigned int)ret;
 		NAL_BUFFER_wrote(buf, uret);
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stdout, "Debug: net.c (fd=%d) received %lu bytes\n",
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stdout, "Debug: net.c (fd=%d) received %lu bytes\n",
 			fd, (unsigned long)uret);
 #endif
 	}
@@ -223,13 +223,13 @@ static void int_sockaddr_from_ipv4(sockaddr_safe *addr, unsigned char *ip,
 	if(ip == NULL)
 		in_addr.sin_addr.s_addr = INADDR_ANY;
 	else
-		NAL_memcpy_n(unsigned char,
+		SYS_memcpy_n(unsigned char,
 			(unsigned char *)&in_addr.sin_addr.s_addr, ip, 4);
 	in_addr.sin_port = htons(port);
 	/* Now sandblast the sockaddr_in structure onto the sockaddr structure
 	 * (which one hopes is greater than or equal to it in size :-). */
-	NAL_zero(sockaddr_safe, addr);
-	NAL_memcpy(struct sockaddr_in, &addr->val_in, &in_addr);
+	SYS_zero(sockaddr_safe, addr);
+	SYS_memcpy(struct sockaddr_in, &addr->val_in, &in_addr);
 }
 
 #ifndef WIN32
@@ -238,11 +238,11 @@ static void int_sockaddr_from_unix(sockaddr_safe *addr, const char *start_ptr)
 	struct sockaddr_un un_addr;
 
 	un_addr.sun_family = AF_UNIX;
-	NAL_strncpy(un_addr.sun_path, start_ptr, UNIX_PATH_MAX);
+	SYS_strncpy(un_addr.sun_path, start_ptr, UNIX_PATH_MAX);
 	/* Now sandblast the sockaddr_un structure onto the sockaddr structure
 	 * (which one hopes is greater than or equal to it in size :-). */
-	NAL_zero(sockaddr_safe, addr);
-	NAL_memcpy(struct sockaddr_un, &addr->val_un, &un_addr);
+	SYS_zero(sockaddr_safe, addr);
+	SYS_memcpy(struct sockaddr_un, &addr->val_un, &un_addr);
 }
 #endif
 
@@ -264,8 +264,8 @@ static int int_create_socket(int *fd, int type)
 		abort();
 	}
 	if(*fd  == -1) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, can't create socket\n\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, can't create socket\n\n");
 #endif
 		return 0;
 	}
@@ -276,8 +276,8 @@ static int int_create_socket(int *fd, int type)
 static int int_create_unix_pair(int sv[2])
 {
 	if(socketpair(PF_UNIX, SOCK_STREAM, 0, sv) != 0) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, can't create socketpair\n\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, can't create socketpair\n\n");
 #endif
 		return 0;
 	}
@@ -291,8 +291,8 @@ static int int_set_reuse(int fd)
 
 	if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
 			(char *)(&reuseVal), sizeof(reuseVal)) != 0) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, couldn't set SO_REUSEADDR\n\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, couldn't set SO_REUSEADDR\n\n");
 #endif
 		return 0;
 	}
@@ -322,10 +322,10 @@ static int int_bind(int fd, const sockaddr_safe *addr, int address_type)
 	socklen_t addr_size = int_int_sockaddr_size(address_type);
 	sockaddr_safe tmp;
 
-	NAL_memcpy(sockaddr_safe, &tmp, addr);
+	SYS_memcpy(sockaddr_safe, &tmp, addr);
 	if(bind(fd, (struct sockaddr *)&tmp, addr_size) != 0) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, couldn't bind to the IP/Port\n\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, couldn't bind to the IP/Port\n\n");
 #endif
 		return 0;
 	}
@@ -338,7 +338,7 @@ static int int_connect(int fd, const sockaddr_safe *addr, int address_type,
 	socklen_t addr_size = int_int_sockaddr_size(address_type);
 	sockaddr_safe tmp;
 
-	NAL_memcpy(sockaddr_safe, &tmp, addr);
+	SYS_memcpy(sockaddr_safe, &tmp, addr);
 	if(connect(fd, (struct sockaddr *)&tmp, addr_size) != 0) {
 #ifdef WIN32
 		if(WSAGetLastError() != WSAEWOULDBLOCK)
@@ -346,8 +346,8 @@ static int int_connect(int fd, const sockaddr_safe *addr, int address_type,
 		if(errno != EINPROGRESS)
 #endif
 		{
-#if NAL_DEBUG_LEVEL > 1
-			NAL_fprintf(NAL_stderr, "Error, couldn't connect\n\n");
+#if SYS_DEBUG_LEVEL > 1
+			SYS_fprintf(SYS_stderr, "Error, couldn't connect\n\n");
 #endif
 			return 0;
 		}
@@ -362,8 +362,8 @@ static int int_connect(int fd, const sockaddr_safe *addr, int address_type,
 static int int_listen(int fd)
 {
 	if(listen(fd, NAL_LISTENER_BACKLOG) != 0) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, couldn't listen on that IP/Port\n\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, couldn't listen on that IP/Port\n\n");
 #endif
 		return 0;
         }
@@ -373,8 +373,8 @@ static int int_listen(int fd)
 static int int_accept(int listen_fd, int *conn)
 {
 	if((*conn = accept(listen_fd, NULL, NULL)) == -1) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, accept failed\n\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, accept failed\n\n");
 #endif
 		return 0;
 	}
@@ -409,7 +409,7 @@ static int nal_buffer_close(NAL_BUFFER *list);
 static void nal_address_init(NAL_ADDRESS *addr)
 {
 	/* Fortunately, zero is fine for this structure! */
-	NAL_zero(NAL_ADDRESS, addr);
+	SYS_zero(NAL_ADDRESS, addr);
 }
 
 static int nal_address_close(NAL_ADDRESS *addr)
@@ -421,7 +421,7 @@ static int nal_address_close(NAL_ADDRESS *addr)
 
 NAL_ADDRESS *NAL_ADDRESS_new(void)
 {
-	NAL_ADDRESS *a = NAL_malloc(NAL_ADDRESS, 1);
+	NAL_ADDRESS *a = SYS_malloc(NAL_ADDRESS, 1);
 	if(a)
 		nal_address_init(a);
 	return a;
@@ -430,7 +430,7 @@ NAL_ADDRESS *NAL_ADDRESS_new(void)
 void NAL_ADDRESS_free(NAL_ADDRESS *a)
 {
 	nal_address_close(a);
-	NAL_free(NAL_ADDRESS, a);
+	SYS_free(NAL_ADDRESS, a);
 }
 
 int NAL_ADDRESS_set_def_buffer_size(NAL_ADDRESS *addr,
@@ -514,19 +514,19 @@ do_ipv4:
 		goto ipv4_port;
 	}
 	/* Create a temporary string for the isolated hostname/ip-address */
-	tmp_ptr = NAL_malloc(char, (int)(fini_ptr - start_ptr) + 1);
+	tmp_ptr = SYS_malloc(char, (int)(fini_ptr - start_ptr) + 1);
 	if(!tmp_ptr)
 		goto err;
-	NAL_memcpy_n(char, tmp_ptr, start_ptr,
+	SYS_memcpy_n(char, tmp_ptr, start_ptr,
 		(int)(fini_ptr - start_ptr));
 	tmp_ptr[(int)(fini_ptr - start_ptr)] = '\0';
 	ip_lookup = gethostbyname(tmp_ptr);
-	NAL_free(char, tmp_ptr);
+	SYS_free(char, tmp_ptr);
 	if(!ip_lookup)
 		/* Host not understood or recognised */
 		goto err;
 	/* Grab the IP address and move on (h_addr_list[0] is signed char?!) */
-	NAL_memcpy_n(char, (char *)in_ip, ip_lookup->h_addr_list[0], 4);
+	SYS_memcpy_n(char, (char *)in_ip, ip_lookup->h_addr_list[0], 4);
 	/* Align start_ptr to the start of the "port" number. */
 	start_ptr = fini_ptr + 1;
 	/* Ok, this is an address that could be used for connecting */
@@ -545,8 +545,8 @@ ipv4_port:
 	addr->caps |= NAL_ADDRESS_CAN_LISTEN;
 	addr->family = NAL_ADDRESS_TYPE_IP;
 
-#if NAL_DEBUG_LEVEL > 2
-	NAL_fprintf(NAL_stderr, "Info, successfully parsed '%s' as an IPv4 listen "
+#if SYS_DEBUG_LEVEL > 2
+	SYS_fprintf(SYS_stderr, "Info, successfully parsed '%s' as an IPv4 listen "
 			"address\n", addr_string);
 #endif
 	return 1;
@@ -564,16 +564,16 @@ do_unix:
 	int_sockaddr_from_unix(&addr->addr, start_ptr);
 	addr->caps = NAL_ADDRESS_CAN_LISTEN | NAL_ADDRESS_CAN_CONNECT;
 	addr->family = NAL_ADDRESS_TYPE_UNIX;
-#if NAL_DEBUG_LEVEL > 2
-	NAL_fprintf(NAL_stderr, "Info, successfully parsed '%s' as a unix domain listen"
+#if SYS_DEBUG_LEVEL > 2
+	SYS_fprintf(SYS_stderr, "Info, successfully parsed '%s' as a unix domain listen"
 			" address\n", addr_string);
 #endif
 	return 1;
 #endif
 
 err:
-#if NAL_DEBUG_LEVEL > 1
-	NAL_fprintf(NAL_stderr, "Error, '%s' is an invalid address\n\n",
+#if SYS_DEBUG_LEVEL > 1
+	SYS_fprintf(SYS_stderr, "Error, '%s' is an invalid address\n\n",
 			addr_string);
 #endif
 	/* Reverse any progress made up until the point of failure */
@@ -602,7 +602,7 @@ const char *NAL_ADDRESS_source_string(NAL_ADDRESS *addr)
 
 NAL_LISTENER *NAL_LISTENER_new(void)
 {
-	NAL_LISTENER *l = NAL_malloc(NAL_LISTENER, 1);
+	NAL_LISTENER *l = SYS_malloc(NAL_LISTENER, 1);
 	if(l) {
 		nal_address_init(&l->addr);
 		l->fd = -1;
@@ -614,7 +614,7 @@ void NAL_LISTENER_free(NAL_LISTENER *list)
 {
 	int_close(&list->fd);
 	nal_address_close(&list->addr);
-	NAL_free(NAL_LISTENER, list);
+	SYS_free(NAL_LISTENER, list);
 }
 
 int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
@@ -630,8 +630,8 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 		goto err;
 	if((addr->caps & NAL_ADDRESS_CAN_LISTEN) == 0) {
 		/* Perhaps the string for the address was invalid? */
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, '%s' can't listen\n", addr->str_form);
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, '%s' can't listen\n", addr->str_form);
 #endif
 		goto err;
 	}
@@ -652,7 +652,7 @@ int NAL_LISTENER_create(NAL_LISTENER *list, const NAL_ADDRESS *addr)
 			!int_listen(listen_fd))
 		goto err;
 	/* Success! */
-	NAL_memcpy(NAL_ADDRESS, &(list->addr), addr);
+	SYS_memcpy(NAL_ADDRESS, &(list->addr), addr);
 	list->fd = listen_fd;
 	return 1;
 err:
@@ -680,7 +680,7 @@ int NAL_LISTENER_accept_block(const NAL_LISTENER *list, NAL_CONNECTION *conn)
 	if(!NAL_CONNECTION_set_size(conn, list->addr.def_buffer_size))
 		goto err;
 	/* Success! */
-	NAL_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
+	SYS_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
 	conn->fd = conn_fd;
 	conn->established = 1;
 	return 1;
@@ -702,8 +702,8 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 		goto err;
 	int_selector_get_list(sel, list, &flags);
 	if(flags & SELECTOR_FLAG_EXCEPT) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Warn, listener has exception flag set\n\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Warn, listener has exception flag set\n\n");
 #endif
 		goto err;
 	}
@@ -720,7 +720,7 @@ int NAL_LISTENER_accept(const NAL_LISTENER *list, NAL_SELECTOR *sel,
 		goto err;
 	if(!NAL_CONNECTION_set_size(conn, list->addr.def_buffer_size))
 		goto err;
-	NAL_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
+	SYS_memcpy(NAL_ADDRESS, &(conn->addr), &(list->addr));
 	conn->fd = conn_fd;
 	conn->established = 1;
 	int_selector_list_done(sel, list);
@@ -741,7 +741,7 @@ const NAL_ADDRESS *NAL_LISTENER_address(const NAL_LISTENER *list)
 
 NAL_CONNECTION *NAL_CONNECTION_new(void)
 {
-	NAL_CONNECTION *conn = NAL_malloc(NAL_CONNECTION, 1);
+	NAL_CONNECTION *conn = SYS_malloc(NAL_CONNECTION, 1);
 	if(conn) {
 		nal_address_init(&conn->addr);
 		conn->fd = -1;
@@ -761,7 +761,7 @@ void NAL_CONNECTION_free(NAL_CONNECTION *conn)
 	}
 	/* good aggregation programming practice. :-) */
 	nal_address_close(&conn->addr);
-	NAL_free(NAL_CONNECTION, conn);
+	SYS_free(NAL_CONNECTION, conn);
 }
 
 int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
@@ -778,8 +778,8 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 		abort();
 	if((addr->caps & NAL_ADDRESS_CAN_CONNECT) == 0) {
 		/* Perhaps the string for the address was invalid? */
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, '%s' can't connect\n", addr->str_form);
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, '%s' can't connect\n", addr->str_form);
 #endif
 		goto err;
 	}
@@ -793,7 +793,7 @@ int NAL_CONNECTION_create(NAL_CONNECTION *conn, const NAL_ADDRESS *addr)
 	if(!NAL_CONNECTION_set_size(conn, addr->def_buffer_size))
 		goto err;
 	/* Success! */
-	NAL_memcpy(NAL_ADDRESS, &(conn->addr), addr);
+	SYS_memcpy(NAL_ADDRESS, &(conn->addr), addr);
 	conn->fd = fd;
 	conn->established = established;
 	return 1;
@@ -867,8 +867,8 @@ int NAL_CONNECTION_set_size(NAL_CONNECTION *conn, unsigned int size)
 		return 0;
 	if(!NAL_BUFFER_set_size(&conn->read, size) ||
 			!NAL_BUFFER_set_size(&conn->send, size)) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, couldn't set buffer sizes\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, couldn't set buffer sizes\n");
 #endif
 		return 0;
 	}
@@ -904,12 +904,12 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 		return 1;
 	int_selector_get_conn(sel, conn, &flags);
 	if(flags & SELECTOR_FLAG_EXCEPT) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Warn, connection has exception flag set\n\n");
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Warn, connection has exception flag set\n\n");
 #endif
 		goto closing;
 	}
-#if NAL_DEBUG_LEVEL > 1
+#if SYS_DEBUG_LEVEL > 1
 	/* We shouldn't have selected on readability if there's no space to
 	 * read into. */
 	if((flags & SELECTOR_FLAG_READ) && NAL_BUFFER_full(&conn->read))
@@ -946,7 +946,7 @@ int NAL_CONNECTION_io_cap(NAL_CONNECTION *conn, NAL_SELECTOR *sel,
 		 * indicated connectedness. */
 		nb = 1;
 	}
-#if NAL_DEBUG_LEVEL > 1
+#if SYS_DEBUG_LEVEL > 1
 	else {
 		/* If we weren't waiting a non-blocking connect, then
 		 * sendability should only happen when there's data to send. */
@@ -976,13 +976,13 @@ ok:
 	/* Success! */
 	return 1;
 closing:
-#if NAL_DEBUG_LEVEL > 2
+#if SYS_DEBUG_LEVEL > 2
 	if(NAL_BUFFER_notempty(&conn->send))
-		NAL_fprintf(NAL_stderr, "Warn, connection closing with unsent data\n");
+		SYS_fprintf(SYS_stderr, "Warn, connection closing with unsent data\n");
 	else if(NAL_BUFFER_notempty(&conn->read))
-		NAL_fprintf(NAL_stderr, "Warn, connection closing with received data\n");
+		SYS_fprintf(SYS_stderr, "Warn, connection closing with received data\n");
 	else
-		NAL_fprintf(NAL_stderr, "Info, connection with empty buffers will close\n");
+		SYS_fprintf(SYS_stderr, "Info, connection with empty buffers will close\n");
 #endif
 	return 0;
 }
@@ -1027,7 +1027,7 @@ static void int_selector_item_close(NAL_SELECTOR_item *item)
 
 NAL_SELECTOR *NAL_SELECTOR_new(void)
 {
-	NAL_SELECTOR *sel = NAL_malloc(NAL_SELECTOR, 1);
+	NAL_SELECTOR *sel = SYS_malloc(NAL_SELECTOR, 1);
 	if(sel) {
 		int_selector_item_init(&sel->last_selected);
 		int_selector_item_init(&sel->to_select);
@@ -1038,7 +1038,7 @@ NAL_SELECTOR *NAL_SELECTOR_new(void)
 void NAL_SELECTOR_free(NAL_SELECTOR *a)
 {
 	/* No cleanup required */
-	NAL_free(NAL_SELECTOR, a);
+	SYS_free(NAL_SELECTOR, a);
 }
 
 void NAL_SELECTOR_add_conn_ex(NAL_SELECTOR *sel, const NAL_CONNECTION *conn,
@@ -1152,9 +1152,9 @@ int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
 	timeout.tv_usec = usec_timeout % 1000000;
 	/* Migrate to_select over to last_selected */
 	int_selector_item_close(&sel->last_selected);
-	NAL_memcpy(fd_set, &sel->last_selected.reads, &sel->to_select.reads);
-	NAL_memcpy(fd_set, &sel->last_selected.sends, &sel->to_select.sends);
-	NAL_memcpy(fd_set, &sel->last_selected.excepts, &sel->to_select.excepts);
+	SYS_memcpy(fd_set, &sel->last_selected.reads, &sel->to_select.reads);
+	SYS_memcpy(fd_set, &sel->last_selected.sends, &sel->to_select.sends);
+	SYS_memcpy(fd_set, &sel->last_selected.excepts, &sel->to_select.excepts);
 	sel->last_selected.max = sel->to_select.max;
 	int_selector_item_close(&sel->to_select);
 	return select(sel->last_selected.max,
@@ -1170,12 +1170,12 @@ int NAL_SELECTOR_select(NAL_SELECTOR *sel, unsigned long usec_timeout,
 
 int NAL_stdin_set_non_blocking(int non_blocking)
 {
-	return int_make_non_blocking(fileno(NAL_stdin), non_blocking);
+	return int_make_non_blocking(fileno(SYS_stdin), non_blocking);
 }
 
 int NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel)
 {
-	int fd = fileno(NAL_stdin);
+	int fd = fileno(SYS_stdin);
 
 	/* We always select for excepts, but reads and sends depend on the
 	 * buffers. */
@@ -1188,7 +1188,7 @@ int NAL_SELECTOR_stdin_add(NAL_SELECTOR *sel)
 
 int NAL_SELECTOR_stdin_readable(NAL_SELECTOR *sel)
 {
-	int ret, fd = fileno(NAL_stdin);
+	int ret, fd = fileno(SYS_stdin);
 
 	/* This should only be called once per-select because we unset the flag
 	 * for stdin once reading. This is say stdin is not accidently read a
@@ -1213,7 +1213,7 @@ int NAL_config_set_nagle(int enabled)
 
 static void nal_buffer_init(NAL_BUFFER *buf)
 {
-	NAL_zero(NAL_BUFFER, buf);
+	SYS_zero(NAL_BUFFER, buf);
 }
 
 static int nal_buffer_close(NAL_BUFFER *buf)
@@ -1228,7 +1228,7 @@ static int nal_buffer_close(NAL_BUFFER *buf)
 
 NAL_BUFFER *NAL_BUFFER_new(void)
 {
-	NAL_BUFFER *b = NAL_malloc(NAL_BUFFER, 1);
+	NAL_BUFFER *b = SYS_malloc(NAL_BUFFER, 1);
 	if(b)
 		nal_buffer_init(b);
 	return b;
@@ -1237,7 +1237,7 @@ NAL_BUFFER *NAL_BUFFER_new(void)
 void NAL_BUFFER_free(NAL_BUFFER *a)
 {
 	nal_buffer_close(a);
-	NAL_free(NAL_BUFFER, a);
+	SYS_free(NAL_BUFFER, a);
 }
 
 /* This is the one function that has no macro equivalent. It's too important to
@@ -1253,13 +1253,13 @@ int NAL_BUFFER_set_size(NAL_BUFFER *buf, unsigned int size)
 	if(size == buf->_size)
 		return 1;
 	if(size > NAL_BUFFER_MAX_SIZE) {
-#if NAL_DEBUG_LEVEL > 1
-		NAL_fprintf(NAL_stderr, "Error, NAL_BUFFER_set_size() called with too "
+#if SYS_DEBUG_LEVEL > 1
+		SYS_fprintf(SYS_stderr, "Error, NAL_BUFFER_set_size() called with too "
 				"large a size\n");
 #endif
 		return 0;
 	}
-	next = NAL_realloc(unsigned char, buf->_data, size);
+	next = SYS_realloc(unsigned char, buf->_data, size);
 	if(size && !next)
 		return 0;
 	buf->_data = next;
@@ -1316,7 +1316,7 @@ unsigned int NAL_BUFFER_write(NAL_BUFFER *buf, const unsigned char *ptr,
 		towrite = size;
 	if(towrite == 0)
 		return 0;
-	NAL_memcpy_n(unsigned char, buf->_data + buf->_used, ptr, towrite);
+	SYS_memcpy_n(unsigned char, buf->_data + buf->_used, ptr, towrite);
 	buf->_used += towrite;
 	return towrite;
 }
@@ -1330,10 +1330,10 @@ unsigned int NAL_BUFFER_read(NAL_BUFFER *buf, unsigned char *ptr,
 	if(toread == 0)
 		return 0;
 	if(ptr)
-		NAL_memcpy_n(unsigned char, ptr, buf->_data, toread);
+		SYS_memcpy_n(unsigned char, ptr, buf->_data, toread);
 	buf->_used -= toread;
 	if(buf->_used > 0)
-		NAL_memmove_n(unsigned char, buf->_data,
+		SYS_memmove_n(unsigned char, buf->_data,
 				buf->_data + toread, buf->_used);
 	return toread;
 }

@@ -23,7 +23,7 @@
 
 #include <libnal/common.h>
 
-#if NAL_DEBUG_LEVEL > 2
+#if SYS_DEBUG_LEVEL > 2
 
 typedef struct st_int_stream_t {
 	/* null -> hasn't been set yet.
@@ -88,7 +88,7 @@ FILE *nal_stderr(void) {
 	return int_get_stream(&int_stderr, stderr);
 }
 
-int NAL_fprintf(FILE *fp, const char *fmt, ...)
+int SYS_fprintf(FILE *fp, const char *fmt, ...)
 {
 	va_list ap;
 	int res;

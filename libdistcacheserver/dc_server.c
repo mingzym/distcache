@@ -71,10 +71,10 @@ static void int_server_del_client(DC_SERVER *ctx, unsigned int idx)
 	DC_CLIENT *clnt = ctx->clients[idx];
 	/* Clean up the client */
 	DC_PLUG_free(clnt->plug);
-	NAL_free(DC_CLIENT, clnt);
+	SYS_free(DC_CLIENT, clnt);
 	/* Unlink the client from the server's array */
 	if(idx + 1 < ctx->clients_used)
-		NAL_memmove_n(DC_CLIENT *, ctx->clients + idx,
+		SYS_memmove_n(DC_CLIENT *, ctx->clients + idx,
 			(const DC_CLIENT **)ctx->clients + (idx + 1),
 			ctx->clients_used - (idx + 1));
 	ctx->clients_used--;
@@ -204,7 +204,7 @@ static int int_do_operation(DC_CLIENT *clnt, const struct timeval *now)
 	/* Now duplicate the payload into our clnt buffer */
 	assert(payload_len <= DC_MAX_TOTAL_DATA);
 	if(payload_len)
-		NAL_memcpy_n(unsigned char, clnt->read_data,
+		SYS_memcpy_n(unsigned char, clnt->read_data,
 				payload_data, payload_len);
 	clnt->read_data_len = payload_len;
 	/* Switch on the command type */
@@ -265,20 +265,20 @@ DC_SERVER *DC_SERVER_new(unsigned int max_sessions)
 		/* A cache implementation must be set before we can create
 		 * server structures. */
 		return NULL;
-	toret = NAL_malloc(DC_SERVER, 1);
+	toret = SYS_malloc(DC_SERVER, 1);
 	if(!toret)
 		return NULL;
-	toret->clients = NAL_malloc(DC_CLIENT *,
+	toret->clients = SYS_malloc(DC_CLIENT *,
 				DC_SERVER_START_SIZE);
 	if(!toret->clients) {
-		NAL_free(DC_SERVER, toret);
+		SYS_free(DC_SERVER, toret);
 		return NULL;
 	}
 	toret->vt = default_cache_implementation;
 	toret->cache = toret->vt->cache_new(max_sessions);
 	if(!toret->cache) {
-		NAL_free(DC_CLIENT *, toret->clients);
-		NAL_free(DC_SERVER, toret);
+		SYS_free(DC_CLIENT *, toret->clients);
+		SYS_free(DC_SERVER, toret);
 		return NULL;
 	}
 	toret->clients_used = 0;
@@ -301,8 +301,8 @@ void DC_SERVER_free(DC_SERVER *ctx)
 	};
 	/* So any clients left are ones "leaked" by the application */
 	assert(ctx->clients_used == 0);
-	NAL_free(DC_CLIENT *, ctx->clients);
-	NAL_free(DC_SERVER, ctx);
+	SYS_free(DC_CLIENT *, ctx->clients);
+	SYS_free(DC_SERVER, ctx);
 }
 
 unsigned int DC_SERVER_items_stored(DC_SERVER *ctx,
@@ -330,14 +330,14 @@ DC_CLIENT *DC_SERVER_new_client(DC_SERVER *ctx,
 	if(ctx->clients_used == ctx->clients_size) {
 		DC_CLIENT **newitems;
 		unsigned int newsize = ctx->clients_size * 3 / 2;
-		newitems = NAL_malloc(DC_CLIENT *, newsize);
+		newitems = SYS_malloc(DC_CLIENT *, newsize);
 		if(!newitems)
 			return NULL;
 		/* client_used will always be non-zero at this point */
-		NAL_memcpy_n(DC_CLIENT *, newitems,
+		SYS_memcpy_n(DC_CLIENT *, newitems,
 				(const DC_CLIENT **)ctx->clients,
 				ctx->clients_used);
-		NAL_free(DC_CLIENT *, ctx->clients);
+		SYS_free(DC_CLIENT *, ctx->clients);
 		ctx->clients = newitems;
 		ctx->clients_size = newsize;
 	}
@@ -346,7 +346,7 @@ DC_CLIENT *DC_SERVER_new_client(DC_SERVER *ctx,
 		plug_flags |= DC_PLUG_FLAG_NOFREE_CONN;
 	if((plug = DC_PLUG_new(conn, plug_flags)) == NULL)
 		return NULL;
-	c = NAL_malloc(DC_CLIENT, 1);
+	c = SYS_malloc(DC_CLIENT, 1);
 	if(!c) {
 		DC_PLUG_free(plug);
 		return NULL;

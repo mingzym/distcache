@@ -85,21 +85,21 @@ static const char *CMD_IDLE = "-idle";
 static int usage(void) {
 	const char **u = usage_msg;
 	while(*u)
-		NAL_fprintf(NAL_stderr, "%s\n", *(u++));
+		SYS_fprintf(SYS_stderr, "%s\n", *(u++));
 	return 0;
 }
 static int err_noarg(const char *arg) {
-	NAL_fprintf(NAL_stderr, "Error, %s requires an argument\n", arg);
+	SYS_fprintf(SYS_stderr, "Error, %s requires an argument\n", arg);
 	usage();
 	return 1;
 }
 static int err_badarg(const char *arg) {
-	NAL_fprintf(NAL_stderr, "Error, %s given an invalid argument\n", arg);
+	SYS_fprintf(SYS_stderr, "Error, %s given an invalid argument\n", arg);
 	usage();
 	return 1;
 }
 static int err_badswitch(const char *arg) {
-	NAL_fprintf(NAL_stderr, "Error, \"%s\" not recognised\n", arg);
+	SYS_fprintf(SYS_stderr, "Error, \"%s\" not recognised\n", arg);
 	usage();
 	return 1;
 }
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 				(strcmp(*argv, CMD_SERVER2) == 0)) {
 			ARG_CHECK(*argv);
 			if(server_address) {
-				NAL_fprintf(NAL_stderr, "Error, too many servers\n");
+				SYS_fprintf(SYS_stderr, "Error, too many servers\n");
 				return err_badarg(*(argv - 1));
 			}
 			server_address = *argv;
@@ -188,30 +188,30 @@ int main(int argc, char *argv[])
 	}
 
 	if(!server_address) {
-		NAL_fprintf(NAL_stderr, "Error, no server specified!\n");
+		SYS_fprintf(SYS_stderr, "Error, no server specified!\n");
 		return 1;
 	}
 	/* Initialise things */
 #ifdef WIN32
 	if(!sockets_init()) {
-		NAL_fprintf(NAL_stderr, "Error, couldn't initialise socket layer\n");
+		SYS_fprintf(SYS_stderr, "Error, couldn't initialise socket layer\n");
 		return 1;
 	}
 #else
-	if(!NAL_sigpipe_ignore()) {
-		NAL_fprintf(NAL_stderr, "Error, couldn't ignore SIGPIPE\n");
+	if(!SYS_sigpipe_ignore()) {
+		SYS_fprintf(SYS_stderr, "Error, couldn't ignore SIGPIPE\n");
 		return 1;
 	}
 #endif
 
 	/* Define a "now" value that can be used during initialisation and
 	 * during the first (pre-select) main loop */
-	NAL_gettime(&now);
+	SYS_gettime(&now);
 	/* Prepare the structures */
 	if(((server = server_new(server_address, retry_period, &now)) == NULL) ||
 			((clients = clients_new()) == NULL) ||
 			((multiplexer = multiplexer_new()) == NULL)) {
-		NAL_fprintf(NAL_stderr, "Error, internal initialisation problems\n");
+		SYS_fprintf(SYS_stderr, "Error, internal initialisation problems\n");
 		return 1;
 	}
 	/* Prepare our networking bits */
@@ -221,11 +221,11 @@ int main(int argc, char *argv[])
 			!NAL_ADDRESS_can_listen(addr) ||
 			((listener = NAL_LISTENER_new()) == NULL) ||
 			!NAL_LISTENER_create(listener, addr)) {
-		NAL_fprintf(NAL_stderr, "Error, bad listen address\n");
+		SYS_fprintf(SYS_stderr, "Error, bad listen address\n");
 		return 1;
 	}
 	if((sel = NAL_SELECTOR_new()) == NULL) {
-		NAL_fprintf(NAL_stderr, "Error, malloc problem\n");
+		SYS_fprintf(SYS_stderr, "Error, malloc problem\n");
 		return 1;
 	}
 	NAL_ADDRESS_free(addr);
@@ -234,9 +234,9 @@ int main(int argc, char *argv[])
 	/* If we're going daemon() mode, do it now */
 	if(daemon_mode) {
 		/* working directory becomes "/" */
-		/* stdin/stdout/NAL_stderr -> /dev/null */
-		if(!NAL_daemon(0)) {
-			NAL_fprintf(NAL_stderr, "Error, couldn't detach!\n");
+		/* stdin/stdout/SYS_stderr -> /dev/null */
+		if(!SYS_daemon(0)) {
+			SYS_fprintf(SYS_stderr, "Error, couldn't detach!\n");
 			return 1;
 		}
 	}
@@ -244,11 +244,11 @@ int main(int argc, char *argv[])
 	if(pidfile) {
 		FILE *fp = fopen(pidfile, "w");
 		if(!fp) {
-			NAL_fprintf(NAL_stderr, "Error, couldn't open 'pidfile' "
+			SYS_fprintf(SYS_stderr, "Error, couldn't open 'pidfile' "
 					"at '%s'.\n", pidfile);
 			return 1;
 		}
-		NAL_fprintf(fp, "%lu", (unsigned long)NAL_getpid());
+		SYS_fprintf(fp, "%lu", (unsigned long)SYS_getpid());
 		fclose(fp);
 	}
 #endif
@@ -263,7 +263,7 @@ main_loop:
 	 * consumed by the resulting "plug" so we need to alloc it again each
 	 * time). */
 	if(!conn && ((conn = NAL_CONNECTION_new()) == NULL)) {
-		NAL_fprintf(NAL_stderr, "Error, connection couldn't be created!!\n");
+		SYS_fprintf(SYS_stderr, "Error, connection couldn't be created!!\n");
 		goto end;
 	}
 	if(conn) NAL_SELECTOR_add_listener(sel, listener);
@@ -272,16 +272,16 @@ main_loop:
 	if(NAL_SELECTOR_select(sel, timeout, 1) < 0) {
 		/* We try to be resistant against signal interruptions */
 		if(errno != EINTR)
-			NAL_fprintf(NAL_stderr, "Warning, selector returned an "
+			SYS_fprintf(SYS_stderr, "Warning, selector returned an "
 					"error\n");
 		goto main_loop;
 	}
 	/* Set a "now" value that can be used throughout this post-select loop
 	 * (saving on redundant calls to gettimeofday()). */
-	NAL_gettime(&now);
+	SYS_gettime(&now);
 	if(conn && NAL_LISTENER_accept(listener, sel, conn)) {
 		if(!clients_new_client(clients, conn, &now)) {
-			NAL_fprintf(NAL_stderr, "Error, couldn't add in new "
+			SYS_fprintf(SYS_stderr, "Error, couldn't add in new "
 				"client connection - dropping it.\n");
 			NAL_CONNECTION_free(conn);
 		}
@@ -291,13 +291,13 @@ main_loop:
 	}
 	if(!clients_io(clients, sel, multiplexer, &now, idle_timeout) ||
 			!server_io(server, sel, multiplexer, clients, &now)) {
-		NAL_fprintf(NAL_stderr, "Error, a fatal problem with the "
+		SYS_fprintf(SYS_stderr, "Error, a fatal problem with the "
 			"client or server code occured. Closing.\n");
 		goto end;
 	}
 	/* Now the logic-loop, which is "multiplexer"-driven. */
 	if(!multiplexer_run(multiplexer, clients, server, &now)) {
-		NAL_fprintf(NAL_stderr, "Error, a fatal problem with the "
+		SYS_fprintf(SYS_stderr, "Error, a fatal problem with the "
 			"multiplexer has occured. Closing.\n");
 		goto end;
 	}

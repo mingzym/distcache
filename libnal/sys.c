@@ -44,14 +44,14 @@ int sockets_init(void)
 /* Process model related utility code */
 /**************************************/
 
-pid_t NAL_getpid(void)
+pid_t SYS_getpid(void)
 {
 	return getpid();
 }
 
 /*
- * NAL_daemon() is a utility function to make the current process a "daemon"
- * such that it detaches from the current terminal and holds the attributes
+ * SYS_daemon() is a utility function to make the current process a "daemon"
+ * such that it detaches from the current termisys and holds the attributes
  * normally associated with daemon processes.
  *
  * The "nochdir" parameter, if zero, changes the current working directory to
@@ -61,7 +61,7 @@ pid_t NAL_getpid(void)
  *
  * Returns non-zero for success, zero otherwise.
  */
-int NAL_daemon(int nochdir)
+int SYS_daemon(int nochdir)
 {
 #ifdef HAVE_DAEMON
        if(daemon(nochdir, 0) == -1)
@@ -69,7 +69,7 @@ int NAL_daemon(int nochdir)
        return 1;
 #else
        /* The system has no daemon() function, so we have to duplicate
-	* the functionality.  */
+	* the functiosysity.  */
 	pid_t pid;
 
 	if ( (pid = fork()) < 0)
@@ -99,7 +99,7 @@ int NAL_daemon(int nochdir)
 /* SIGNAL related utility code */
 /*******************************/
 
-int NAL_sigpipe_ignore(void)
+int SYS_sigpipe_ignore(void)
 {
 	struct sigaction sig;
 
@@ -107,8 +107,8 @@ int NAL_sigpipe_ignore(void)
 	sigemptyset(&sig.sa_mask);
 	sig.sa_flags = 0;
 	if(sigaction(SIGPIPE, &sig, NULL) != 0) {
-#if NAL_DEBUG_LEVEL > 0
-		NAL_fprintf(NAL_stderr, "Error, couldn't ignore SIGPIPE\n\n");
+#if SYS_DEBUG_LEVEL > 0
+		SYS_fprintf(SYS_stderr, "Error, couldn't ignore SIGPIPE\n\n");
 #endif
 		return 0;
 	}
@@ -121,7 +121,7 @@ int NAL_sigpipe_ignore(void)
 /* Time manipulation functions */
 /*******************************/
 
-int NAL_timecmp(const struct timeval *a, const struct timeval *b)
+int SYS_timecmp(const struct timeval *a, const struct timeval *b)
 {
 	if(a->tv_sec < b->tv_sec)
 		return -1;
@@ -134,7 +134,7 @@ int NAL_timecmp(const struct timeval *a, const struct timeval *b)
 	return 0;
 }
 
-void NAL_gettime(struct timeval *tv)
+void SYS_gettime(struct timeval *tv)
 {
 #ifdef WIN32
 	/* GetSystemTimeAsFileTime seems to be the only capable win32 API call
@@ -167,12 +167,12 @@ void NAL_gettime(struct timeval *tv)
 #endif
 }
 
-int NAL_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
+int SYS_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
 		const struct timeval *timenow)
 {
 	struct timeval threshold;
 	unsigned long usec_expiry = msec_expiry * 1000;
-	NAL_memcpy(struct timeval, &threshold, timeitem);
+	SYS_memcpy(struct timeval, &threshold, timeitem);
 	threshold.tv_sec = threshold.tv_sec + (usec_expiry / 1000000L);
 	threshold.tv_usec += (usec_expiry % 1000000);
 	if(threshold.tv_usec > 1000000) {
@@ -186,12 +186,12 @@ int NAL_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
 	return 1;
 }
 
-void NAL_timecpy(struct timeval *dest, const struct timeval *src)
+void SYS_timecpy(struct timeval *dest, const struct timeval *src)
 {
-	NAL_memcpy(struct timeval, dest, src);
+	SYS_memcpy(struct timeval, dest, src);
 }
 
-void NAL_timeadd(struct timeval *res, const struct timeval *I,
+void SYS_timeadd(struct timeval *res, const struct timeval *I,
 		unsigned long msecs)
 {
 	unsigned long carry = I->tv_usec + (msecs * 1000);
@@ -200,7 +200,7 @@ void NAL_timeadd(struct timeval *res, const struct timeval *I,
 	res->tv_sec = I->tv_sec + carry;
 }
 
-void NAL_timesub(struct timeval *res, const struct timeval *I,
+void SYS_timesub(struct timeval *res, const struct timeval *I,
 		unsigned long msecs)
 {
 	unsigned long sub_low = (msecs % 1000) * 1000;
@@ -213,12 +213,12 @@ void NAL_timesub(struct timeval *res, const struct timeval *I,
 	res->tv_sec = I->tv_sec - sub_high;
 }
 
-unsigned long NAL_msecs_between(const struct timeval *a, const struct timeval *b)
+unsigned long SYS_msecs_between(const struct timeval *a, const struct timeval *b)
 {
 	unsigned long toret;
 	const struct timeval *tmp;
 
-	if(NAL_timecmp(a, b) > 0) {
+	if(SYS_timecmp(a, b) > 0) {
 		tmp = a;
 		a = b;
 		b = tmp;

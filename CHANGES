@@ -22,7 +22,8 @@ Changes between 0.4pre2 and x.x
   *) The non-networking stuff in libnal (the daemon/sigpipe/etc wrappers as
      well as the mem and streams debugging cruft) has been separated out into a
      new library, libsys.a, that is not installed but is linked into the
-     distcache executables.
+     distcache executables. The names for these macros and functions have also
+     been renamed from "nal" or "NAL" prefixes to "sys" and "SYS" respectively.
      [Geoff Thorpe]
 
   *) Remove unnused stream-hacking functions from libnal, this should have been

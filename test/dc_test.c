@@ -97,7 +97,7 @@ static int usage(void)
 {
 	const char **u = usage_msg;
 	while(*u)
-		NAL_fprintf(NAL_stderr, "%s\n", *(u++));
+		SYS_fprintf(SYS_stderr, "%s\n", *(u++));
 	/* Return 0 because main() can use this is as a help
 	 * screen which shouldn't return an "error" */
 	return 0;
@@ -118,19 +118,19 @@ static const char *CMD_PERSISTENT = "-persistent";
 
 static int err_noarg(const char *arg)
 {
-	NAL_fprintf(NAL_stderr, "Error, -%s requires an argument\n", arg);
+	SYS_fprintf(SYS_stderr, "Error, -%s requires an argument\n", arg);
 	usage();
 	return 1;
 }
 static int err_badrange(const char *arg)
 {
-	NAL_fprintf(NAL_stderr, "Error, -%s given an invalid argument\n", arg);
+	SYS_fprintf(SYS_stderr, "Error, -%s given an invalid argument\n", arg);
 	usage();
 	return 1;
 }
 static int err_badswitch(const char *arg)
 {
-	NAL_fprintf(NAL_stderr, "Error, \"%s\" not recognised\n", arg);
+	SYS_fprintf(SYS_stderr, "Error, \"%s\" not recognised\n", arg);
 	usage();
 	return 1;
 }
@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
 			datamax = (unsigned int)atoi(*argv);
 		} else if(strcmp(*argv, CMD_WITHCERT) == 0) {
 #ifndef HAVE_OPENSSL
-			NAL_fprintf(NAL_stderr, "Error, no OpenSSL support "
+			SYS_fprintf(SYS_stderr, "Error, no OpenSSL support "
 				"compiled in, -with-cert not available.\n");
 			return 1;
 #endif
@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
 
 	/* Scrutinise the settings */
 	if(!client) {
-		NAL_fprintf(NAL_stderr, "Error, must provide -connect\n");
+		SYS_fprintf(SYS_stderr, "Error, must provide -connect\n");
 		return 1;
 	}
 	if(!sessions_set)
@@ -225,27 +225,27 @@ int main(int argc, char *argv[])
 	if((sessions < 1) || (sessions > MAX_SESSIONS))
 		return err_badrange(CMD_SESSIONS);
 	if(withcert > sessions) {
-		NAL_fprintf(NAL_stderr, "Error, -withcert can't be larger than "
+		SYS_fprintf(SYS_stderr, "Error, -withcert can't be larger than "
 				"-sessions\n");
 		return 1;
 	}
 	if(timevar >= timeout) {
-		NAL_fprintf(NAL_stderr, "Error, -timevar must be strictly "
+		SYS_fprintf(SYS_stderr, "Error, -timevar must be strictly "
 				"smaller than -timeout\n");
 		return 1;
 	}
 	if(datamin < 4) {
-		NAL_fprintf(NAL_stderr, "Error, -datamin should be at least 4\n");
+		SYS_fprintf(SYS_stderr, "Error, -datamin should be at least 4\n");
 		return 1;
 	}
 	if(datamax > 4096) {
-		NAL_fprintf(NAL_stderr, "Error, -datamax should be at most 4096\n");
+		SYS_fprintf(SYS_stderr, "Error, -datamax should be at most 4096\n");
 		return 1;
 	}
 
-	if(!NAL_sigpipe_ignore()) {
-#if NAL_DEBUG_LEVEL > 0
-		NAL_fprintf(NAL_stderr, "Error, couldn't ignore SIGPIPE\n");
+	if(!SYS_sigpipe_ignore()) {
+#if SYS_DEBUG_LEVEL > 0
+		SYS_fprintf(SYS_stderr, "Error, couldn't ignore SIGPIPE\n");
 #endif
 		return 1;
 	}
@@ -281,7 +281,7 @@ static void generate_random_bytes(unsigned char *buf, unsigned int num)
 		return;
 	}
 	if(first_time) {
-		NAL_fprintf(NAL_stderr, "Warning - no random seed, will "
+		SYS_fprintf(SYS_stderr, "Warning - no random seed, will "
 			"generate repeating sequence!!!\n");
 		first_time = 0;
 	}
@@ -298,7 +298,7 @@ static SSL_SESSION *int_new_ssl_session(int withcert);
 /* Define a function to produce binary noise in place of SSL_SESSION */
 static unsigned char *int_new_noise(unsigned int len)
 {
-	unsigned char *ptr = NAL_malloc(unsigned char, len);
+	unsigned char *ptr = SYS_malloc(unsigned char, len);
 	if(!ptr) return ptr;
 	generate_random_bytes(ptr, len);
 	return ptr;
@@ -323,7 +323,7 @@ static int do_client(const char *address, unsigned int num_sessions,
 	unsigned int tmp_used, tmp_size = DC_MAX_TOTAL_DATA;
 
 	if(!ctx) {
-		NAL_fprintf(NAL_stderr, "Error, 'DC_CTX' creation "
+		SYS_fprintf(SYS_stderr, "Error, 'DC_CTX' creation "
 				"failed\n");
 		return 1;
 	}
@@ -336,25 +336,25 @@ static int do_client(const char *address, unsigned int num_sessions,
 		/* Create a session structure */
 		if((tmp_session = int_new_ssl_session((idx < withcert) ?
 						1 : 0)) == NULL) {
-			NAL_fprintf(NAL_stderr, "Error, couldn't generate a new "
+			SYS_fprintf(SYS_stderr, "Error, couldn't generate a new "
 					"SSL_SESSION\n");
 			return 1;
 		}
 		/* Copy the session id */
 		sessions_idlen[idx] = tmp_session->session_id_length;
 		sessions_len[idx] = i2d_SSL_SESSION(tmp_session, NULL);
-		ptr = NAL_malloc(unsigned char, sessions_idlen[idx]);
+		ptr = SYS_malloc(unsigned char, sessions_idlen[idx]);
 		if(!ptr) {
-			NAL_fprintf(NAL_stderr, "Error, malloc failure\n");
+			SYS_fprintf(SYS_stderr, "Error, malloc failure\n");
 			return 1;
 		}
-		NAL_memcpy_n(unsigned char, ptr, tmp_session->session_id,
+		SYS_memcpy_n(unsigned char, ptr, tmp_session->session_id,
 				sessions_idlen[idx]);
 		sessions_id[idx] = ptr;
 		/* Encode (copy) the session data (in DER encoding) */
-		ptr = NAL_malloc(unsigned char, sessions_len[idx]);
+		ptr = SYS_malloc(unsigned char, sessions_len[idx]);
 		if(!ptr) {
-			NAL_fprintf(NAL_stderr, "Error, malloc failure\n");
+			SYS_fprintf(SYS_stderr, "Error, malloc failure\n");
 			return 1;
 		}
 		sessions_enc[idx] = ptr;
@@ -367,11 +367,11 @@ static int do_client(const char *address, unsigned int num_sessions,
 		sessions_idlen[idx] = 10+(int)(54.0*rand()/(RAND_MAX+1.0));
 		sessions_len[idx] = datamin +(int)((1.0*datamax-datamin)*rand()/(RAND_MAX+1.0));
 		if((sessions_id[idx] = int_new_noise(sessions_idlen[idx])) == NULL) {
-			NAL_fprintf(NAL_stderr, "Error, malloc failure\n");
+			SYS_fprintf(SYS_stderr, "Error, malloc failure\n");
 			return 1;
 		}
 		if((sessions_enc[idx] = int_new_noise(sessions_len[idx])) == NULL) {
-			NAL_fprintf(NAL_stderr, "Error, malloc failure\n");
+			SYS_fprintf(SYS_stderr, "Error, malloc failure\n");
 			return 1;
 		}
 #endif
@@ -379,7 +379,7 @@ static int do_client(const char *address, unsigned int num_sessions,
 		sessions_bool[idx] = 0;
 		idx++;
 	}
-	NAL_fprintf(NAL_stdout, "Info, %u sessions generated, will run %u "
+	SYS_fprintf(SYS_stdout, "Info, %u sessions generated, will run %u "
 			"random tests\n", num_sessions, tests);
 	idx = 0;
 	while(idx < tests) {
@@ -409,13 +409,13 @@ static int do_client(const char *address, unsigned int num_sessions,
 			 * the server */
 			if(sessions_bool[s]) {
 				if(ret) {
-					NAL_fprintf(NAL_stderr, "Error, add "
+					SYS_fprintf(SYS_stderr, "Error, add "
 						"succeeded and shouldn't have!\n");
 					goto bail;
 				}
 			} else {
 				if(!ret) {
-					NAL_fprintf(NAL_stderr, "Error, add "
+					SYS_fprintf(SYS_stderr, "Error, add "
 							"failed!\n");
 					goto bail;
 				}
@@ -429,14 +429,14 @@ static int do_client(const char *address, unsigned int num_sessions,
 			/* This should succeed iff the session was there */
 			if(sessions_bool[s]) {
 				if(!ret) {
-					NAL_fprintf(NAL_stderr, "Error, remove "
+					SYS_fprintf(SYS_stderr, "Error, remove "
 						"failed!\n");
 					goto bail;
 				}
 				sessions_bool[s] = 0;
 			} else {
 				if(ret) {
-					NAL_fprintf(NAL_stderr, "Error, remove "
+					SYS_fprintf(SYS_stderr, "Error, remove "
 						"succeeded and shouldn't have!\n");
 					goto bail;
 				}
@@ -450,20 +450,20 @@ static int do_client(const char *address, unsigned int num_sessions,
 			/* This should succeed iff the session was there */
 			if(sessions_bool[s]) {
 				if(!ret) {
-					NAL_fprintf(NAL_stderr, "Error, get "
+					SYS_fprintf(SYS_stderr, "Error, get "
 						"failed!\n");
 					goto bail;
 				}
 				if((tmp_used != sessions_len[s]) ||
 						(memcmp(tmp, sessions_enc[s],
 							tmp_used) != 0)) {
-					NAL_fprintf(NAL_stderr, "Error, received "
+					SYS_fprintf(SYS_stderr, "Error, received "
 						"mismatched session\n");
 					goto bail;
 				}
 			} else {
 				if(ret) {
-					NAL_fprintf(NAL_stderr, "Error, get "
+					SYS_fprintf(SYS_stderr, "Error, get "
 						"succeeded and shouldn't have!\n");
 					goto bail;
 				}
@@ -475,20 +475,20 @@ static int do_client(const char *address, unsigned int num_sessions,
 					sessions_id[s], sessions_idlen[s]);
 			/* If this returns negative, there was an error */
 			if(ret < 0) {
-				NAL_fprintf(NAL_stderr, "Error, transaction "
+				SYS_fprintf(SYS_stderr, "Error, transaction "
 						"failure\n");
 				goto bail;
 			}
 			/* This should return > 0 iff the session was there */
 			if(sessions_bool[s]) {
 				if(!ret) {
-					NAL_fprintf(NAL_stderr, "Error, have "
+					SYS_fprintf(SYS_stderr, "Error, have "
 							"failed!\n");
 					goto bail;
 				}
 			} else {
 				if(ret) {
-					NAL_fprintf(NAL_stderr, "Error, have "
+					SYS_fprintf(SYS_stderr, "Error, have "
 						"succeeded and shouldn't have!\n");
 					goto bail;
 				}
@@ -499,13 +499,13 @@ static int do_client(const char *address, unsigned int num_sessions,
 		}
 		idx++;
 		if(progress && ((idx % progress) == 0))
-			NAL_fprintf(NAL_stdout, "Info, total operations = "
+			SYS_fprintf(SYS_stdout, "Info, total operations = "
 					"%7u\n", idx);
 	}
-	NAL_fprintf(NAL_stdout, "Info, all tests complete\n");
+	SYS_fprintf(SYS_stdout, "Info, all tests complete\n");
 	return 0;
 bail:
-	NAL_fprintf(NAL_stdout, "Info, %u tests succeeded before the first failure\n",
+	SYS_fprintf(SYS_stdout, "Info, %u tests succeeded before the first failure\n",
 			idx);
 	return 1;
 }
@@ -568,7 +568,7 @@ static SSL_SESSION *int_new_ssl_session(int withcert)
 	RAND_pseudo_bytes(ss->sid_ctx, ss->sid_ctx_length);
 	if(withcert) {
 		if((fp = fopen(CERT_PATH, "r")) == NULL) {
-			NAL_fprintf(NAL_stderr, "Error, can't open '%s'\n", CERT_PATH);
+			SYS_fprintf(SYS_stderr, "Error, can't open '%s'\n", CERT_PATH);
 			goto end;
 		}
 		ss->peer = PEM_read_X509(fp, NULL, NULL, NULL);

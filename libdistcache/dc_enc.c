@@ -49,7 +49,7 @@ static int proto_level_test(unsigned long pl)
 		 * because of protocol incompatibilities and not
 		 * misconfigurations or network problems. */
 #ifndef DISTCACHE_NO_PROTOCOL_STDERR
-		NAL_fprintf(NAL_stderr, "libdistcache(pid=%u) protocol "
+		SYS_fprintf(SYS_stderr, "libdistcache(pid=%u) protocol "
 			"incompatibility; my level is %08x, the peer's is %08x\n",
 			(unsigned int)getpid(), DISTCACHE_PROTO_LEVEL,
 			(unsigned int)pl);
@@ -216,37 +216,37 @@ static const char *dump_int_to_str(int val, const char **strs)
 static void debug_dump_bin(FILE *f, const char *prefix,
 		const unsigned char *data, unsigned int len)
 {
-	NAL_fprintf(f, "len=%u\n", len);
+	SYS_fprintf(f, "len=%u\n", len);
 	while(len) {
 		unsigned int to_print = ((len < debug_bytes_per_line) ?
 				len : debug_bytes_per_line);
 		len -= to_print;
-		NAL_fprintf(f, "%s", prefix);
+		SYS_fprintf(f, "%s", prefix);
 		while(to_print--)
-			NAL_fprintf(f, "%02x ", *(data++));
-		NAL_fprintf(f, "\n");
+			SYS_fprintf(f, "%02x ", *(data++));
+		SYS_fprintf(f, "\n");
 	}
 }
 
 static void dump_msg(const DC_MSG *msg)
 {
-	NAL_fprintf(NAL_stdout(), "DC_MSG_DEBUG: dumping message...\n");
-	NAL_fprintf(NAL_stdout(), "   proto_level:  %08x\n",
+	SYS_fprintf(SYS_stdout, "DC_MSG_DEBUG: dumping message...\n");
+	SYS_fprintf(SYS_stdout, "   proto_level:  %08x\n",
 		msg->proto_level);
 	if(msg->proto_level != 0x00100000)
 		abort();
-	NAL_fprintf(NAL_stdout(), "   is_response:  %u (%s)\n",
+	SYS_fprintf(SYS_stdout, "   is_response:  %u (%s)\n",
 		msg->is_response, (msg->is_response ? "response" : "request"));
-	NAL_fprintf(NAL_stdout(), "   request_uid:  %u\n", msg->request_uid);
-	NAL_fprintf(NAL_stdout(), "   op_class:     %s\n",
+	SYS_fprintf(SYS_stdout, "   request_uid:  %u\n", msg->request_uid);
+	SYS_fprintf(SYS_stdout, "   op_class:     %s\n",
 		dump_int_to_str(msg->op_class, str_dump_class));
-	NAL_fprintf(NAL_stdout(), "   operation:    %s\n",
+	SYS_fprintf(SYS_stdout, "   operation:    %s\n",
 		dump_int_to_str(msg->operation, str_dump_op));
-	NAL_fprintf(NAL_stdout(), "   complete:     %u (%s)\n",
+	SYS_fprintf(SYS_stdout, "   complete:     %u (%s)\n",
 		msg->complete, (msg->complete ? "complete" : "incomplete"));
-	NAL_fprintf(NAL_stdout(), "   data_len:     %u\n", msg->data_len);
-	NAL_fprintf(NAL_stdout(), "   data:\n");
-	debug_dump_bin(NAL_stdout(), "       ", msg->data, msg->data_len);
+	SYS_fprintf(SYS_stdout, "   data_len:     %u\n", msg->data_len);
+	SYS_fprintf(SYS_stdout, "   data:\n");
+	debug_dump_bin(SYS_stdout, "       ", msg->data, msg->data_len);
 }
 #endif
 
@@ -367,7 +367,7 @@ struct st_DC_PLUG {
 static int DC_PLUG_IO_init(DC_PLUG_IO *io)
 {
 	io->state = PLUG_EMPTY;
-	io->data = NAL_malloc(unsigned char, DC_IO_START_SIZE);
+	io->data = SYS_malloc(unsigned char, DC_IO_START_SIZE);
 	if(!io->data)
 		return 0;
 	io->data_used = 0;
@@ -377,7 +377,7 @@ static int DC_PLUG_IO_init(DC_PLUG_IO *io)
 
 static void DC_PLUG_IO_finish(DC_PLUG_IO *io)
 {
-	NAL_free(unsigned char, io->data);
+	SYS_free(unsigned char, io->data);
 }
 
 static int DC_PLUG_IO_make_space(DC_PLUG_IO *io, unsigned int needed)
@@ -390,12 +390,12 @@ static int DC_PLUG_IO_make_space(DC_PLUG_IO *io, unsigned int needed)
 	do {
 		newsize = newsize * 3 /  2;
 	} while(io->data_used + needed > newsize);
-	newdata = NAL_malloc(unsigned char, newsize);
+	newdata = SYS_malloc(unsigned char, newsize);
 	if(!newdata)
 		return 0;
 	if(io->data_used)
-		NAL_memcpy_n(unsigned char, newdata, io->data, io->data_used);
-	NAL_free(unsigned char, io->data);
+		SYS_memcpy_n(unsigned char, newdata, io->data, io->data_used);
+	SYS_free(unsigned char, io->data);
 	io->data = newdata;
 	io->data_size = newsize;
 	return 1;
@@ -468,7 +468,7 @@ start_over:
 		/* Make room for the payload data */
 		if(!DC_PLUG_IO_make_space(io, io->msg.data_len))
 			return 0;
-		NAL_memcpy_n(unsigned char, io->data + io->data_used,
+		SYS_memcpy_n(unsigned char, io->data + io->data_used,
 				io->msg.data, io->msg.data_len);
 		io->data_used += io->msg.data_len;
 	}
@@ -567,7 +567,7 @@ start_over:
 	io->msg.data_len = (io->data_used > DC_MSG_MAX_DATA ?
 			DC_MSG_MAX_DATA : io->data_used);
 	io->msg.complete = ((io->msg.data_len == io->data_used) ? 1 : 0);
-	NAL_memcpy_n(unsigned char, io->msg.data, io->data, io->msg.data_len);
+	SYS_memcpy_n(unsigned char, io->msg.data, io->data, io->msg.data_len);
 	/* Check its encoding size */
 	if(DC_MSG_encoding_size(&io->msg) > buf_len)
 		/* Can't do anything */
@@ -583,7 +583,7 @@ start_over:
 	io->data_used -= io->msg.data_len;
 	if(io->data_used) {
 		/* There's still more to go */
-		NAL_memmove_n(unsigned char, io->data,
+		SYS_memmove_n(unsigned char, io->data,
 				io->data + io->msg.data_len,
 				io->data_used);
 		goto start_over;
@@ -629,7 +629,7 @@ static int DC_PLUG_IO_write(DC_PLUG_IO *io, int resume,
 	io->cmd = cmd;
 	io->data_used = payload_len;
 	if(payload_len)
-		NAL_memcpy_n(unsigned char, io->data, payload_data, payload_len);
+		SYS_memcpy_n(unsigned char, io->data, payload_data, payload_len);
 	return 1;
 }
 
@@ -654,7 +654,7 @@ static int DC_PLUG_IO_write_more(DC_PLUG_IO *io,
 		return 0;
 	if(!DC_PLUG_IO_make_space(io, data_len))
 		return 0;
-	NAL_memcpy_n(unsigned char, io->data + io->data_used, data, data_len);
+	SYS_memcpy_n(unsigned char, io->data + io->data_used, data, data_len);
 	io->data_used += data_len;
 	return 1;
 }
@@ -700,14 +700,14 @@ static int DC_PLUG_IO_rollback(DC_PLUG_IO *io)
 
 DC_PLUG *DC_PLUG_new(NAL_CONNECTION *conn, unsigned int flags)
 {
-	DC_PLUG *toret = NAL_malloc(DC_PLUG, 1);
+	DC_PLUG *toret = SYS_malloc(DC_PLUG, 1);
 	if(!toret)
 		return NULL;
 	toret->conn = conn;
 	toret->flags = flags;
 	if(DC_PLUG_IO_init(&toret->read) && DC_PLUG_IO_init(&toret->write))
 		return toret;
-	NAL_free(DC_PLUG, toret);
+	SYS_free(DC_PLUG, toret);
 	return NULL;
 }
 
@@ -717,7 +717,7 @@ int DC_PLUG_free(DC_PLUG *plug)
 		NAL_CONNECTION_free(plug->conn);
 	DC_PLUG_IO_finish(&plug->read);
 	DC_PLUG_IO_finish(&plug->write);
-	NAL_free(DC_PLUG, plug);
+	SYS_free(DC_PLUG, plug);
 	return 1;
 }
 

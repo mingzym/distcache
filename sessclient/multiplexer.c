@@ -54,7 +54,7 @@ static void int_remove(multiplexer_t *m, unsigned int idx)
 	assert(idx < m->used);
 	if(idx + 1 < m->used)
 		/* We have to scroll items */
-		NAL_memmove_n(item_t, m->items + idx, m->items + (idx + 1),
+		SYS_memmove_n(item_t, m->items + idx, m->items + (idx + 1),
 				m->used - (idx + 1));
 	m->used--;
 }
@@ -64,7 +64,7 @@ static void int_remove(multiplexer_t *m, unsigned int idx)
 
 multiplexer_t *multiplexer_new(void)
 {
-	multiplexer_t *m = NAL_malloc(multiplexer_t, 1);
+	multiplexer_t *m = SYS_malloc(multiplexer_t, 1);
 	if(!m)
 		return NULL;
 	m->used = 0;
@@ -74,7 +74,7 @@ multiplexer_t *multiplexer_new(void)
 
 void multiplexer_free(multiplexer_t *m)
 {
-	NAL_free(multiplexer_t, m);
+	SYS_free(multiplexer_t, m);
 }
 
 int multiplexer_run(multiplexer_t *m, clients_t *c, server_t *s,

@@ -140,59 +140,59 @@
  *     program is not doing what you think it is?").
  * 4 = output trace-level debugging information (verbose).
  */
-#ifndef NAL_DEBUG_LEVEL
-#define NAL_DEBUG_LEVEL 1
+#ifndef SYS_DEBUG_LEVEL
+#define SYS_DEBUG_LEVEL 1
 #endif
 
 /*******************************/
 /* OUTPUT CONTROL DECLARATIONS */
 /*******************************/
 
-#if NAL_DEBUG_LEVEL > 2
+#if SYS_DEBUG_LEVEL > 2
 
-/* We define NAL_*** symbols to replace streams and fprintf symbols so that we
+/* We define SYS_*** symbols to replace streams and fprintf symbols so that we
  * can hook these later on if we wish. However, as this currently serves no
  * purpose, the implementations are only used if the debugging level is high as
  * this lets us undefine the stdio.h symbols and verify no code is accidently
- * using them. At other times however, the NAL_*** symbols are defined directly
+ * using them. At other times however, the SYS_*** symbols are defined directly
  * to their stdio.h counterparts. */
 
 /* Return the file pointer (or NULL) for a particular stream */
-FILE *nal_stdin(void);
-FILE *nal_stdout(void);
-FILE *nal_stderr(void);
-int nal_fprintf(FILE *fp, const char *fmt, ...);
-#define NAL_stdin	nal_stdin()
-#define NAL_stdout	nal_stdout()
-#define NAL_stderr	nal_stderr()
-#define NAL_fprintf	nal_fprintf
+FILE *sys_stdin(void);
+FILE *sys_stdout(void);
+FILE *sys_stderr(void);
+int sys_fprintf(FILE *fp, const char *fmt, ...);
+#define SYS_stdin	sys_stdin()
+#define SYS_stdout	sys_stdout()
+#define SYS_stderr	sys_stderr()
+#define SYS_fprintf	sys_fprintf
 #ifndef IN_STREAMS_C
 #undef stdin
 #undef stdout
 #undef stderr
 #undef printf
 #undef fprintf
-#define stdin dont_use_stdin_use_NAL_stdin_instead
-#define stdout dont_use_stdout_use_NAL_stdout_instead
-#define stderr dont_use_stderr_use_NAL_stderr_instead
-#define printf dont_use_printf_use_NAL_fprintf_with_NAL_stdout
-#define fprintf dont_use_fprintf_use_NAL_fprintf_instead
+#define stdin dont_use_stdin_use_SYS_stdin_instead
+#define stdout dont_use_stdout_use_SYS_stdout_instead
+#define stderr dont_use_stderr_use_SYS_stderr_instead
+#define printf dont_use_printf_use_SYS_fprintf_with_SYS_stdout
+#define fprintf dont_use_fprintf_use_SYS_fprintf_instead
 #endif
 
 #else
 
 /* We use the system functions directly from our macros */
-#define NAL_stdin	stdin
-#define NAL_stdout	stdout
-#define NAL_stderr	stderr
-#define NAL_fprintf	fprintf
+#define SYS_stdin	stdin
+#define SYS_stdout	stdout
+#define SYS_stderr	stderr
+#define SYS_fprintf	fprintf
 
 #endif
 
 #ifndef LEAVE_PROCESSES_ALONE
 
 #ifndef IN_SYS_C
-#define daemon dont_use_daemon_but_use_NAL_daemon_instead
+#define daemon dont_use_daemon_but_use_SYS_daemon_instead
 #endif
 
 #endif /* !LEAVE_PROCESSES_ALONE */
@@ -202,19 +202,19 @@ int nal_fprintf(FILE *fp, const char *fmt, ...);
 /*********************/
 
 /* We always (for now) use type-safe macro wrappers for malloc, realloc, free,
- * memset, memcpy, and memmove. However to verify that the original versions
- * aren't being used as well, define NAL_DEBUG_LEVEL to something greater than
+ * memset, memcpy, and memmove. However to verify that the origisys versions
+ * aren't being used as well, define SYS_DEBUG_LEVEL to something greater than
  * 2; */
 
-#if NAL_DEBUG_LEVEL > 2
+#if SYS_DEBUG_LEVEL > 2
 
 /* Declare replacement functions for those we will #undef. */
-void *nal_malloc(size_t size);
-void *nal_realloc(void *ptr, size_t size);
-void nal_free(void *ptr);
-void *nal_memset(void *s, int c, size_t n);
-void *nal_memcpy(void *dest, const void *src, size_t n);
-void *nal_memmove(void *dest, const void *src, size_t n);
+void *sys_malloc(size_t size);
+void *sys_realloc(void *ptr, size_t size);
+void sys_free(void *ptr);
+void *sys_memset(void *s, int c, size_t n);
+void *sys_memcpy(void *dest, const void *src, size_t n);
+void *sys_memmove(void *dest, const void *src, size_t n);
 #ifndef IN_MEM_C /* and #undef the versions we want * code to avoid. */
 #undef malloc
 #undef realloc
@@ -237,12 +237,12 @@ void *nal_memmove(void *dest, const void *src, size_t n);
 #else
 
 /* We use the system functions directly from our macros */
-#define nal_malloc	malloc
-#define nal_realloc	realloc
-#define nal_free	free
-#define nal_memset	memset
-#define nal_memcpy	memcpy
-#define nal_memmove	memmove
+#define sys_malloc	malloc
+#define sys_realloc	realloc
+#define sys_free	free
+#define sys_memset	memset
+#define sys_memcpy	memcpy
+#define sys_memmove	memmove
 
 #endif
 
@@ -250,118 +250,118 @@ void *nal_memmove(void *dest, const void *src, size_t n);
  * speed differences we can put these back. Note, a decent compiler should boil
  * the type-safe wrappers down to these forms anyway after type-checking. */
 #if 0
-#define NAL_malloc(t,n)		(t *)malloc((n) * sizeof(t))
-#define NAL_realloc(t,p,n)	(t *)realloc((p), (n) * sizeof(t))
-#define NAL_free(t,p)		free((p))
-#define NAL_cover(c,t,p)	memset((p), (c), sizeof(t))
-#define NAL_cover_n(c,t,p,n)	memset((p), (c), (n) * sizeof(t))
-#define NAL_memcpy(t,d,s)	memcpy((d), (s), sizeof(t))
-#define NAL_memcpy_n(t,d,s,n)	memcpy((d), (s), (n) * sizeof(t))
-#define NAL_memmove(t,d,s)	memmove((d), (s), sizeof(t))
-#define NAL_memmove_n(t,d,s,n)	memmove((d), (s), (n) * sizeof(t))
+#define SYS_malloc(t,n)		(t *)malloc((n) * sizeof(t))
+#define SYS_realloc(t,p,n)	(t *)realloc((p), (n) * sizeof(t))
+#define SYS_free(t,p)		free((p))
+#define SYS_cover(c,t,p)	memset((p), (c), sizeof(t))
+#define SYS_cover_n(c,t,p,n)	memset((p), (c), (n) * sizeof(t))
+#define SYS_memcpy(t,d,s)	memcpy((d), (s), sizeof(t))
+#define SYS_memcpy_n(t,d,s,n)	memcpy((d), (s), (n) * sizeof(t))
+#define SYS_memmove(t,d,s)	memmove((d), (s), sizeof(t))
+#define SYS_memmove_n(t,d,s,n)	memmove((d), (s), (n) * sizeof(t))
 #else
 
 /* Type-safe macro wrappers */
-#define NAL_malloc(t,n)		(t *)nal_malloc((n) * sizeof(t))
-#define NAL_realloc(t,p,n)	(t *)nal_realloc((p), (n) * sizeof(t))
-#define NAL_free(t,p)		do { \
-				t *tmp_nal_free_4765 = (p); \
-				nal_free(tmp_nal_free_4765); \
+#define SYS_malloc(t,n)		(t *)sys_malloc((n) * sizeof(t))
+#define SYS_realloc(t,p,n)	(t *)sys_realloc((p), (n) * sizeof(t))
+#define SYS_free(t,p)		do { \
+				t *tmp_sys_free_4765 = (p); \
+				sys_free(tmp_sys_free_4765); \
 				} while(0)
-#define NAL_cover(c,t,p)	do { \
-				t *temp_NAL_cover_ptr = (p); \
-				nal_memset(temp_NAL_cover_ptr, (c), \
+#define SYS_cover(c,t,p)	do { \
+				t *temp_SYS_cover_ptr = (p); \
+				sys_memset(temp_SYS_cover_ptr, (c), \
 						sizeof(t)); \
 				} while(0)
-#define NAL_cover_n(c,t,p,n)	do { \
-				t *temp_NAL_cover_n_ptr = (p); \
-				nal_memset(temp_NAL_cover_n_ptr, (c), \
+#define SYS_cover_n(c,t,p,n)	do { \
+				t *temp_SYS_cover_n_ptr = (p); \
+				sys_memset(temp_SYS_cover_n_ptr, (c), \
 						(n) * sizeof(t)); \
 				} while(0)
-#define NAL_memcpy(t,d,s)	do { \
-				t *temp_NAL_memcpy_ptr1 = (d); \
-				const t *temp_NAL_memcpy_ptr2 = (s); \
-				nal_memcpy(temp_NAL_memcpy_ptr1, \
-					temp_NAL_memcpy_ptr2, \
+#define SYS_memcpy(t,d,s)	do { \
+				t *temp_SYS_memcpy_ptr1 = (d); \
+				const t *temp_SYS_memcpy_ptr2 = (s); \
+				sys_memcpy(temp_SYS_memcpy_ptr1, \
+					temp_SYS_memcpy_ptr2, \
 					sizeof(t)); \
 				} while(0)
-#define NAL_memcpy_n(t,d,s,n)	do { \
-				t *temp_NAL_memcpy_ptr1 = (d); \
-				const t *temp_NAL_memcpy_ptr2 = (s); \
-				nal_memcpy(temp_NAL_memcpy_ptr1, \
-					temp_NAL_memcpy_ptr2, \
+#define SYS_memcpy_n(t,d,s,n)	do { \
+				t *temp_SYS_memcpy_ptr1 = (d); \
+				const t *temp_SYS_memcpy_ptr2 = (s); \
+				sys_memcpy(temp_SYS_memcpy_ptr1, \
+					temp_SYS_memcpy_ptr2, \
 					(n) * sizeof(t)); \
 				} while(0)
-#define NAL_memmove(t,d,s)	do { \
-				t *temp_NAL_memmove_ptr1 = (d); \
-				const t *temp_NAL_memmove_ptr2 = (s); \
-				nal_memmove(temp_NAL_memmove_ptr1, \
-					temp_NAL_memmove_ptr2, \
+#define SYS_memmove(t,d,s)	do { \
+				t *temp_SYS_memmove_ptr1 = (d); \
+				const t *temp_SYS_memmove_ptr2 = (s); \
+				sys_memmove(temp_SYS_memmove_ptr1, \
+					temp_SYS_memmove_ptr2, \
 					sizeof(t)); \
 				} while(0)
-#define NAL_memmove_n(t,d,s,n)	do { \
-				t *temp_NAL_memmove_ptr1 = (d); \
-				const t *temp_NAL_memmove_ptr2 = (s); \
-				nal_memmove(temp_NAL_memmove_ptr1, \
-					temp_NAL_memmove_ptr2, \
+#define SYS_memmove_n(t,d,s,n)	do { \
+				t *temp_SYS_memmove_ptr1 = (d); \
+				const t *temp_SYS_memmove_ptr2 = (s); \
+				sys_memmove(temp_SYS_memmove_ptr1, \
+					temp_SYS_memmove_ptr2, \
 					(n) * sizeof(t)); \
 				} while(0)
 #endif
 
-#define NAL_zero(t,p)		NAL_cover(0,t,(p))
-#define NAL_zero_n(t,p,n)	NAL_cover_n(0,t,(p),(n))
+#define SYS_zero(t,p)		SYS_cover(0,t,(p))
+#define SYS_zero_n(t,p,n)	SYS_cover_n(0,t,(p),(n))
 /* This wrapper always zero-terminates, unlike a normal strncpy which does not */
-#define NAL_strncpy(d,s,n)	do { \
-				char *tmp_NAL_strncpy1 = (d); \
-				const char *tmp_NAL_strncpy2 = (s); \
-				size_t tmp_NAL_strncpy3 = strlen(tmp_NAL_strncpy2), \
-					tmp_NAL_strncpy4 = (n); \
-				if(tmp_NAL_strncpy3 < tmp_NAL_strncpy4) \
-					NAL_memcpy_n(char, (d), (s), tmp_NAL_strncpy3 + 1); \
+#define SYS_strncpy(d,s,n)	do { \
+				char *tmp_SYS_strncpy1 = (d); \
+				const char *tmp_SYS_strncpy2 = (s); \
+				size_t tmp_SYS_strncpy3 = strlen(tmp_SYS_strncpy2), \
+					tmp_SYS_strncpy4 = (n); \
+				if(tmp_SYS_strncpy3 < tmp_SYS_strncpy4) \
+					SYS_memcpy_n(char, (d), (s), tmp_SYS_strncpy3 + 1); \
 				else { \
-					NAL_memcpy_n(char, (d), (s), tmp_NAL_strncpy4); \
-					tmp_NAL_strncpy1[tmp_NAL_strncpy4 - 1] = '\0'; \
+					SYS_memcpy_n(char, (d), (s), tmp_SYS_strncpy4); \
+					tmp_SYS_strncpy1[tmp_SYS_strncpy4 - 1] = '\0'; \
 				} \
 				} while(0)
-#define NAL_strdup(d,s)		do { \
-				char **tmp_NAL_strdup1 = (d); \
-				const char *tmp_NAL_strdup2 = (s); \
-				size_t tmp_NAL_strdup3 = strlen(tmp_NAL_strdup2) + 1; \
-				*tmp_NAL_strdup1 = NAL_malloc(char, tmp_NAL_strdup3); \
-				if(*tmp_NAL_strdup1) \
-					NAL_memcpy_n(char, *tmp_NAL_strdup1, \
-						tmp_NAL_strdup2, tmp_NAL_strdup3); \
+#define SYS_strdup(d,s)		do { \
+				char **tmp_SYS_strdup1 = (d); \
+				const char *tmp_SYS_strdup2 = (s); \
+				size_t tmp_SYS_strdup3 = strlen(tmp_SYS_strdup2) + 1; \
+				*tmp_SYS_strdup1 = SYS_malloc(char, tmp_SYS_strdup3); \
+				if(*tmp_SYS_strdup1) \
+					SYS_memcpy_n(char, *tmp_SYS_strdup1, \
+						tmp_SYS_strdup2, tmp_SYS_strdup3); \
 				} while(0)
 
 /* Now a structure version that is useful for example with fixed size char
- * arrays ... eg. char v[20]; NAL_zero_s(v); Because you'd either need to use
- * "20" inside NAL_zero_n, or risk strangeness with NAL_zero (do you pass "v" or
+ * arrays ... eg. char v[20]; SYS_zero_s(v); Because you'd either need to use
+ * "20" inside SYS_zero_n, or risk strangeness with SYS_zero (do you pass "v" or
  * "&v"? and what to pass for "t"??). */
-#define NAL_cover_s(c,s)	memset(&(s), (c), sizeof(s))
-#define NAL_zero_s(s)		NAL_cover_s(0,(s))
+#define SYS_cover_s(c,s)	memset(&(s), (c), sizeof(s))
+#define SYS_zero_s(s)		SYS_cover_s(0,(s))
 
 /***************************/
 /* SYSTEM HELPER FUNCTIONS */
 /***************************/
 
 #ifdef WIN32
-int NAL_sockets_init(void);
+int SYS_sockets_init(void);
 #else
-int NAL_sigpipe_ignore(void);
-pid_t NAL_getpid(void);
-int NAL_daemon(int nochdir);
+int SYS_sigpipe_ignore(void);
+pid_t SYS_getpid(void);
+int SYS_daemon(int nochdir);
 #endif
-void NAL_gettime(struct timeval *tv);
-int NAL_timecmp(const struct timeval *a, const struct timeval *b);
-void NAL_timecpy(struct timeval *dest, const struct timeval *src);
+void SYS_gettime(struct timeval *tv);
+int SYS_timecmp(const struct timeval *a, const struct timeval *b);
+void SYS_timecpy(struct timeval *dest, const struct timeval *src);
 /* Arithmetic on timevals. 'res' can be the same as 'I' if desired. */
-void NAL_timeadd(struct timeval *res, const struct timeval *I,
+void SYS_timeadd(struct timeval *res, const struct timeval *I,
 		unsigned long msecs);
-void NAL_timesub(struct timeval *res, const struct timeval *I,
+void SYS_timesub(struct timeval *res, const struct timeval *I,
 		unsigned long msecs);
-int NAL_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
+int SYS_expirycheck(const struct timeval *timeitem, unsigned long msec_expiry,
 		const struct timeval *timenow);
-unsigned long NAL_msecs_between(const struct timeval *a, const struct timeval *b);
+unsigned long SYS_msecs_between(const struct timeval *a, const struct timeval *b);
 
 #endif /* !defined(HEADER_LIBNAL_COMMON_H) */
 

@@ -125,7 +125,7 @@ static int int_transact(DC_CTX *ctx, DC_CMD cmd)
 	if(ctx->flags & DC_CTX_FLAG_PERSISTENT) {
 		/* (re)connect due to 'pid' or 'late' checks? */
 		if(((ctx->flags & DC_CTX_FLAG_PERSISTENT_PIDCHECK) &&
-				((pid = NAL_getpid()) != ctx->current_pid)) ||
+				((pid = SYS_getpid()) != ctx->current_pid)) ||
 				((ctx->flags & DC_CTX_FLAG_PERSISTENT_LATE)
 					&& !ctx->plug)) {
 			if(!int_connect(ctx))
@@ -164,7 +164,7 @@ reselect:
 			!ret_len || (ret_len > DC_MAX_TOTAL_DATA))
 		goto err;
 	ctx->read_data_len = ret_len;
-	NAL_memcpy_n(unsigned char, ctx->read_data, ret_data, ret_len);
+	SYS_memcpy_n(unsigned char, ctx->read_data, ret_data, ret_len);
 	/* Success */
 	DC_PLUG_consume(plug);
 	toreturn = 1;
@@ -194,11 +194,11 @@ net_err:
 
 DC_CTX *DC_CTX_new(const char *target, unsigned int flags)
 {
-	DC_CTX *ctx = NAL_malloc(DC_CTX, 1);
+	DC_CTX *ctx = SYS_malloc(DC_CTX, 1);
 	if(!ctx)
 		goto err;
 	ctx->flags = flags;
-	ctx->current_pid = NAL_getpid();
+	ctx->current_pid = SYS_getpid();
 	ctx->plug = NULL;
 	ctx->last_op_was_get = ctx->last_get_id_len = 0;
 	ctx->read_data_len = ctx->send_data_len = 0;
@@ -221,7 +221,7 @@ err:
 			NAL_ADDRESS_free(ctx->address);
 		if(ctx->plug)
 			DC_PLUG_free(ctx->plug);
-		NAL_free(DC_CTX, ctx);
+		SYS_free(DC_CTX, ctx);
 	}
 	return NULL;
 }
@@ -231,7 +231,7 @@ void DC_CTX_free(DC_CTX *ctx)
 	if(ctx->plug)
 		DC_PLUG_free(ctx->plug);
 	NAL_ADDRESS_free(ctx->address);
-	NAL_free(DC_CTX, ctx);
+	SYS_free(DC_CTX, ctx);
 }
 
 int DC_CTX_add_session(DC_CTX *ctx,
@@ -264,9 +264,9 @@ int DC_CTX_add_session(DC_CTX *ctx,
 	assert((check + 8) == ctx->send_data_len);
 	assert((ctx->send_data + 8) == ptr);
 	/* Copy in the session-id and the session data */
-	NAL_memcpy_n(unsigned char, ptr, id_data, id_len);
+	SYS_memcpy_n(unsigned char, ptr, id_data, id_len);
 	ptr += id_len;
-	NAL_memcpy_n(unsigned char, ptr, sess_data, sess_len);
+	SYS_memcpy_n(unsigned char, ptr, sess_data, sess_len);
 	/* Do the network operation */
 	if(!int_transact(ctx, DC_CMD_ADD))
 		/* The transaction itself failed. */
@@ -287,7 +287,7 @@ int DC_CTX_remove_session(DC_CTX *ctx,
 	/* Check this isn't too big */
 	assert(id_data && id_len && (id_len <= DC_MAX_TOTAL_DATA));
 	ctx->send_data_len = id_len;
-	NAL_memcpy_n(unsigned char, ctx->send_data, id_data, id_len);
+	SYS_memcpy_n(unsigned char, ctx->send_data, id_data, id_len);
 	if(!int_transact(ctx, DC_CMD_REMOVE))
 		/* The transaction itself failed. */
 		return 0;
@@ -316,7 +316,7 @@ static void get_helper(DC_CTX *ctx, unsigned char *result_storage,
 		/* Check, in case result_size is zero (should perhaps make that
 		 * an error condition ...) */
 		if(tocopy)
-			NAL_memcpy_n(unsigned char, result_storage,
+			SYS_memcpy_n(unsigned char, result_storage,
 					ctx->read_data, tocopy);
 	}
 }
@@ -331,7 +331,7 @@ int DC_CTX_get_session(DC_CTX *ctx,
 	/* Check this isn't too big */
 	assert(id_data && id_len && (id_len <= DC_MAX_TOTAL_DATA));
 	ctx->send_data_len = id_len;
-	NAL_memcpy_n(unsigned char, ctx->send_data, id_data, id_len);
+	SYS_memcpy_n(unsigned char, ctx->send_data, id_data, id_len);
 	if(!int_transact(ctx, DC_CMD_GET))
 		/* The transaction itself failed. */
 		return 0;
@@ -345,7 +345,7 @@ int DC_CTX_get_session(DC_CTX *ctx,
 	 * will not have to touch the network. */
 	ctx->last_op_was_get = 1;
 	ctx->last_get_id_len = id_len;
-	NAL_memcpy_n(unsigned char, ctx->last_get_id, id_data, id_len);
+	SYS_memcpy_n(unsigned char, ctx->last_get_id, id_data, id_len);
 	get_helper(ctx, result_storage, result_size, result_used);
 	return 1;
 }
@@ -377,7 +377,7 @@ int DC_CTX_has_session(DC_CTX *ctx,
 	/* Check this isn't too big */
 	assert(id_data && id_len && (id_len <= DC_MAX_TOTAL_DATA));
 	ctx->send_data_len = id_len;
-	NAL_memcpy_n(unsigned char, ctx->send_data, id_data, id_len);
+	SYS_memcpy_n(unsigned char, ctx->send_data, id_data, id_len);
 	if(!int_transact(ctx, DC_CMD_HAVE))
 		/* The transaction itself failed. */
 		return -1;

@@ -74,13 +74,13 @@ static unsigned int cached_misses = 0;
 static unsigned int cached_hits = 0;
 
 #define CACHED_REMOVE {if((++cached_removes % DC_CACHE_DEBUG_INTERVAL) == 0) \
-		NAL_fprintf(NAL_stdout(), "DC_CACHE_DEBUG: cached_removes = %u\n", \
+		SYS_fprintf(SYS_stdout, "DC_CACHE_DEBUG: cached_removes = %u\n", \
 				cached_removes); }
 #define CACHED_MISS {if((++cached_misses % DC_CACHE_DEBUG_INTERVAL) == 0) \
-		NAL_fprintf(NAL_stdout(), "DC_CACHE_DEBUG: cached_misses = %u\n", \
+		SYS_fprintf(SYS_stdout, "DC_CACHE_DEBUG: cached_misses = %u\n", \
 				cached_misses); }
 #define CACHED_HIT {if((++cached_hits % DC_CACHE_DEBUG_INTERVAL) == 0) \
-		NAL_fprintf(NAL_stdout(), "DC_CACHE_DEBUG: cached_hits = %u\n", \
+		SYS_fprintf(SYS_stdout, "DC_CACHE_DEBUG: cached_hits = %u\n", \
 				cached_hits); }
 #else
 #define CACHED_REMOVE
@@ -148,7 +148,7 @@ static void int_lookup_set(DC_CACHE *cache,
 {
 	cache->cached_id_len = session_id_len;
 	if(session_id_len)
-		NAL_memcpy_n(unsigned char, cache->cached_id,
+		SYS_memcpy_n(unsigned char, cache->cached_id,
 				session_id, session_id_len);
 	cache->cached_idx = idx;
 }
@@ -158,7 +158,7 @@ static void int_lookup_set(DC_CACHE *cache,
 
 static void int_pre_remove_DC_ITEM(DC_ITEM *item)
 {
-	NAL_free(unsigned char, item->ptr);
+	SYS_free(unsigned char, item->ptr);
 	item->ptr = NULL;
 }
 
@@ -167,7 +167,7 @@ static void int_force_expire(DC_CACHE *cache, unsigned int num)
 	assert((num > 0) && (num <= cache->items_used));
 	/* Only "memmove" if we're not expiring everything */
 	if(num < cache->items_used)
-		NAL_memmove_n(DC_ITEM, cache->items, cache->items + num,
+		SYS_memmove_n(DC_ITEM, cache->items, cache->items + num,
 				cache->items_used - num);
 	cache->items_used -= num;
 	/* How does this affect cached lookups? */
@@ -178,7 +178,7 @@ static void int_expire(DC_CACHE *cache, const struct timeval *now)
 {
 	unsigned int idx = 0, toexpire = 0;
 	DC_ITEM *item = cache->items;
-	while((idx < cache->items_used) && (NAL_timecmp(now,
+	while((idx < cache->items_used) && (SYS_timecmp(now,
 				&(item->expiry)) > 0)) {
 		/* Do pre-remove cleanup but don't do the remove, this is
 		 * because we can do one giant scroll in int_force_expire()
@@ -227,22 +227,22 @@ static int int_add_DC_ITEM(DC_CACHE *cache, unsigned int idx,
 
 	/* So we'll definitely insert - take care of the one remaining error
 	 * possibility first, malloc. */
-	ptr = NAL_malloc(unsigned char, session_id_len + data_len);
+	ptr = SYS_malloc(unsigned char, session_id_len + data_len);
 	if(!ptr)
 		return 0;
 	item = cache->items + idx;
 	/* Do we need to shuffle existing items? */
 	if(idx < cache->items_used)
 		/* This is a genuine insertion rather than an append */
-		NAL_memmove_n(DC_ITEM, item + 1, item,
+		SYS_memmove_n(DC_ITEM, item + 1, item,
 				cache->items_used - idx);
 	/* Populate the entry */
-	NAL_timecpy(&item->expiry, expiry);
+	SYS_timecpy(&item->expiry, expiry);
 	item->ptr = ptr;
 	item->id_len = session_id_len;
 	item->data_len = data_len;
-	NAL_memcpy_n(unsigned char, item->ptr, session_id, session_id_len);
-	NAL_memcpy_n(unsigned char, item->ptr + item->id_len, data, data_len);
+	SYS_memcpy_n(unsigned char, item->ptr, session_id, session_id_len);
+	SYS_memcpy_n(unsigned char, item->ptr + item->id_len, data, data_len);
 	cache->items_used++;
 	/* Cache this item as a lookup */
 	int_lookup_set(cache, session_id, session_id_len, idx);
@@ -257,7 +257,7 @@ static void int_remove_DC_ITEM(DC_CACHE *cache, unsigned int idx)
 	int_pre_remove_DC_ITEM(item);
 	cache->items_used--;
 	if(idx < cache->items_used)
-		NAL_memmove_n(DC_ITEM, cache->items + idx,
+		SYS_memmove_n(DC_ITEM, cache->items + idx,
 				cache->items + (idx + 1),
 				cache->items_used - idx);
 	int_lookup_removed(cache, idx);
@@ -272,12 +272,12 @@ static DC_CACHE *cache_new(unsigned int max_sessions)
 	if((max_sessions < DC_CACHE_MIN_SIZE) ||
 			(max_sessions > DC_CACHE_MAX_SIZE))
 		return NULL;
-	toret = NAL_malloc(DC_CACHE, 1);
+	toret = SYS_malloc(DC_CACHE, 1);
 	if(!toret)
 		return NULL;
-	toret->items = NAL_malloc(DC_ITEM, max_sessions);
+	toret->items = SYS_malloc(DC_ITEM, max_sessions);
 	if(!toret->items) {
-		NAL_free(DC_CACHE, toret);
+		SYS_free(DC_CACHE, toret);
 		return NULL;
 	}
 	toret->items_used = 0;
@@ -296,8 +296,8 @@ static void cache_free(DC_CACHE *cache)
 {
 	while(cache->items_used)
 		int_remove_DC_ITEM(cache, cache->items_used - 1);
-	NAL_free(DC_ITEM, cache->items);
-	NAL_free(DC_CACHE, cache);
+	SYS_free(DC_ITEM, cache->items);
+	SYS_free(DC_CACHE, cache);
 }
 
 static int cache_add_session(DC_CACHE *cache,
@@ -333,7 +333,7 @@ static int cache_add_session(DC_CACHE *cache,
 		 * memmove() operations. */
 		int_force_expire(cache, cache->expire_delta);
 	/* Set the time that the new session will expire */
-	NAL_timeadd(&expiry, now, timeout_msecs);
+	SYS_timeadd(&expiry, now, timeout_msecs);
 	/* Find the insertion point based on expiry time */
 	idx = cache->items_used;
 	item = cache->items + idx;
@@ -342,7 +342,7 @@ static int cache_add_session(DC_CACHE *cache,
 		item--;
 		/* So, if 'item' will expiry before or at the same time, we can
 		 * insert immediately after it. */
-		if(NAL_timecmp(&item->expiry, &expiry) <= 0) {
+		if(SYS_timecmp(&item->expiry, &expiry) <= 0) {
 			idx++;
 			item++;
 			goto found;
@@ -375,7 +375,7 @@ static unsigned int cache_get_session(DC_CACHE *cache,
 		assert(store_len > 0); /* no reason to accept store_len == 0 */
 		if(towrite > store_len)
 			towrite = store_len;
-		NAL_memcpy_n(unsigned char, store,
+		SYS_memcpy_n(unsigned char, store,
 			item->ptr + item->id_len, towrite);
 	}
 	return item->data_len;

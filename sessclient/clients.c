@@ -115,17 +115,17 @@ restart:
 static client_ctx *client_ctx_new(unsigned long uid, NAL_CONNECTION *conn,
 				const struct timeval *now)
 {
-	client_ctx *c = NAL_malloc(client_ctx, 1);
+	client_ctx *c = SYS_malloc(client_ctx, 1);
 	if(!c)
 		return NULL;
 	c->uid = uid;
 	c->request_open = 0;
 	c->response_done = 0;
 	c->multiplex_id = 0;
-	NAL_timecpy(&c->timestamp, now);
+	SYS_timecpy(&c->timestamp, now);
 	c->plug = DC_PLUG_new(conn, 0);
 	if(!c->plug) {
-		NAL_free(client_ctx, c);
+		SYS_free(client_ctx, c);
 		return NULL;
 	}
 	return c;
@@ -134,7 +134,7 @@ static client_ctx *client_ctx_new(unsigned long uid, NAL_CONNECTION *conn,
 static void client_ctx_free(client_ctx *c)
 {
 	DC_PLUG_free(c->plug);
-	NAL_free(client_ctx, c);
+	SYS_free(client_ctx, c);
 }
 
 static void client_ctx_to_selector(client_ctx *c, NAL_SELECTOR *sel)
@@ -178,7 +178,7 @@ static int client_ctx_should_timeout(client_ctx *c, unsigned long idle_timeout,
 	if(c->request_open)
 		return 0;
 	/* Check the time-interval */
-	return NAL_expirycheck(&c->timestamp, idle_timeout, now);
+	return SYS_expirycheck(&c->timestamp, idle_timeout, now);
 }
 
 /*************************************************************************/
@@ -226,7 +226,7 @@ static void priority_totail(clients_t *c, unsigned int pre_index)
 		/* The item wasn't already at the end of the priority array, so
 		 * store it, scroll everything else, then dump it at the tail */
 		unsigned int tmp = c->priorities[pre_index];
-		NAL_memmove_n(unsigned int, c->priorities + pre_index,
+		SYS_memmove_n(unsigned int, c->priorities + pre_index,
 				c->priorities + (pre_index + 1),
 				c->used - (pre_index + 1));
 		c->priorities[c->used - 1] = tmp;
@@ -255,7 +255,7 @@ static int int_find(clients_t *c, unsigned long client_uid, unsigned int *pos)
 
 clients_t *clients_new(void)
 {
-	clients_t *c = NAL_malloc(clients_t, 1);
+	clients_t *c = SYS_malloc(clients_t, 1);
 	if(!c)
 		return NULL;
 	c->used = 0;
@@ -274,7 +274,7 @@ static void clients_delete(clients_t *c, unsigned int idx, multiplexer_t *m)
 	client_ctx **ctx = c->items + idx;
 
 #ifdef CLIENTS_PRINT_CONNECTS
-	NAL_fprintf(NAL_stdout(), "Info: dead client connection (%u)\n", idx);
+	SYS_fprintf(SYS_stdout, "Info: dead client connection (%u)\n", idx);
 #endif
 	/* Notify the multiplexer */
 	multiplexer_mark_dead_client(m, (*ctx)->uid);
@@ -282,7 +282,7 @@ static void clients_delete(clients_t *c, unsigned int idx, multiplexer_t *m)
 	client_ctx_free(*ctx);
 	/* adjust the array */
 	if(idx + 1 < c->used)
-		NAL_memmove_n(client_ctx *, ctx, (const client_ctx **)ctx + 1,
+		SYS_memmove_n(client_ctx *, ctx, (const client_ctx **)ctx + 1,
 				c->used - (idx + 1));
 	c->used--;
 	/* correct the priority array */
@@ -320,13 +320,13 @@ int clients_new_client(clients_t *c, NAL_CONNECTION *conn,
 	client_ctx **item = c->items + c->used;
 
 	if(c->used >= CLIENTS_MAX_ITEMS) {
-		NAL_fprintf(NAL_stderr, "Error, rejected new client connection "
+		SYS_fprintf(SYS_stderr, "Error, rejected new client connection "
 				"already at maximum (%u)\n", CLIENTS_MAX_ITEMS);
 		return 0;
 	}
 	*item = client_ctx_new(c->uid_seed, conn, now);
 	if(*item == NULL) {
-		NAL_fprintf(NAL_stderr, "Error, initialisation of new client "
+		SYS_fprintf(SYS_stderr, "Error, initialisation of new client "
 				"connection failed\n");
 		return 0;
 	}
@@ -338,7 +338,7 @@ int clients_new_client(clients_t *c, NAL_CONNECTION *conn,
 	c->priorities[c->used] = c->used;
 	c->used++;
 #ifdef CLIENTS_PRINT_CONNECTS
-	NAL_fprintf(NAL_stdout(), "Info: new client connection (%u)\n", c->used);
+	SYS_fprintf(SYS_stdout, "Info: new client connection (%u)\n", c->used);
 #endif
 	return 1;
 }
@@ -379,7 +379,7 @@ restart_loop:
 			return 1;
 		}
 		ctx->multiplex_id = m_uid;
-		NAL_timecpy(&ctx->timestamp, now);
+		SYS_timecpy(&ctx->timestamp, now);
 responded_locally:
 		/* Adjust priorities and continue */
 		priority_totail(c, edge_l);

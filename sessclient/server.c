@@ -46,14 +46,14 @@ static void server_retry_util(server_t *s, const struct timeval *now)
 	NAL_CONNECTION *conn;
 	if(s->plug)
 		return;
-	if(!NAL_expirycheck(&s->last_fail, s->retry_msecs, now))
+	if(!SYS_expirycheck(&s->last_fail, s->retry_msecs, now))
 		return;
 	/* OK, we try to reconnect */
 	conn = NAL_CONNECTION_new();
 	if(!conn)
 		return;
 	/* No matter what fails from here on, we'll update the timestamp */
-	NAL_timecpy(&s->last_fail, now);
+	SYS_timecpy(&s->last_fail, now);
 	if(!NAL_CONNECTION_create(conn, s->address) ||
 			((s->plug = DC_PLUG_new(conn,
 				DC_PLUG_FLAG_TO_SERVER)) == NULL)) {
@@ -67,7 +67,7 @@ static void server_dead_util(server_t *s, multiplexer_t *m, clients_t *c,
 {
 	DC_PLUG_free(s->plug);
 	s->plug = NULL;
-	NAL_timecpy(&s->last_fail, now);
+	SYS_timecpy(&s->last_fail, now);
 	multiplexer_mark_dead_server(m, s->uid, c);
 }
 
@@ -90,7 +90,7 @@ server_t *server_new(const char *address, unsigned long retry_msecs,
 	if(!a || !NAL_ADDRESS_create(a, address, SERVER_BUFFER_SIZE) ||
 			!NAL_ADDRESS_can_connect(a))
 		goto err;
-	s = NAL_malloc(server_t, 1);
+	s = SYS_malloc(server_t, 1);
 	if(!s)
 		goto err;
 	s->plug = NULL;
@@ -98,7 +98,7 @@ server_t *server_new(const char *address, unsigned long retry_msecs,
 	s->retry_msecs = retry_msecs;
 	/* Ensure the "last_fail" is set so that we'll attempt a connect on the
 	 * very first attempt */
-	NAL_timesub(&s->last_fail, now, retry_msecs + 1);
+	SYS_timesub(&s->last_fail, now, retry_msecs + 1);
 	/* We're OK, whether this connection attempt works or not */
 	server_retry_util(s, now);
 	return s;
@@ -113,7 +113,7 @@ void server_free(server_t *s)
 	NAL_ADDRESS_free(s->address);
 	if(s->plug)
 		DC_PLUG_free(s->plug);
-	NAL_free(server_t, s);
+	SYS_free(server_t, s);
 }
 
 void server_to_selector(server_t *s, NAL_SELECTOR *sel, multiplexer_t *m,

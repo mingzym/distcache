@@ -107,7 +107,7 @@ static int usage(void)
 {
 	const char **u = usage_msg;
 	while(*u)
-		NAL_fprintf(NAL_stderr, "%s\n", *(u++));
+		SYS_fprintf(SYS_stderr, "%s\n", *(u++));
 	/* Return 0 because main() can use this is as a help
 	 * screen which shouldn't return an "error" */
 	return 0;
@@ -121,21 +121,21 @@ static const char *CMD_SERVER2 = "-connect";
 
 static int err_noarg(const char *arg)
 {
-	NAL_fprintf(NAL_stderr, "Error, -%s requires an argument\n", arg);
+	SYS_fprintf(SYS_stderr, "Error, -%s requires an argument\n", arg);
 	usage();
 	return 1;
 }
 #if 0
 static int err_badrange(const char *arg)
 {
-	NAL_fprintf(NAL_stderr, "Error, -%s given an invalid argument\n", arg);
+	SYS_fprintf(SYS_stderr, "Error, -%s given an invalid argument\n", arg);
 	usage();
 	return 1;
 }
 #endif
 static int err_badswitch(const char *arg)
 {
-	NAL_fprintf(NAL_stderr, "Error, \"%s\" not recognised\n", arg);
+	SYS_fprintf(SYS_stderr, "Error, \"%s\" not recognised\n", arg);
 	usage();
 	return 1;
 }
@@ -179,13 +179,13 @@ int main(int argc, char *argv[])
 
 	/* Scrutinise the settings */
 	if(!addr_server || !addr_listen) {
-		NAL_fprintf(NAL_stderr, "Error, must provide -listen and -server\n");
+		SYS_fprintf(SYS_stderr, "Error, must provide -listen and -server\n");
 		return 1;
 	}
 
-	if(!NAL_sigpipe_ignore()) {
-#if NAL_DEBUG_LEVEL > 0
-		NAL_fprintf(NAL_stderr, "Error, couldn't ignore SIGPIPE\n");
+	if(!SYS_sigpipe_ignore()) {
+#if SYS_DEBUG_LEVEL > 0
+		SYS_fprintf(SYS_stderr, "Error, couldn't ignore SIGPIPE\n");
 #endif
 		return 1;
 	}
@@ -310,7 +310,7 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 		}
 		if(m_data_len > DC_MSG_MAX_DATA) {
 #ifdef SNOOP_DBG_MSG
-			NAL_fprintf(NAL_stderr, "SNOOP_DBG_MSG: connection %d, %s, "
+			SYS_fprintf(SYS_stderr, "SNOOP_DBG_MSG: connection %d, %s, "
 				"message has illegal 'data_len' (%d)\n",
 				item->uid, SNOOP_C2S(client_to_server), m_data_len);
 #endif
@@ -324,7 +324,7 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 			return SNOOP_PARSE_INCOMPLETE;
 		/* YES, a message! */
 #ifdef SNOOP_DBG_MSG
-		NAL_fprintf(NAL_stdout, "SNOOP_DBG_MSG: connection %d, %s, "
+		SYS_fprintf(SYS_stdout, "SNOOP_DBG_MSG: connection %d, %s, "
 			"message completed (request_uid = %lu), total_len=%d\n",
 			item->uid, SNOOP_C2S(client_to_server), m_request_uid,
 			moved);
@@ -340,7 +340,7 @@ static snoop_parse_t snoop_data_arriving(snoop_item *item, int client_to_server)
 		*buf_used -= moved;
 		if(*buf_used)
 			/* Shift the remaining data left */
-			NAL_memcpy_n(unsigned char, buf, buf + moved, *buf_used);
+			SYS_memcpy_n(unsigned char, buf, buf + moved, *buf_used);
 		return SNOOP_PARSE_COMPLETE;
 	}
 	return SNOOP_PARSE_INCOMPLETE;
@@ -356,7 +356,7 @@ static int snoop_item_io(snoop_item *item, NAL_SELECTOR *sel)
 	do {
 		res = snoop_data_arriving(item, 1);
 		if(res == SNOOP_PARSE_ERR) {
-			NAL_fprintf(NAL_stderr, "[TODO: change me] client->server error\n");
+			SYS_fprintf(SYS_stderr, "[TODO: change me] client->server error\n");
 			return 0;
 		}
 	} while(res == SNOOP_PARSE_COMPLETE);
@@ -364,7 +364,7 @@ static int snoop_item_io(snoop_item *item, NAL_SELECTOR *sel)
 	do {
 		res = snoop_data_arriving(item, 0);
 		if(res == SNOOP_PARSE_ERR) {
-			NAL_fprintf(NAL_stderr, "[TODO: change me] server->client error\n");
+			SYS_fprintf(SYS_stderr, "[TODO: change me] server->client error\n");
 			return 0;
 		}
 	} while(res == SNOOP_PARSE_COMPLETE);
@@ -444,13 +444,13 @@ static int snoop_ctx_io(snoop_ctx *ctx)
 			 * "can't-help-you-right-now" connection and hope for
 			 * better luck next time. */
 #ifdef SNOOP_DBG_CONNS
-			NAL_fprintf(NAL_stdout(), "SNOOP_DBG_CONNS: failed "
+			SYS_fprintf(SYS_stdout, "SNOOP_DBG_CONNS: failed "
 					"incoming connection\n");
 #endif
 			NAL_CONNECTION_free(ctx->newclient);
 		} else {
 #ifdef SNOOP_DBG_CONNS
-			NAL_fprintf(NAL_stdout(), "SNOOP_DBG_CONNS: connection "
+			SYS_fprintf(SYS_stdout, "SNOOP_DBG_CONNS: connection "
 				"%d accepted\n", ctx->items[ctx->items_used].uid);
 #endif
 			ctx->items_used++;
@@ -467,12 +467,12 @@ static int snoop_ctx_io(snoop_ctx *ctx)
 	while(loop < ctx->items_used) {
 		if(!snoop_item_io(i, ctx->sel)) {
 #ifdef SNOOP_DBG_CONNS
-			NAL_fprintf(NAL_stdout(), "SNOOP_DBG_CONNS: connection "
+			SYS_fprintf(SYS_stdout, "SNOOP_DBG_CONNS: connection "
 					"%d dropped\n", i->uid);
 #endif
 			snoop_item_finish(i);
 			if(loop + 1 < ctx->items_used)
-				NAL_memmove_n(snoop_item, i, i + 1,
+				SYS_memmove_n(snoop_item, i, i + 1,
 						ctx->items_used - (loop + 1));
 			ctx->items_used--;
 		} else {
@@ -488,12 +488,12 @@ static int snoop_ctx_loop(snoop_ctx *ctx)
 	int sel_res;
 	snoop_ctx_to_sel(ctx);
 #ifdef SNOOP_DBG_SELECT
-	NAL_fprintf(NAL_stdout(), "SNOOP_DBG_SELECT: selecting ...");
-	fflush(NAL_stdout());
+	SYS_fprintf(SYS_stdout, "SNOOP_DBG_SELECT: selecting ...");
+	fflush(SYS_stdout);
 #endif
 	sel_res = NAL_SELECTOR_select(ctx->sel, 0, 0);
 #ifdef SNOOP_DBG_SELECT
-	NAL_fprintf(NAL_stdout(), "returned %d\n", sel_res);
+	SYS_fprintf(SYS_stdout, "returned %d\n", sel_res);
 #endif
 	if(sel_res < 0) {
 		switch(errno) {
@@ -501,19 +501,19 @@ static int snoop_ctx_loop(snoop_ctx *ctx)
 			/* hmm, whatever - do nothing */
 			return 1;
 		case EBADF:
-			NAL_fprintf(NAL_stderr, "Error: EBADF from select()\n");
+			SYS_fprintf(SYS_stderr, "Error: EBADF from select()\n");
 			break;
 		case ENOMEM:
-			NAL_fprintf(NAL_stderr, "Error: ENOMEM from select()\n");
+			SYS_fprintf(SYS_stderr, "Error: ENOMEM from select()\n");
 			break;
 		default:
-			NAL_fprintf(NAL_stderr, "Error: unknown problem in select()\n");
+			SYS_fprintf(SYS_stderr, "Error: unknown problem in select()\n");
 			break;
 		}
 		return 0;
 	}
 	if(sel_res == 0) {
-		NAL_fprintf(NAL_stderr, "Error, select() returned zero?\n");
+		SYS_fprintf(SYS_stderr, "Error, select() returned zero?\n");
 		return 0;
 	}
 	return snoop_ctx_io(ctx);

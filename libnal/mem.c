@@ -21,7 +21,7 @@
 
 #include <libnal/common.h>
 
-#if NAL_DEBUG_LEVEL > 2
+#if SYS_DEBUG_LEVEL > 2
 
 void *nal_malloc(size_t size)
 { return malloc(size); }
