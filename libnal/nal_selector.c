@@ -36,6 +36,33 @@ struct st_NAL_SELECTOR {
 	const NAL_SELECTOR_vtable *reset;
 };
 
+/*****************************************/
+/* Intermediaire selector implementation */
+/*****************************************/
+
+static int dyn_on_create(NAL_SELECTOR *s) { return 1; }
+static void dyn_on_destroy(NAL_SELECTOR *s) { }
+static void dyn_on_reset(NAL_SELECTOR *s) { }
+static NAL_SELECTOR_TYPE dyn_get_type(const NAL_SELECTOR *s) {
+	return NAL_SELECTOR_TYPE_DYNAMIC; }
+static int dyn_select(NAL_SELECTOR *s, unsigned long x, int y) { return -1; }
+static unsigned int dyn_num_objects(const NAL_SELECTOR *s) { return 0; }
+static const NAL_SELECTOR_vtable vtable_dyn = {
+	0, /* vtdata_size */
+	dyn_on_create,
+	dyn_on_destroy,
+	dyn_on_reset,
+	NULL, /* pre_close */
+	dyn_get_type,
+	dyn_select,
+	dyn_num_objects,
+	NULL, /* add_listener - shouldn't be called */
+	NULL, /* add_connection - shouldn't be called */
+	NULL, /* del_listener - shouldn't be called */
+	NULL, /* del_connection - shouldn't be called */
+	NULL
+};
+
 /****************************/
 /* nal_internal.h functions */
 /****************************/
@@ -70,12 +97,13 @@ NAL_SELECTOR *nal_selector_new(const NAL_SELECTOR_vtable *vtable)
 {
 	NAL_SELECTOR *sel = SYS_malloc(NAL_SELECTOR, 1);
 	if(!sel) goto err;
-	sel->vt = vtable;
 	if(vtable->vtdata_size) {
 		sel->vt_data = SYS_malloc(unsigned char, vtable->vtdata_size);
 		if(!sel->vt_data) goto err;
 	} else
 		sel->vt_data = NULL;
+	sel->vt = vtable;
+	sel->vt_data_size = vtable->vtdata_size;
 	SYS_zero_n(unsigned char, sel->vt_data, vtable->vtdata_size);
 	if(!vtable->on_create(sel)) goto err;
 	return sel;
@@ -110,15 +138,35 @@ int nal_selector_ctrl(NAL_SELECTOR *sel, int cmd, void *p)
 	return 0;
 }
 
+int nal_selector_dynamic_set(NAL_SELECTOR *s, const NAL_SELECTOR_vtable *vt) {
+	assert(s->vt == &vtable_dyn);
+	assert(s->vt_data == NULL);
+	assert(s->vt_data_size == 0);
+	assert(s->reset == NULL);
+	if(s->vt != &vtable_dyn) return 0;
+	if(vt->vtdata_size) {
+		s->vt_data = SYS_malloc(unsigned char, vt->vtdata_size);
+		if(!s->vt_data) return 0;
+	}
+	SYS_zero_n(unsigned char, s->vt_data, vt->vtdata_size);
+	s->vt = vt;
+	s->vt_data_size = vt->vtdata_size;
+	if(!vt->on_create(s)) {
+		SYS_free(void, s->vt_data);
+		s->vt = &vtable_dyn;
+		s->vt_data_size = 0;
+		return 0;
+	}
+	return 1;
+}
+
 /*******************/
 /* nal.h functions */
 /*******************/
 
 NAL_SELECTOR *NAL_SELECTOR_new(void)
 {
-	const NAL_SELECTOR_vtable *vt = NAL_SELECTOR_VT_DEFAULT();
-	if(!vt) return NULL;
-	return nal_selector_new(vt);
+	return nal_selector_new(&vtable_dyn);
 }
 
 void NAL_SELECTOR_free(NAL_SELECTOR *sel)

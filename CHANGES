@@ -19,6 +19,14 @@ Current version: 1.5.x
 Changes between 1.5.0 and 1.5.x
 -------------------------------
 
+  *) Add a new "dynamic" selector type as the default that allows a listener
+     or connection implementation to set it on-the-fly to the kind of selector
+     it requires. This is (of course) only a first-use initialisation, after
+     which the selector is fixed, but obviates the need for using other
+     mechanisms, such as environment variables, to specify at run-time which
+     I/O model is required for the protocols that will be in use.
+     [Geoff Thorpe]
+ 
   *) Add "pre_close" handlers to the libnal vtable types to allow
      implementations to perform actions prior to being destroyed or reset.
      Their existing "on_destroy" and "on_reset" handlers are invoked during

@@ -95,9 +95,6 @@ int nal_sockaddr_chmod(const nal_sockaddr *addr, const char *octal_string);
 /* NAL_SELECTOR */
 /****************/
 
-const NAL_SELECTOR_vtable *sel_fdselect(void);
-const NAL_SELECTOR_vtable *sel_fdpoll(void);
-
 /* This symbol controls what implementation NAL_SELECTOR_new() uses. Note, that
  * NAL_SELECTOR_reset() will revert to the vtable it was initially created with
  * (this makes more sense when alternative constructors are made for other

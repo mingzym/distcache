@@ -108,12 +108,12 @@ struct st_NAL_LISTENER_vtable {
 	const NAL_CONNECTION_vtable *(*pre_accept)(NAL_LISTENER *);
 	int (*finished)(const NAL_LISTENER *);
 	/* Called before/after (un)binding (from/)to a selector */
-	int (*pre_selector_add)(NAL_LISTENER *, const NAL_SELECTOR *);
+	int (*pre_selector_add)(NAL_LISTENER *, NAL_SELECTOR *);
 	int (*post_selector_add)(NAL_LISTENER *, NAL_SELECTOR *,
 				NAL_SELECTOR_TOKEN);
 	void (*pre_selector_del)(NAL_LISTENER *, NAL_SELECTOR *,
 				NAL_SELECTOR_TOKEN);
-	void (*post_selector_del)(NAL_LISTENER *, const NAL_SELECTOR *);
+	void (*post_selector_del)(NAL_LISTENER *, NAL_SELECTOR *);
 	/* Called before/after a select */
 	void (*pre_select)(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
 	void (*post_select)(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
@@ -155,12 +155,12 @@ struct st_NAL_CONNECTION_vtable {
 	NAL_BUFFER *(*get_send)(const NAL_CONNECTION *);
 	int (*is_established)(const NAL_CONNECTION *);
 	/* Called before/after (un)binding (from/)to a selector */
-	int (*pre_selector_add)(NAL_CONNECTION *, const NAL_SELECTOR *);
+	int (*pre_selector_add)(NAL_CONNECTION *, NAL_SELECTOR *);
 	int (*post_selector_add)(NAL_CONNECTION *, NAL_SELECTOR *,
 				NAL_SELECTOR_TOKEN);
 	void (*pre_selector_del)(NAL_CONNECTION *, NAL_SELECTOR *,
 				NAL_SELECTOR_TOKEN);
-	void (*post_selector_del)(NAL_CONNECTION *, const NAL_SELECTOR *);
+	void (*post_selector_del)(NAL_CONNECTION *, NAL_SELECTOR *);
 	/* Called before/after a 'select', depending on the selector model.
 	 * 'pre_select' allows the connection to register specific events if
 	 * appropriate (eg. this would apply for a select/poll-style selector
@@ -198,10 +198,16 @@ void NAL_ADDRESS_vtable_link(NAL_ADDRESS_vtable *vt);
 /* NAL_SELECTOR */
 /****************/
 
+/* vtables */
+const NAL_SELECTOR_vtable *sel_fdselect(void);
+const NAL_SELECTOR_vtable *sel_fdpoll(void);
+
 /* The "type" of a selector */
 typedef enum {
 	/* Invalid/uninitialised place-holder */
 	NAL_SELECTOR_TYPE_ERROR = 0,
+	/* Intermediaire, listeners/conns can set it on first-use */
+	NAL_SELECTOR_TYPE_DYNAMIC,
 	/* Standard BSD(4.4) select */
 	NAL_SELECTOR_TYPE_FDSELECT,
 	/* poll(2) */
@@ -246,5 +252,6 @@ void *nal_selector_get_vtdata(const NAL_SELECTOR *);
 /* used from inside NAL_CONNECTION/NAL_LISTENER implementations */
 NAL_SELECTOR_TYPE nal_selector_get_type(const NAL_SELECTOR *);
 int nal_selector_ctrl(NAL_SELECTOR *, int, void *);
+int nal_selector_dynamic_set(NAL_SELECTOR *, const NAL_SELECTOR_vtable *);
 
 #endif /* !defined(HEADER_LIBNAL_NAL_DEVEL_H) */

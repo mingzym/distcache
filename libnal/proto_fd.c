@@ -66,8 +66,8 @@ static void list_on_destroy(NAL_LISTENER *l);
 static int list_listen(NAL_LISTENER *l, const NAL_ADDRESS *addr);
 static const NAL_CONNECTION_vtable *list_pre_accept(NAL_LISTENER *l);
 static int list_finished(const NAL_LISTENER *l);
-static int list_pre_selector_add(NAL_LISTENER *, const NAL_SELECTOR *);
-static void list_post_selector_del(NAL_LISTENER *, const NAL_SELECTOR *);
+static int list_pre_selector_add(NAL_LISTENER *, NAL_SELECTOR *);
+static void list_post_selector_del(NAL_LISTENER *, NAL_SELECTOR *);
 static void list_pre_select(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
 static void list_post_select(NAL_LISTENER *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
 /* This is the type we attach to our listeners */
@@ -106,8 +106,8 @@ static int conn_set_size(NAL_CONNECTION *conn, unsigned int size);
 static NAL_BUFFER *conn_get_read(const NAL_CONNECTION *conn);
 static NAL_BUFFER *conn_get_send(const NAL_CONNECTION *conn);
 static int conn_is_established(const NAL_CONNECTION *conn);
-static int conn_pre_selector_add(NAL_CONNECTION *, const NAL_SELECTOR *);
-static void conn_post_selector_del(NAL_CONNECTION *, const NAL_SELECTOR *);
+static int conn_pre_selector_add(NAL_CONNECTION *, NAL_SELECTOR *);
+static void conn_post_selector_del(NAL_CONNECTION *, NAL_SELECTOR *);
 static void conn_pre_select(NAL_CONNECTION *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
 static void conn_post_select(NAL_CONNECTION *, NAL_SELECTOR *, NAL_SELECTOR_TOKEN);
 static int conn_do_io(NAL_CONNECTION *);
@@ -268,19 +268,21 @@ static int list_finished(const NAL_LISTENER *l)
 	return ctx->accepted;
 }
 
-static int list_pre_selector_add(NAL_LISTENER *l, const NAL_SELECTOR *sel)
+static int list_pre_selector_add(NAL_LISTENER *l, NAL_SELECTOR *sel)
 {
 	switch(nal_selector_get_type(sel)) {
 	case NAL_SELECTOR_TYPE_FDSELECT:
 	case NAL_SELECTOR_TYPE_FDPOLL:
 		return 1;
+	case NAL_SELECTOR_TYPE_DYNAMIC:
+		return nal_selector_dynamic_set(sel, NAL_SELECTOR_VT_DEFAULT());
 	default:
 		break;
 	}
 	return 0;
 }
 
-static void list_post_selector_del(NAL_LISTENER *l, const NAL_SELECTOR *sel)
+static void list_post_selector_del(NAL_LISTENER *l, NAL_SELECTOR *sel)
 {
 	/* nop */
 }
@@ -412,21 +414,21 @@ static int conn_is_established(const NAL_CONNECTION *conn)
 	return 1;
 }
 
-static int conn_pre_selector_add(NAL_CONNECTION *conn,
-				const NAL_SELECTOR *sel)
+static int conn_pre_selector_add(NAL_CONNECTION *conn, NAL_SELECTOR *sel)
 {
 	switch(nal_selector_get_type(sel)) {
 	case NAL_SELECTOR_TYPE_FDSELECT:
 	case NAL_SELECTOR_TYPE_FDPOLL:
 		return 1;
+	case NAL_SELECTOR_TYPE_DYNAMIC:
+		return nal_selector_dynamic_set(sel, NAL_SELECTOR_VT_DEFAULT());
 	default:
 		break;
 	}
 	return 0;
 }
 
-static void conn_post_selector_del(NAL_CONNECTION *conn,
-				const NAL_SELECTOR *sel)
+static void conn_post_selector_del(NAL_CONNECTION *conn, NAL_SELECTOR *sel)
 {
 	conn_ctx *ctx = nal_connection_get_vtdata(conn);
 	ctx->flags = 0;
