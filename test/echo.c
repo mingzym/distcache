@@ -80,10 +80,9 @@ int main(int argc, char *argv[])
 	NAL_CONNECTION *conn[MAX_CONNS];
 	const char *str_addr = DEF_SERVER_ADDRESS;
 	unsigned int num_conns = MAX_CONNS;
-	NAL_ADDRESS *addr = NAL_ADDRESS_new();
-	NAL_LISTENER *listener = NAL_LISTENER_new();
-	NAL_SELECTOR *sel = NAL_SELECTOR_new();
-	if(!addr || !listener || !sel) abort();
+	NAL_ADDRESS *addr;
+	NAL_LISTENER *listener;
+	NAL_SELECTOR *sel;
 	ARG_INC;
 	while(argc) {
 		if(strcmp(*argv, "-accept") == 0) {
@@ -102,6 +101,10 @@ int main(int argc, char *argv[])
 			return err_unknown(*argv);
 		ARG_INC;
 	}
+	addr = NAL_ADDRESS_new();
+	listener = NAL_LISTENER_new();
+	sel = NAL_SELECTOR_new();
+	if(!addr || !listener || !sel) abort();
 	while(loop < num_conns)
 		if((conn[loop++] = NAL_CONNECTION_new()) == NULL)
 			abort();
