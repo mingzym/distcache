@@ -187,9 +187,11 @@
 do { \
 	struct timeval *_tmp_res = (res); \
 	const struct timeval *_tmp_I = (I); \
-	unsigned long _tmp_carry = _tmp_I->tv_usec + ((msecs) * 1000); \
-	_tmp_res->tv_usec = _tmp_carry % 1000000; \
-	_tmp_carry /= 1000000; \
+	/* This loses sub-millisecond accuracy, to avoid 32-bit wraparound when
+	 * adding >4294 secs. */ \
+	unsigned long _tmp_carry = _tmp_I->tv_usec / 1000 + (msecs); \
+	_tmp_res->tv_usec = (_tmp_carry % 1000) * 1000; \
+	_tmp_carry /= 1000; \
 	_tmp_res->tv_sec = _tmp_I->tv_sec + _tmp_carry; \
 } while(0)
 #ifdef WIN32

@@ -19,7 +19,10 @@ Current version: 1.5.x
 Changes between 1.5.1 and 1.5.x
 -------------------------------
 
-  *)
+  *) When performing calculations for expiry periods greater than 4294 seconds,
+     we should avoid calculating microseconds directly as we cause wrap-around
+     with 32-bit types.
+     [Priit Randla, priit dot randla at seb dot ee]
 
 Changes between 1.5.0 and 1.5.1
 -------------------------------
