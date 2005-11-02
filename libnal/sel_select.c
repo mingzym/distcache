@@ -65,8 +65,8 @@ typedef struct st_sel_ctx {
 	unsigned int obj_used, obj_size;
 } sel_ctx;
 #define OBJ_TABLE_START	32
-#define IDX2TOKEN(idx) (NAL_SELECTOR_TOKEN)((unsigned int)idx | 0x8000)
-#define TOKEN2IDX(tok) ((unsigned int)tok & 0x7FFF)
+#define IDX2TOKEN(idx) (NAL_SELECTOR_TOKEN)((unsigned long)idx | 0x8000)
+#define TOKEN2IDX(tok) (unsigned int)((unsigned long)tok & 0x7FFF)
 
 /* Helper functions for the object table */
 static void obj_table_zilch(sel_obj *items, unsigned int num)
