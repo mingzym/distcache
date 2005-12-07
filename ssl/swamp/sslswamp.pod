@@ -32,6 +32,101 @@ To connect to an SSL/TLS server on a unix domain socket, the syntax is;
 
     # swamp -connect UNIX:/path/to/some/socket
 
+=item B<-CAfile> path
+
+Specifies a PEM file containing trusted CA certificates.
+
+=item B<-cert> path
+
+Specifies a PEM file containing the client certificate and private key. This will
+permit swamp to perform client-authentication if the server requests it (and if
+the client certificate is signed by a CA the server approves of).
+
+=item B<-sslmeth> method
+
+Specifies an SSL/TLS version, either 'sslv2', 'sslv3', or 'tlsv1'. The default
+is to interoperate with the version used by the server.
+
+=item B<-num> num
+
+Specifies the number of simultaneous connections to use. Default is 5.
+
+=item B<-count> num
+
+Specifies the number of requests to perform before terminating. Default is 0,
+which indicates to continue indefinitely.
+
+=item B<-time> secs
+
+Specifies the number of seconds to run before terminating. Default is 0, which
+indicates to continue indefinitely.
+
+=item B<-request> string
+
+Specifies a clear-text string to send to the server once the SSL/TLS protocol as
+negotiated a session. The default is "GET /\r\n".
+
+=item B<-expect> num
+
+Specifies the amount of clear-text output to expect from the server through the
+negotiated session. The default is 20 bytes.
+
+=item B<-session> string
+
+Specifies a pattern of 's' (new session) and 'r' (resume) to allow swamp to
+test certain combinations of resuming cached sessions. Eg. 'srrsrrr' causes
+swamp to attempt to resume a previous SSL/TLS session 5 times out of 7. If
+B<-num> is used to specify multiple simultaneous connections, each one will
+independently iterate over the same pattern. NB, if a server is unable to
+resumbe an SSL/TLS session, the connection results in a full handshake anyway.
+Use of B<-update> should indicate how many resume-attempts were honoured.
+
+The default is 's', ie. all new sessions.
+
+=item B<-update> num
+
+Specifies the number of seconds between an updated line of statistics. Default
+is 0, which indicates to produce no updates.
+
+=item B<-cipher> string
+
+Specifies the list of SSL/TLS cipher-suites to perform, see openssl documentation
+for more information. The default is to use OpenSSL defaults.
+
+=item B<-csv> path
+
+Specifies a file to produce CSV statistics each second. Default is to produce
+no CSV output.
+
+=item B<-session_ids>
+
+Display all SSL/TLS session IDs negotiated. This produces a lot of output, and
+is intended for diagnostics only (eg. when session-caching is not working - this
+can be used together with B<-session>).
+
+=item B<-engine> id
+
+Specifies an ENGINE id to initialise and use.
+
+=item B<-distribute> str
+
+If multiple B<-connect> switches are specified, each destination address is associated
+with an index from B<1> to B<n>. Use of the B<-distribute> switch allows a connection
+context (ie. B<-num> specifies how many) to iterate requests across a certain pattern
+of destination addresses. Eg. "1,2,3,2,3,3" would target 3 addresses, with the second
+and third addresses getting progressively heavier weighting.
+
+Note, within a given connection context, successive connections iterate across
+any B<-destribute> pattern for destination addresses at the same time as it iterates
+across any B<-session> pattern for session-resumes. By choosing both patterns
+carefully, it is possible to test whether a server cluster supports a shared
+session cache (eg. using I<distcache>).
+
+=item B<-nologo>
+
+This disables the banner output, mostly useful when grepping swamp output from a
+script or some such magic.
+
 =item B<-h>, B<-help>, B<-?>
 
 Any of these flags will cause B<swamp> to display a brief usage summary to
@@ -42,8 +137,8 @@ the console and exit cleanly. Any other flags are ignored.
 
 =head1 BUGS
 
-This man page is utterly incomplete.
-
+Someone should find time to filter down and integrate some of the extra cruft
+at; F<http://www.geoffthorpe.net/crypto/swamp/swamp-1.1.0/README>
 
 =head1 SEE ALSO
 
@@ -61,6 +156,11 @@ Overview of the distcache architecture, of which swamp is a component.
 =item F<http://www.distcache.org/>
 
 Distcache home page.
+
+=item F<http://www.geoffthorpe.net/crypto/swamp/swamp-1.1.0/README>
+
+Older swamp-1.1.0 documentation, but contains more info (some of which may be
+stale).
 
 =back
 
