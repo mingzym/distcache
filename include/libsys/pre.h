@@ -86,6 +86,9 @@
 #include <ctype.h>
 #endif
 
+#if defined(HAVE_LIMITS_H)
+#include <limits.h>
+#endif
 #if defined(HAVE_DIRENT_H)
 #include <dirent.h>
 #endif

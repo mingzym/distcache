@@ -27,7 +27,7 @@ AM_PROG_LIBTOOL
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([fcntl.h netdb.h time.h unistd.h pwd.h grp.h \
+AC_CHECK_HEADERS([fcntl.h netdb.h time.h unistd.h pwd.h grp.h limits.h \
 		  netinet/in.h netinet/tcp.h \
 		  sys/poll.h sys/resource.h sys/socket.h sys/stat.h sys/time.h \
 		  sys/types.h sys/un.h])
