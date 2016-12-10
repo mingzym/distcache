@@ -1,5 +1,3 @@
-INCLUDES		= -I$(top_srcdir)/../include -I$(top_builddir)
-
 pemdir			= $(datadir)/swamp
 pem_DATA		= CA.pem A-client.pem
 EXTRA_DIST		= $(pem_DATA)
@@ -7,9 +5,10 @@ EXTRA_DIST		= $(pem_DATA)
 bin_PROGRAMS		= sslswamp
 sslswamp_SOURCES	= swamp.c text_msg.c utils.c swamp_conf.c \
 		 	  dist_pattern.c serv_iterator.c swamp.h
-sslswamp_CFLAGS		= -DCACERT_PATH=\"$(pemdir)/CA.pem\"
-sslswamp_LDADD		= $(top_builddir)/../libsys/libsys.la \
-			  $(top_builddir)/../libnal/libnal.la
+sslswamp_CFLAGS		= -I$(top_srcdir)/include -I$(top_builddir) @OPENSSL_INCLUDES@ -DCACERT_PATH=\"$(pemdir)/CA.pem\"
+sslswamp_LDFLAGS	= @OPENSSL_LDFLAGS@
+sslswamp_LDADD 		= @OPENSSL_LIBS@ $(top_builddir)/libsys/libsys.la \
+			  $(top_builddir)/libnal/libnal.la
 
 sslswamp_manpagelist	= sslswamp.1
 sslswamp_podlist	= sslswamp.pod

@@ -1,4 +1,4 @@
-INCLUDES		= -I$(top_srcdir)/include -I$(top_builddir)
+AM_CPPFLAGS		= -I$(top_srcdir)/include -I$(top_builddir)
 
 lib_LTLIBRARIES		= libdistcache.la
 libdistcache_la_SOURCES = dc_client.c dc_enc.c

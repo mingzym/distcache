@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(distcache, 1.5.2dev, distcache-users@lists.sourceforge.net)
+AC_INIT([distcache],[1.5.2dev],[distcache-users@lists.sourceforge.net])
 
 WANT_AUTOCONF=2.5
 WANT_AUTOMAKE=1.8
@@ -9,7 +9,10 @@ echo "---------------------------------------------"
 echo "Configuring Distcache libraries and utilities"
 echo "---------------------------------------------"
 
-AM_INIT_AUTOMAKE(distcache, 1.5.2dev)
+AC_CONFIG_AUX_DIR([build/aux])
+AC_CONFIG_MACRO_DIR([build])
+
+AM_INIT_AUTOMAKE([-Wall -Werror foreign no-installinfo no-installman subdir-objects 1.5.2])
 
 AC_CONFIG_SRCDIR(sessserver/server.c)
 AM_CONFIG_HEADER(config.h)
@@ -21,7 +24,8 @@ REMOVE_WERROR
 AC_PROG_CC
 AC_PROG_MAKE_SET
 AC_DISABLE_SHARED
-AM_PROG_LIBTOOL
+AM_PROG_AR
+LT_INIT
 
 # Checks for header files.
 AC_HEADER_DIRENT
@@ -49,7 +53,7 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gettimeofday getrusage memmove memset select \
-		socket strstr strtoul daemon getrusage setuid getpwnam \
+		socket strstr strtol strtoul daemon getrusage setuid getpwnam \
 		getgrnam chown chmod getsockname poll])
 
 # This makes sure "@VERSION@" can be used in Makefile.am's for things like
@@ -58,6 +62,7 @@ AC_CHECK_FUNCS([gethostbyname gettimeofday getrusage memmove memset select \
 VERSION=$PACKAGE_VERSION
 AC_SUBST(VERSION)
 
+AX_CHECK_OPENSSL
 # Declare all the SSL-related stuff
 TOP_LEVEL_SSL
 
@@ -74,6 +79,9 @@ AC_CONFIG_FILES([Makefile
 		 snoop/Makefile
 		 test/Makefile
 		 util/Makefile
+		 ssl/Makefile
+		 ssl/swamp/Makefile
+		 ssl/libnalssl/Makefile
 		 doc/Makefile
 		 include/Makefile
 		 include/distcache/Makefile

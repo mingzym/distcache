@@ -1,4 +1,4 @@
-INCLUDES		= -I$(top_srcdir)/include -I$(top_builddir)
+AM_CPPFLAGS		= -I$(top_srcdir)/include -I$(top_builddir)
 
 bin_PROGRAMS		= nal_echo nal_ping nal_hose nal_pong dc_test nal_test nal_proxy
 dc_test_SOURCES		= dc_test.c

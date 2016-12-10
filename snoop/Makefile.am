@@ -1,4 +1,4 @@
-INCLUDES		= -I$(top_srcdir)/include -I$(top_builddir)
+AM_CPPFLAGS		= -I$(top_srcdir)/include -I$(top_builddir)
 
 bin_PROGRAMS	 	= dc_snoop
 dc_snoop_SOURCES 	= snoop.c

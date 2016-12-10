@@ -1,4 +1,4 @@
-INCLUDES		= -I$(top_srcdir)/include -I$(top_builddir)
+AM_CPPFLAGS		= -I$(top_srcdir)/include -I$(top_builddir)
 
 lib_LTLIBRARIES		= libnal.la
 libnal_la_SOURCES	= nal_internal.h \

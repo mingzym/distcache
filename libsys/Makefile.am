@@ -1,4 +1,4 @@
-INCLUDES		= -I$(top_srcdir)/include -I$(top_builddir)
+AM_CPPFLAGS		= -I$(top_srcdir)/include -I$(top_builddir)
 
 # libsys is not installed, it's for internal use only
 noinst_LTLIBRARIES	= libsys.la

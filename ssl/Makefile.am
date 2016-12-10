@@ -1,2 +1,4 @@
-SUBDIRS		= libnalssl @swamp_dir@
+AM_CFLAGS = @OPENSSL_INCLUDES@
+AM_LDFLAGS = @OPENSSL_LDFLAGS@
+SUBDIRS		= libnalssl swamp
 
