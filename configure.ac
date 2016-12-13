@@ -12,7 +12,7 @@ echo "---------------------------------------------"
 AC_CONFIG_AUX_DIR([build/aux])
 AC_CONFIG_MACRO_DIR([build])
 
-AM_INIT_AUTOMAKE([-Wall -Werror foreign no-installinfo no-installman subdir-objects 1.5.2])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign no-installinfo subdir-objects 1.5.2])
 
 AC_CONFIG_SRCDIR(sessserver/server.c)
 AM_CONFIG_HEADER(include/config.h)

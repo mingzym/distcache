@@ -61,3 +61,6 @@ test/nal_proxy
 test/nal_test
 util/piper
 
+doc/*.?
+ssl/swamp/sslswamp.1
+

@@ -12,25 +12,17 @@ sslswamp_LDADD 		= @OPENSSL_LIBS@ $(top_builddir)/libsys/libsys.la \
 
 sslswamp_manpagelist	= sslswamp.1
 sslswamp_podlist	= sslswamp.pod
-# FIXME: Disabling HTML builds for the same reason as in ../../doc/Makefile.am
-#swamp_htmllist		= sslswamp.html
-#
-#EXTRA_DIST		+= $(sslswamp_manpagelist) $(sslswamp_htmllist) $(sslswamp_podlist)
 EXTRA_DIST		+= $(sslswamp_manpagelist) $(sslswamp_podlist)
 
-CLEANFILES		= *.1 *.html
+CLEANFILES		= *.1
 
 man_MANS		= $(sslswamp_manpagelist)
 
 docdir			= $(datadir)/doc/sslswamp
-#doc_DATA		= $(sslswamp_htmllist)
 
-SUFFIXES		= .pod .1 .html
+SUFFIXES		= .pod .1
 
 .pod.1:
 	pod2man --section=1 --release=@VERSION@ --center=distcache --date=`date +%Y.%m.%d` \
 	$< $@
 
-#.pod.html:
-#	echo "FIXME" && exit 1
-#
