@@ -1,4 +1,8 @@
 AM_CFLAGS = @OPENSSL_INCLUDES@
 AM_LDFLAGS = @OPENSSL_LDFLAGS@
-SUBDIRS		= libnalssl swamp
 
+if COND_SWAMP
+  MAYBE_SWAMP = swamp
+endif
+
+SUBDIRS		= libnalssl $(MAYBE_SWAMP)
