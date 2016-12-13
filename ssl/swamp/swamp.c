@@ -75,7 +75,7 @@ static SSL_CTX *ossl_setup_ssl_ctx(const swamp_config *config)
 	RSA *rsa = NULL;
 	SSL_CTX *ctx = NULL;
 	const char **paths;
-	SSL_METHOD *sslmethod = NULL;
+	const SSL_METHOD *sslmethod = NULL;
 #ifdef HAVE_ENGINE
 	ENGINE *e = NULL;
 #endif

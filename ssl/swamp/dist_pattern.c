@@ -44,7 +44,7 @@ struct st_dist_pattern {
 	unsigned int num;
 	unsigned int idx[MAX_DISTRIBUTE_PATTERNS];
 	unsigned int period;
-	unsigned int references;
+	int references;
 	unsigned int start_idx;
 };
 
