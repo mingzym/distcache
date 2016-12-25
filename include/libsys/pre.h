@@ -159,5 +159,11 @@
 #define ULONG_MAX ((unsigned long)-1)
 #endif /* !defined(ULONG_MAX) */
 
+/* daemon is deprecated on macOS */
+#ifdef __APPLE__
+#undef HAVE_DAEMON
+#undef daemon
+#endif
+
 #endif /* !defined(HEADER_LIBSYS_PRE_H) */
 
